@@ -1,0 +1,25 @@
+# Read about fixtures at https://api.rubyonrails.org/classes/ActiveRecord/FixtureSet.html
+
+one:
+  shop: one
+  shopify_product_id: 
+  title: MyString
+  description: MyText
+  handle: MyString
+  price: 9.99
+  vendor: MyString
+  image_url: MyString
+  status: MyString
+  avaliability: 
+
+two:
+  shop: two
+  shopify_product_id: 
+  title: MyString
+  description: MyText
+  handle: MyString
+  price: 9.99
+  vendor: MyString
+  image_url: MyString
+  status: MyString
+  avaliability: 

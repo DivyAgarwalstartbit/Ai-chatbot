@@ -31,6 +31,8 @@ gem "solid_cable"
 gem "shopify_app"
 gem "shopify_api"
 gem "dotenv-rails", groups: [ :development, :test ]
+gem "pgvector"
+gem "neighbor"
 
 #-------------------------------------------------------------------------------------------------
 

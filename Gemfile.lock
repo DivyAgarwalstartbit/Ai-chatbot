@@ -183,6 +183,8 @@ GEM
     msgpack (1.8.1)
     multi_xml (0.9.1)
       bigdecimal (>= 3.1, < 5)
+    neighbor (0.6.0)
+      activerecord (>= 7.1)
     net-imap (0.6.4)
       date
       net-protocol
@@ -210,6 +212,7 @@ GEM
       ast (~> 2.4.1)
       racc
     pg (1.6.3-x86_64-linux)
+    pgvector (0.3.3)
     pp (0.6.3)
       prettyprint
     prettyprint (0.2.0)
@@ -409,7 +412,9 @@ DEPENDENCIES
   importmap-rails
   jbuilder
   kamal
+  neighbor
   pg (~> 1.1)
+  pgvector
   propshaft
   puma (>= 5.0)
   rails (~> 8.1.3)

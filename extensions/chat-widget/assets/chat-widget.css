@@ -1,0 +1,438 @@
+* {
+    box-sizing: border-box;
+}
+
+
+.ai-floating-btn {
+    position: fixed !important;
+    right: 25px !important;
+    bottom: 25px !important;
+
+    width: 70px !important;
+    height: 70px !important;
+
+    border-radius: 50% !important;
+    border: none !important;
+
+    background: #ff6500 !important;
+    color: white !important;
+
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+
+    font-size: 28px !important;
+
+    z-index: 2147483647 !important;
+
+    cursor: pointer;
+}
+
+.badge {
+
+    position: absolute;
+
+    right: 5px;
+    top: 0;
+
+    background: red;
+
+    font-size: 14px;
+
+    border-radius: 50%;
+
+    padding: 5px 9px;
+
+}
+
+
+
+
+
+
+.ai-widget,
+.chat-window {
+
+    position: fixed;
+
+    right: 30px;
+
+    bottom: 110px;
+
+    width: 390px;
+
+    height: 650px;
+
+    background: white;
+
+    border-radius: 25px;
+
+    overflow: hidden;
+
+    display: none;
+
+    box-shadow:
+        0 20px 50px #0002;
+
+    font-family:
+        Arial,
+        sans-serif;
+
+    z-index: 99999;
+
+}
+
+
+.show {
+
+    display: block;
+
+}
+
+
+
+/* HOME */
+
+
+.orange-section {
+
+    height: 230px;
+
+    background:
+        linear-gradient(135deg, #ff8a00, #ff5200);
+
+    color: white;
+
+    padding: 35px;
+
+}
+
+
+.close-btn {
+
+    position: absolute;
+
+    right: 20px;
+
+    background: white;
+
+    border: none;
+
+    width: 35px;
+    height: 35px;
+
+    border-radius: 50%;
+
+    font-size: 22px;
+
+}
+
+
+.orange-section h1 {
+
+    font-size: 36px;
+
+    margin-bottom: 15px;
+
+}
+
+
+
+.reply-box {
+
+    margin-top: 25px;
+
+    background: white;
+
+    color: #222;
+
+    height: 60px;
+
+    border-radius: 12px;
+
+    display: flex;
+
+    align-items: center;
+
+    gap: 10px;
+
+    padding: 10px;
+
+}
+
+
+
+.avatar {
+
+    width: 42px;
+
+    height: 42px;
+
+    border-radius: 50%;
+
+    background: #ff7a00;
+
+    color: white;
+
+    display: flex;
+
+    align-items: center;
+
+    justify-content: center;
+
+}
+
+
+
+.online-dot {
+
+    width: 8px;
+
+    height: 8px;
+
+    background: #27c93f;
+
+    border-radius: 50%;
+
+}
+
+
+
+
+.help-section {
+
+    padding: 25px;
+
+    background: #f7f7f7;
+
+    height: 420px;
+
+}
+
+
+
+.card,
+.faq-card {
+
+    background: white;
+
+    border-radius: 15px;
+
+    padding: 20px;
+
+    margin-bottom: 15px;
+
+    box-shadow:
+        0 5px 20px #0001;
+
+}
+
+
+
+.flex {
+
+    display: flex;
+
+    justify-content: space-between;
+
+}
+
+
+
+.faq-card input {
+
+    width: 100%;
+
+    padding: 12px;
+
+    border-radius: 8px;
+
+    border: 1px solid #ddd;
+
+}
+
+
+.faq-card li {
+
+    list-style: none;
+
+    margin: 15px 0;
+
+}
+
+
+.faq-card a {
+
+    color: #ff5a00;
+
+}
+
+
+
+.chat-start {
+
+    width: 100%;
+
+    height: 55px;
+
+    border: none;
+
+    border-radius: 14px;
+
+    background:
+        linear-gradient(135deg, #ff8a00, #ff5200);
+
+    color: white;
+
+    font-size: 18px;
+
+}
+
+
+
+
+
+/* CHAT */
+
+
+.chat-window header {
+
+    height: 90px;
+
+    background:
+        linear-gradient(135deg, #ff8a00, #ff5200);
+
+    display: flex;
+
+    align-items: center;
+
+    gap: 15px;
+
+    padding: 20px;
+
+    color: white;
+
+}
+
+
+
+.messages {
+
+    height: 470px;
+
+    padding: 25px;
+
+    overflow: auto;
+
+}
+
+
+
+.bot,
+.user {
+
+    padding: 15px;
+
+    border-radius: 15px;
+
+    margin-bottom: 20px;
+
+    max-width: 75%;
+
+}
+
+
+
+.bot {
+
+    background: #faf0e8;
+
+}
+
+
+.user {
+
+    background: #ff5a00;
+
+    color: white;
+
+    margin-left: auto;
+
+}
+
+
+
+
+.input-area {
+
+    height: 70px;
+
+    display: flex;
+
+    padding: 10px;
+
+    gap: 10px;
+
+}
+
+
+.input-area input {
+
+    flex: 1;
+
+    border-radius: 25px;
+
+    border: 1px solid #ddd;
+
+    padding: 15px;
+
+}
+
+
+
+.input-area button {
+
+    width: 50px;
+
+    border-radius: 50%;
+
+    border: none;
+
+    background: #ff5a00;
+
+    color: white;
+
+}
+
+
+
+.powered {
+
+    text-align: center;
+
+    color: #888;
+
+    font-size: 13px;
+
+}
+
+
+
+
+
+
+@media(max-width:480px) {
+
+    .ai-widget,
+    .chat-window {
+
+        width: 95%;
+
+        right: 2.5%;
+
+        height: 85vh;
+
+    }
+
+
+}

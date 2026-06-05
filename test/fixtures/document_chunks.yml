@@ -1,0 +1,11 @@
+# Read about fixtures at https://api.rubyonrails.org/classes/ActiveRecord/FixtureSet.html
+
+one:
+  shop: one
+  training_document: one
+  content: MyText
+
+two:
+  shop: two
+  training_document: two
+  content: MyText

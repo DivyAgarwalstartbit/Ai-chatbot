@@ -15,7 +15,10 @@ ShopifyApp.configure do |config|
     { topic: "app/uninstalled", address: "webhooks/app_uninstalled" },
     { topic: "customers/data_request", address: "webhooks/customers_data_request" },
     { topic: "customers/redact", address: "webhooks/customers_redact" },
-    { topic: "shop/redact", address: "webhooks/shop_redact" }
+    { topic: "shop/redact", address: "webhooks/shop_redact" },
+    { topic: "products/create", address: "webhooks/products_create" },
+    { topic: "products/update", address: "webhooks/products_update" },
+    { topic: "products/delete", address: "webhooks/products_delete" }
   ]
 
   config.api_key = ENV.fetch("SHOPIFY_API_KEY", "").presence
