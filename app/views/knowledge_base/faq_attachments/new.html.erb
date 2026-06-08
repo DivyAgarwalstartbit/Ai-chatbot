@@ -1,0 +1,7 @@
+<%= turbo_frame_tag "faq_attachment_#{@faq.id}" do %>
+  <%= render "upload_form",
+        faq: @faq,
+        frame_id: "faq_attachment_#{@faq.id}",
+        shop_origin: @shop_origin,
+        host: @host %>
+<% end %>

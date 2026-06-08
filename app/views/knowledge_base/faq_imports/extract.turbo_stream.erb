@@ -1,0 +1,6 @@
+<%# Replace the import panel with the preview UI %>
+<%= turbo_stream.replace "faq_import_panel" do %>
+  <%= turbo_frame_tag "faq_import_panel" do %>
+    <%= render "preview", faqs: @faqs, shop_origin: @shop_origin, host: @host %>
+  <% end %>
+<% end %>

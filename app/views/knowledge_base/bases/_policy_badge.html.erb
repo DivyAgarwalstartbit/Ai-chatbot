@@ -1,0 +1,4 @@
+<% configured = policy_configured?(policy) %>
+<span class="kb-badge <%= configured ? 'kb-badge-success' : 'kb-badge-warning' %>" id="<%= policy_type %>_badge">
+  <%= configured ? "Configured" : "Missing" %>
+</span>

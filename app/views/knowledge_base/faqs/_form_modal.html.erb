@@ -1,0 +1,56 @@
+<%# Locals: shop_origin, host %>
+<s-modal id="faq-form-modal" heading="Add FAQ" size="base" data-faq-modal-target="modal">
+  <div id="faq_form_error" data-faq-modal-target="error"></div>
+
+  <form
+    id="faq_modal_form"
+    action="<%= knowledge_base_faqs_path(shop: shop_origin, host: host, embedded: 1) %>"
+    method="post"
+    data-faq-modal-target="form"
+    data-action="turbo:submit-end->faq-modal#submitEnd"
+    data-turbo="true"
+    data-turbo-stream="true">
+    <%= hidden_field_tag :authenticity_token, form_authenticity_token %>
+    <input type="hidden" name="_method" value="" disabled data-faq-modal-target="method">
+    <input type="hidden" name="training_document[title]" id="faq_modal_title_hidden" data-faq-modal-target="titleHidden">
+    <input type="hidden" name="training_document[content]" id="faq_modal_content_hidden" data-faq-modal-target="contentHidden">
+
+    <s-stack gap="base">
+      <s-text-field
+        id="faq_modal_question_field"
+        label="Question"
+        placeholder="e.g. What is your return window?"
+        autocomplete="off"
+        data-faq-modal-target="questionField"
+      ></s-text-field>
+
+      <s-text-area
+        id="faq_modal_answer_field"
+        label="Answer"
+        placeholder="Provide a clear and helpful answer..."
+        rows="5"
+        autocomplete="off"
+        data-faq-modal-target="answerField"
+      ></s-text-area>
+    </s-stack>
+  </form>
+
+  <s-button
+    slot="secondary-actions"
+    variant="secondary"
+    commandFor="faq-form-modal"
+    command="--hide"
+    data-action="click->faq-modal#close"
+  >
+    Cancel
+  </s-button>
+  <s-button
+    slot="primary-action"
+    variant="primary"
+    icon="save"
+    data-faq-modal-target="submitButton"
+    data-action="click->faq-modal#submit"
+  >
+    Save FAQ
+  </s-button>
+</s-modal>

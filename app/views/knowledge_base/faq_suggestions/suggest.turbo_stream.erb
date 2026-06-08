@@ -1,0 +1,9 @@
+<%# Replace the suggestion panel with the review/preview UI %>
+<%= turbo_stream.replace "faq_suggestion_panel" do %>
+  <%= turbo_frame_tag "faq_suggestion_panel" do %>
+    <%= render "suggestion_preview",
+          suggestions: @suggestions,
+          shop_origin: @shop_origin,
+          host:        @host %>
+  <% end %>
+<% end %>

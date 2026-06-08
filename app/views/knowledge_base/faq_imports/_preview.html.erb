@@ -1,0 +1,111 @@
+<%# Preview panel: merchant reviews, edits, selects, then imports.
+    faqs: Array of { "question" => "...", "answer" => "..." } %>
+<s-box border="base" borderRadius="base" padding="base">
+  <div
+    data-controller="faq-import"
+    data-faq-import-shop-value="<%= shop_origin %>"
+    data-faq-import-host-value="<%= host %>"
+    data-faq-import-reset-url-value="<%= new_knowledge_base_faq_import_path(shop: shop_origin, host: host, embedded: 1) %>"
+  >
+    <%= form_with url: import_knowledge_base_faq_import_path(shop: shop_origin, host: host, embedded: 1),
+                  method: :post,
+                  id: "faq_import_form" do |f| %>
+
+      <s-grid gap="base">
+
+        <%# ── Header ── %>
+        <s-grid gridTemplateColumns="1fr auto" alignItems="start">
+          <s-grid gap="extra-small">
+            <s-heading element="h3">Review Generated FAQs</s-heading>
+            <s-paragraph color="subdued">
+              <strong><%= faqs.size %> FAQ<%= faqs.size == 1 ? "" : "s" %></strong> generated.
+              Select the ones to save, edit any text, then click <strong>Import selected</strong>.
+            </s-paragraph>
+          </s-grid>
+          <s-button
+            variant="tertiary"
+            tone="neutral"
+            href="<%= new_knowledge_base_faq_import_path(shop: shop_origin, host: host, embedded: 1) %>"
+            data-turbo-frame="faq_import_panel">Start over</s-button>
+        </s-grid>
+
+        <%# ── Bulk selection toolbar ── %>
+        <s-stack direction="inline" gap="small-300" alignItems="center">
+          <s-button variant="tertiary" tone="neutral" id="select_all_faqs" type="button">Select all</s-button>
+          <s-button variant="tertiary" tone="neutral" id="deselect_all_faqs" type="button">Deselect all</s-button>
+          <s-badge tone="info" id="faq_selected_count"><%= faqs.size %> selected</s-badge>
+        </s-stack>
+
+        <s-divider></s-divider>
+
+        <%# ── FAQ preview rows ── %>
+        <div id="faq_preview_list">
+          <s-grid gap="base">
+            <% faqs.each_with_index do |faq, idx| %>
+              <%= render "preview_row", faq: faq, idx: idx %>
+            <% end %>
+          </s-grid>
+        </div>
+
+        <s-divider></s-divider>
+
+        <%# ── Error banner placeholder ── %>
+        <div id="faq_import_result_error"></div>
+
+        <%# ── Actions ── %>
+        <s-stack direction="inline" gap="small-200">
+          <s-button
+            variant="primary"
+            id="import_selected_btn"
+            type="button"
+            onclick="submitFaqImport()">Import selected</s-button>
+          <s-button
+            variant="tertiary"
+            tone="neutral"
+            data-action="click->faq-import#close">Cancel</s-button>
+        </s-stack>
+
+      </s-grid>
+    <% end %>
+  </div>
+</s-box>
+
+<script>
+  function updateFaqSelectedCount() {
+    var checkboxes = document.querySelectorAll('.faq-preview-checkbox');
+    var checked = Array.from(checkboxes).filter(function(c){ return c.checked; }).length;
+    var el = document.getElementById('faq_selected_count');
+    if (el) el.textContent = checked + ' selected';
+  }
+
+  document.addEventListener('change', function(e) {
+    if (e.target && e.target.classList.contains('faq-preview-checkbox')) {
+      updateFaqSelectedCount();
+    }
+  });
+
+  var selectAll = document.getElementById('select_all_faqs');
+  if (selectAll) selectAll.addEventListener('click', function() {
+    document.querySelectorAll('.faq-preview-checkbox').forEach(function(c){ c.checked = true; });
+    updateFaqSelectedCount();
+  });
+
+  var deselectAll = document.getElementById('deselect_all_faqs');
+  if (deselectAll) deselectAll.addEventListener('click', function() {
+    document.querySelectorAll('.faq-preview-checkbox').forEach(function(c){ c.checked = false; });
+    updateFaqSelectedCount();
+  });
+
+  function submitFaqImport() {
+    document.querySelectorAll('.faq-preview-row').forEach(function(row) {
+      var idx = row.dataset.idx;
+      var qField  = document.getElementById('faq_q_field_'  + idx);
+      var qHidden = document.getElementById('faq_q_hidden_' + idx);
+      var aField  = document.getElementById('faq_a_field_'  + idx);
+      var aHidden = document.getElementById('faq_a_hidden_' + idx);
+      if (qField  && qHidden)  qHidden.value  = qField.value;
+      if (aField  && aHidden)  aHidden.value  = aField.value;
+    });
+    document.getElementById('faq_import_form').requestSubmit();
+  }
+</script>

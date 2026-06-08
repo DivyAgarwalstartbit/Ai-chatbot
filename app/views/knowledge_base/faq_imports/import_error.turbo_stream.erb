@@ -1,0 +1,8 @@
+<%# Show error on the preview panel without wiping the form %>
+<%= turbo_stream.replace "faq_import_result_error" do %>
+  <div id="faq_import_result_error">
+    <s-banner tone="critical" title="Import failed">
+      <s-paragraph><%= @error %></s-paragraph>
+    </s-banner>
+  </div>
+<% end %>

@@ -1,0 +1,29 @@
+<% if @faq.errors.any? %>
+  <%= turbo_stream.replace "faq_form_error" do %>
+    <div id="faq_form_error" data-faq-modal-target="error">
+      <s-banner tone="critical" title="Could not update FAQ">
+        <% @faq.errors.full_messages.each do |message| %>
+          <s-paragraph><%= message %></s-paragraph>
+        <% end %>
+      </s-banner>
+    </div>
+  <% end %>
+<% else %>
+  <%# Replace the FAQ row with the updated view %>
+  <%= turbo_stream.replace dom_id(@faq) do %>
+    <%= render "faq", faq: @faq, shop_origin: @shop_origin, host: @host %>
+  <% end %>
+
+  <%= turbo_stream.replace "faq_form_error" do %>
+    <div id="faq_form_error" data-faq-modal-target="error"></div>
+  <% end %>
+
+  <script>
+    (function() {
+      var modal = document.getElementById('faq-form-modal');
+      if (modal && typeof modal.hideOverlay === 'function') {
+        modal.hideOverlay();
+      }
+    })();
+  </script>
+<% end %>

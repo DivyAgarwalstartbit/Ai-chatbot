@@ -1,0 +1,9 @@
+<%= turbo_stream.replace "faq_attachment_#{@faq.id}" do %>
+  <%= turbo_frame_tag "faq_attachment_#{@faq.id}" do %>
+    <%= render "knowledge_base/faq_attachments/upload_form",
+          faq: @faq,
+          frame_id: "faq_attachment_#{@faq.id}",
+          shop_origin: @shop_origin,
+          host: @host %>
+  <% end %>
+<% end %>

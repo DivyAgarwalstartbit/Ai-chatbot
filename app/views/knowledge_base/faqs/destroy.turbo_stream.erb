@@ -1,0 +1,18 @@
+<%# Remove the FAQ row %>
+<%= turbo_stream.remove dom_id(@faq) %>
+
+<%# Show empty state if no FAQs remain %>
+<% if @faqs.empty? %>
+  <%= turbo_stream.replace "faq_empty_state" do %>
+    <div id="faq_empty_state">
+      <p style="font-size:12px;color:#8c9196;margin:4px 0;">No FAQs yet. Click <strong>Add FAQ</strong> or <strong>Import FAQs</strong> to get started.</p>
+    </div>
+  <% end %>
+<% end %>
+
+<%# Update count badge %>
+<%= turbo_stream.replace "faq_count_badge" do %>
+  <span class="kb-badge <%= @faqs.any? ? 'kb-badge-info' : 'kb-badge-subdued' %>" id="faq_count_badge">
+    <%= @faqs.size %> <%= @faqs.size == 1 ? "FAQ" : "FAQs" %>
+  </span>
+<% end %>

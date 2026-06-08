@@ -1,0 +1,51 @@
+<%= turbo_frame_tag dom_id(faq) do %>
+  <div class="kb-faq-card" data-controller="faq-card">
+    <div class="kb-faq-card-main">
+      <div class="kb-faq-question-row">
+        <span class="kb-faq-question-icon" aria-hidden="true">?</span>
+        <div class="kb-faq-question"><%= faq.title %></div>
+      </div>
+
+      <div class="kb-faq-answer-preview" data-faq-card-target="answer">
+        <%= faq.content %>
+      </div>
+
+      <% if faq_answer_needs_toggle?(faq) %>
+        <button
+          type="button"
+          class="kb-faq-show-more"
+          data-action="click->faq-card#toggle"
+          data-faq-card-target="toggle"
+          aria-expanded="false">
+          Show more
+        </button>
+      <% end %>
+    </div>
+
+    <div class="kb-faq-card-actions">
+      <s-button
+        variant="tertiary"
+        icon="edit"
+        accessibilityLabel="Edit FAQ"
+        data-action="click->faq-modal#openEdit"
+        data-update-path="<%= knowledge_base_faq_path(faq, shop: shop_origin, host: host, embedded: 1) %>"
+        data-faq-title="<%= faq.title %>"
+        data-faq-content="<%= faq.content %>"
+      >
+        Edit
+      </s-button>
+      <s-button
+        variant="tertiary"
+        tone="critical"
+        icon="delete"
+        accessibilityLabel="Delete FAQ"
+        commandFor="faq-delete-modal"
+        data-faq-id="<%= faq.id %>"
+        data-faq-title="<%= faq.title %>"
+        data-delete-path="<%= knowledge_base_faq_path(faq, shop: shop_origin, host: host, embedded: 1) %>"
+      >
+        Delete
+      </s-button>
+    </div>
+  </div>
+<% end %>

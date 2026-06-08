@@ -1,0 +1,49 @@
+<%# Clear the attachment area and show Upload Document button again %>
+<%= turbo_stream.replace "#{@policy_type}_attachment_area" do %>
+  <%= render "knowledge_base/bases/policy_attachment",
+        policy: @policy,
+        policy_type: @policy_type,
+        shop_origin: @shop_origin,
+        host: @host %>
+<% end %>
+
+<%# Refresh the policy preview so document-sourced empty states are accurate %>
+<%= turbo_stream.replace "#{@policy_type}_preview_area" do %>
+  <%= render "knowledge_base/bases/policy_preview",
+        policy: @policy,
+        policy_type: @policy_type,
+        empty_message: policy_empty_message(@policy_type) %>
+<% end %>
+
+<%# Update the badge from remaining manual/file sources %>
+<%= turbo_stream.replace "#{@policy_type}_badge" do %>
+  <%= render "knowledge_base/bases/policy_badge",
+        policy: @policy,
+        policy_type: @policy_type %>
+<% end %>
+
+<%# Update the compact status and source summary %>
+<%= turbo_stream.replace "#{@policy_type}_summary" do %>
+  <%= render "knowledge_base/bases/policy_summary",
+        policy: @policy,
+        policy_type: @policy_type %>
+<% end %>
+
+<%# Show the actions with Upload button visible %>
+<%= turbo_stream.replace "#{@policy_type}_actions" do %>
+  <%= render "knowledge_base/bases/policy_actions",
+        policy: @policy,
+        policy_type: @policy_type,
+        shop_origin: @shop_origin,
+        host: @host %>
+<% end %>
+
+<%# Reset the file input %>
+<script>
+  (function() {
+    var fileInput = document.getElementById('<%= @policy_type %>_file_input');
+    if (fileInput) {
+      fileInput.value = '';
+    }
+  })();
+</script>

@@ -1,6 +1,33 @@
 Rails.application.routes.draw do
   root :to => 'home#index'
   get '/products', :to => 'products#index'
+
+  namespace :knowledge_base do
+    get '/', to: 'bases#index', as: :root
+    resource :shipping_policy, only: %i[show update] do
+      resource :attachment, only: %i[new create destroy], controller: 'policy_attachments',
+               defaults: { policy_type: 'shipping_policy' }
+      post :sync, controller: 'policy_syncs', defaults: { policy_type: 'shipping_policy' }
+    end
+    resource :return_policy, only: %i[show update] do
+      resource :attachment, only: %i[new create destroy], controller: 'policy_attachments',
+               defaults: { policy_type: 'return_policy' }
+      post :sync, controller: 'policy_syncs', defaults: { policy_type: 'return_policy' }
+    end
+    resources :faqs, only: %i[index new show edit create update destroy] do
+      resource :attachment, only: %i[new create destroy], controller: 'faq_attachments'
+    end
+    resource :faq_import, only: %i[new] do
+      post :extract    # step 1: extract text + generate FAQ previews via Claude
+      post :import     # step 2: save selected FAQs
+    end
+    resource :faq_suggestions, only: [] do
+      post :suggest    # step 1: gather KB context, generate + deduplicate suggestions
+      post :import     # step 2: save selected suggestions as FAQs
+    end
+    resources :documents, only: %i[index create destroy]
+  end
+
   mount ShopifyApp::Engine, at: '/'
   # Define your application routes per the DSL in https://guides.rubyonrails.org/routing.html
 

@@ -1,0 +1,24 @@
+<%= form_with(
+  url: knowledge_base_documents_path(shop: shop_origin, host: host, embedded: 1),
+  method: :post,
+  multipart: true,
+  id: "document_upload_form_inner",
+  data: { turbo_frame: "document_upload_form" }
+) do |f| %>
+
+  <% if defined?(errors) && errors&.any? %>
+    <s-banner tone="critical" style="margin-bottom:8px;">
+      <% errors.each do |msg| %>
+        <s-paragraph><%= msg %></s-paragraph>
+      <% end %>
+    </s-banner>
+  <% end %>
+
+  <%# Invisible file input — triggered by the "Upload Document" button in the accordion header %>
+  <%= f.file_field :file,
+        id: "doc_file_input",
+        accept: ".pdf,.docx,.txt",
+        style: "display:none",
+        onchange: "document.getElementById('document_upload_form_inner').requestSubmit()" %>
+
+<% end %>

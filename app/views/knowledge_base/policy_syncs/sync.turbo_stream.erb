@@ -1,0 +1,35 @@
+<%# Sync success: refresh summary, preview, actions, and clear any error banner %>
+
+<%# 1. Clear the sync error/confirm banner %>
+<%= turbo_stream.replace "#{@policy_type}_sync_banner" do %><div id="<%= @policy_type %>_sync_banner"></div><% end %>
+
+<%# Re-enable the sync button — the success path never fires the MutationObserver
+    because the banner is replaced with an empty div (no children). %>
+<script>
+  (function() {
+    var btn = document.getElementById('<%= @policy_type %>_sync_btn');
+    if (btn) { btn.removeAttribute('loading'); btn.removeAttribute('disabled'); }
+  })();
+</script>
+
+<%# 2. Refresh the summary bar (badge, source list, last synced) %>
+<%= turbo_stream.replace "#{@policy_type}_summary" do %>
+  <%= render "knowledge_base/bases/policy_summary",
+        policy: @policy,
+        policy_type: @policy_type %>
+<% end %>
+
+<%# 3. Refresh the preview area (shows shopify_content when content is blank) %>
+<%= turbo_stream.replace "#{@policy_type}_preview_area" do %>
+  <%= render "knowledge_base/bases/policy_preview",
+        policy: @policy,
+        policy_type: @policy_type,
+        empty_message: "" %>
+<% end %>
+
+<%# 4. Refresh the header badge (Configured / Missing) %>
+<%= turbo_stream.replace "#{@policy_type}_badge" do %>
+  <%= render "knowledge_base/bases/policy_badge",
+        policy: @policy,
+        policy_type: @policy_type %>
+<% end %>

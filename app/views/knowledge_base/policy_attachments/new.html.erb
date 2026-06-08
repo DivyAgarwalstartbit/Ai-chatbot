@@ -1,0 +1,8 @@
+<%= turbo_frame_tag "#{@policy_type}_attachment_section" do %>
+  <%= render "upload_form",
+        policy: @policy,
+        policy_type: @policy_type,
+        frame_id: "#{@policy_type}_attachment_section",
+        shop_origin: @shop_origin,
+        host: @host %>
+<% end %>

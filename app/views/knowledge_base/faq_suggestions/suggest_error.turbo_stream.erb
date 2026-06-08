@@ -1,0 +1,18 @@
+<%# Show error banner inside the suggestion panel, re-enable the generate button %>
+<%= turbo_stream.replace "faq_suggestion_error" do %>
+  <div id="faq_suggestion_error">
+    <s-banner tone="critical" title="Could not generate suggestions">
+      <s-paragraph><%= @error %></s-paragraph>
+    </s-banner>
+  </div>
+<% end %>
+
+<script>
+  (function() {
+    var loading = document.getElementById('faq_suggestion_loading');
+    if (loading) loading.style.display = 'none';
+
+    var btn = document.getElementById('faq_suggest_btn');
+    if (btn) { btn.removeAttribute('loading'); btn.removeAttribute('disabled'); }
+  })();
+</script>

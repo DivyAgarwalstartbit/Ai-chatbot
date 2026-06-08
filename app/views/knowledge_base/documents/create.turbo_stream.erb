@@ -1,0 +1,26 @@
+<%# Prepend new document %>
+<%= turbo_stream.prepend "document_list" do %>
+  <%= render "document", document: @document, shop_origin: @shop_origin, host: @host %>
+<% end %>
+
+<%# Re-render upload form (clears and re-binds the hidden input) %>
+<%= turbo_stream.replace "document_upload_form" do %>
+  <%= turbo_frame_tag "document_upload_form" do %>
+    <%= render "knowledge_base/documents/upload_form", shop_origin: @shop_origin, host: @host %>
+  <% end %>
+<% end %>
+
+<%# Hide/show the upload button based on whether a document exists %>
+<%= turbo_stream.replace "document_actions" do %>
+  <%= render "knowledge_base/documents/actions", documents: @documents %>
+<% end %>
+
+<%# Hide empty state %>
+<%= turbo_stream.replace "document_empty_state" do %><% end %>
+
+<%# Update count badge %>
+<%= turbo_stream.replace "document_count_badge" do %>
+  <span class="kb-badge kb-badge-info" id="document_count_badge">
+    <%= @documents.size %> <%= @documents.size == 1 ? "file" : "files" %>
+  </span>
+<% end %>

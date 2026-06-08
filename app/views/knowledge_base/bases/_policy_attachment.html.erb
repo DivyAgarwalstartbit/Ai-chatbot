@@ -1,0 +1,9 @@
+<div id="<%= policy_type %>_attachment_area" style="margin-bottom:10px;">
+  <% if policy.file.attached? %>
+    <%= render "knowledge_base/policy_attachments/file_row",
+          policy: policy,
+          policy_type: policy_type,
+          shop_origin: shop_origin,
+          host: host %>
+  <% end %>
+</div>

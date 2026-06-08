@@ -1,0 +1,42 @@
+<%# Locals: policy, policy_type, shop_origin, host
+    Renders Edit, Upload Document, and Sync From Shopify buttons. %>
+
+<% sync_url = policy_type == "shipping_policy" ?
+     sync_knowledge_base_shipping_policy_path(shop: shop_origin, host: host, embedded: 1) :
+     sync_knowledge_base_return_policy_path(shop: shop_origin, host: host, embedded: 1) %>
+
+<div class="kb-actions kb-policy-actions" id="<%= policy_type %>_actions">
+  <%# Edit manual policy text %>
+  <s-button variant="primary" icon="edit"
+    data-action="click->policy-modal#open"
+    data-policy-modal-target-param="<%= policy_type %>_modal">
+    Edit Policy
+  </s-button>
+
+  <%# Upload supporting document (hidden once a file is attached) %>
+  <% unless policy.file.attached? %>
+    <s-button variant="secondary" icon="upload" id="<%= policy_type %>_upload_btn"
+      onclick="document.getElementById('<%= policy_type %>_file_input').click()">
+      Upload Document
+    </s-button>
+  <% end %>
+
+  <%# Sync from Shopify — always visible %>
+  <%# data-turbo="false" prevents Turbo from setting loading/disabled on ALL
+      buttons in the DOM when the form submits — it fires manually via fetch
+      inside policy-sync#startSync instead. %>
+  <%= form_with url: sync_url, method: :post, local: false,
+                id: "#{policy_type}_sync_form",
+                data: { turbo: "false" } do |f| %>
+    <%= f.hidden_field :policy_type, value: policy_type %>
+    <s-button
+      variant="tertiary"
+      tone="neutral"
+      icon="refresh"
+      id="<%= policy_type %>_sync_btn"
+      type="button"
+      data-action="click->policy-sync#startSync"
+      data-policy-sync-policy-type-param="<%= policy_type %>"
+    >Sync From Shopify</s-button>
+  <% end %>
+</div>

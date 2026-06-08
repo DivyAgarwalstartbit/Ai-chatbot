@@ -1,0 +1,918 @@
+<s-page
+  data-controller="faq-modal"
+  data-faq-modal-create-url-value="<%= knowledge_base_faqs_path(shop: @shop_origin, host: @host, embedded: 1) %>"
+>
+
+<style>
+/* ── Shared accordion chrome ── */
+.kb-accordion {
+  border: 1px solid #e1e3e5;
+  border-radius: 8px;
+  background: #fff;
+  overflow: hidden;
+}
+.kb-accordion + .kb-accordion { margin-top: 8px; }
+
+.kb-accordion summary {
+  display: flex;
+  align-items: center;
+  padding: 14px 16px;
+  cursor: pointer;
+  list-style: none;
+  user-select: none;
+  gap: 10px;
+}
+.kb-accordion summary::-webkit-details-marker { display: none; }
+.kb-accordion summary:hover { background: #f9fafb; }
+
+.kb-acc-left   { flex: 1; display: flex; flex-direction: column; gap: 1px; }
+.kb-acc-title  { font-size: 13px; font-weight: 600; color: #202223; display: flex; align-items: center; gap: 8px; }
+.kb-acc-sub    { font-size: 12px; color: #6d7175; }
+.kb-acc-chevron { width: 18px; height: 18px; color: #8c9196; flex-shrink: 0; transition: transform 0.18s ease; }
+.kb-accordion[open] .kb-acc-chevron { transform: rotate(180deg); }
+
+.kb-acc-body   { border-top: 1px solid #e1e3e5; padding: 14px 16px; }
+
+/* Status badges */
+.kb-badge {
+  display: inline-flex; align-items: center;
+  font-size: 11px; font-weight: 500; padding: 1px 7px;
+  border-radius: 10px; white-space: nowrap;
+}
+.kb-badge-success  { background: #e3f1df; color: #108043; }
+.kb-badge-warning  { background: #fff4e4; color: #8a6116; }
+.kb-badge-info     { background: #eaf4fe; color: #106ba3; }
+.kb-badge-subdued  { background: #f4f6f8; color: #6d7175; }
+
+/* Policy preview text */
+.kb-policy-preview {
+  font-size: 12px; color: #202223; line-height: 1.5;
+  background: #f9fafb; border: 1px solid #e1e3e5;
+  border-radius: 6px; padding: 10px 12px;
+  max-height: 80px; overflow: hidden;
+  position: relative; cursor: default;
+}
+.kb-policy-preview::after {
+  content: ""; position: absolute; bottom: 0; left: 0; right: 0;
+  height: 28px;
+  background: linear-gradient(transparent, #f9fafb);
+}
+.kb-policy-empty {
+  font-size: 12px; color: #8c9196; font-style: italic;
+}
+
+/* Attached file row */
+.kb-file-row {
+  display: flex; align-items: center; gap: 8px;
+  background: #f9fafb; border: 1px solid #e1e3e5;
+  border-radius: 6px; padding: 8px 10px; font-size: 12px;
+}
+.kb-file-row .kb-file-name { flex: 1; font-weight: 500; color: #202223; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.kb-file-row .kb-file-meta { color: #8c9196; flex-shrink: 0; }
+
+/* Policy summary and supporting document */
+.kb-policy-summary {
+  margin: 10px 0 12px;
+  padding: 8px 0;
+  font-size: 12px;
+  color: #202223;
+}
+.kb-policy-file-card {
+  position: relative;
+  background: #f9fafb;
+  border: 1px solid #e1e3e5;
+  border-radius: 8px;
+  padding: 12px 14px;
+  font-size: 12px;
+  color: #202223;
+}
+.kb-policy-file-icon {
+  width: 14px;
+  height: 14px;
+  color: #5c9fdc;
+  flex: 0 0 14px;
+}
+.kb-policy-file-icon svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+.kb-policy-file-main {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  min-width: 0;
+}
+.kb-policy-file-copy {
+  min-width: 0;
+}
+.kb-policy-file-name {
+  font-weight: 600;
+  color: #202223;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.kb-policy-file-meta {
+  color: #6d7175;
+  margin-top: 4px;
+}
+.kb-policy-file-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-wrap: wrap;
+  margin-top: 10px;
+}
+/* Compact action row */
+.kb-actions { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.kb-policy-actions { margin: 10px 0 12px; }
+
+/* Section divider inside body */
+.kb-body-divider { border: none; border-top: 1px solid #e1e3e5; margin: 10px 0; }
+
+/* FAQ cards */
+.kb-faq-list {
+  display: grid;
+  gap: 8px;
+}
+.kb-faq-card {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: start;
+  border: 1px solid #e1e3e5;
+  border-radius: 8px;
+  background: #fff;
+  padding: 12px;
+}
+.kb-faq-card-main {
+  min-width: 0;
+}
+.kb-faq-question-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+.kb-faq-question-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 9px;
+  background: #eaf4fe;
+  color: #106ba3;
+  font-size: 12px;
+  font-weight: 700;
+  flex: 0 0 18px;
+  margin-top: 1px;
+}
+.kb-faq-question {
+  color: #202223;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.35;
+}
+.kb-faq-answer-preview {
+  color: #6d7175;
+  display: -webkit-box;
+  font-size: 12px;
+  line-height: 1.45;
+  margin: 6px 0 0 26px;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  white-space: pre-line;
+}
+.kb-faq-answer-preview.is-expanded {
+  display: block;
+  overflow: visible;
+  -webkit-line-clamp: unset;
+}
+.kb-faq-show-more {
+  background: transparent;
+  border: 0;
+  color: #006fbb;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 500;
+  margin: 6px 0 0 26px;
+  padding: 0;
+}
+.kb-faq-show-more:hover {
+  text-decoration: underline;
+}
+.kb-faq-card-actions {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+.kb-faq-import-drop-zone {
+  background: #fafbfb;
+  border: 2px dashed #c9cccf;
+  border-radius: 8px;
+  cursor: pointer;
+  padding: 24px;
+  text-align: center;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+.kb-faq-import-drop-zone:hover {
+  background: #f6f6f7;
+  border-color: #8c9196;
+}
+@media (max-width: 640px) {
+  .kb-faq-card {
+    grid-template-columns: 1fr;
+  }
+  .kb-faq-card-actions {
+    justify-content: flex-start;
+    margin-left: 26px;
+  }
+}
+
+/* ── Modal overlay ── */
+.kb-modal-overlay {
+  display: none;
+  position: fixed; inset: 0; z-index: 9999;
+  background: rgba(0,0,0,0.5);
+  align-items: center; justify-content: center;
+  padding: 16px;
+}
+.kb-modal {
+  background: #fff; border-radius: 8px;
+  width: 100%; max-width: 600px;
+  max-height: 90vh; display: flex; flex-direction: column;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+}
+.kb-modal-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 16px 20px; border-bottom: 1px solid #e1e3e5; flex-shrink: 0;
+}
+.kb-modal-title { font-size: 16px; font-weight: 600; color: #202223; }
+.kb-modal-close {
+  background: none; border: none; cursor: pointer;
+  color: #6d7175; padding: 4px; border-radius: 4px; line-height: 0;
+}
+.kb-modal-close:hover { background: #f1f2f3; color: #202223; }
+.kb-modal-body { padding: 16px 20px; flex: 1; overflow-y: auto; }
+.kb-modal-footer {
+  padding: 12px 20px; border-top: 1px solid #e1e3e5;
+  display: flex; gap: 8px; flex-shrink: 0;
+}
+
+/* Upload drop zone */
+.kb-drop-zone {
+  border: 2px dashed #c9cccf; border-radius: 6px;
+  padding: 16px; text-align: center; cursor: pointer;
+  background: #fafbfb; transition: border-color 0.15s, background 0.15s;
+  font-size: 12px; color: #6d7175;
+}
+.kb-drop-zone:hover, .kb-drop-zone.dragover {
+  border-color: #008060; background: #f1faf5;
+}
+</style>
+
+  <!-- ── Page header ── -->
+  <s-section>
+    <s-grid gap="extra-small">
+      <s-heading element="h1">Knowledge Base</s-heading>
+      <s-paragraph color="subdued">Manage the content your AI chatbot uses to answer customer questions.</s-paragraph>
+    </s-grid>
+  </s-section>
+
+  <s-section>
+
+    <!-- ════════════════════════════════════════════════════
+         SHIPPING POLICY
+    ════════════════════════════════════════════════════ -->
+    <div data-controller="policy-modal" id="shipping_policy_section_wrapper">
+      <details class="kb-accordion" id="accordion_shipping">
+        <summary>
+          <div class="kb-acc-left">
+            <div class="kb-acc-title">
+              Shipping Policy
+              <%= render "knowledge_base/bases/policy_badge",
+                    policy: @shipping_policy,
+                    policy_type: "shipping_policy" %>
+            </div>
+            <div class="kb-acc-sub">Delivery timeframes, carriers, and shipping terms</div>
+          </div>
+          <svg class="kb-acc-chevron" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd"/></svg>
+        </summary>
+
+        <div class="kb-acc-body" data-controller="policy-sync">
+
+          <%# Sync feedback banner (error / confirm) — replaced by Turbo Stream %>
+          <div id="shipping_policy_sync_banner"></div>
+
+          <%= render "knowledge_base/bases/policy_preview",
+                policy: @shipping_policy,
+                policy_type: "shipping_policy",
+                empty_message: policy_empty_message("shipping_policy") %>
+
+          <%= render "knowledge_base/bases/policy_summary",
+                policy: @shipping_policy,
+                policy_type: "shipping_policy" %>
+
+          <%= render "knowledge_base/bases/policy_actions",
+                policy: @shipping_policy,
+                policy_type: "shipping_policy",
+                shop_origin: @shop_origin,
+                host: @host %>
+
+          <%= render "knowledge_base/bases/policy_attachment",
+                policy: @shipping_policy,
+                policy_type: "shipping_policy",
+                shop_origin: @shop_origin,
+                host: @host %>
+
+          <%# Hidden file upload form for document %>
+          <form action="<%= knowledge_base_shipping_policy_attachment_path(shop: @shop_origin, host: @host, embedded: 1) %>"
+                method="post"
+                enctype="multipart/form-data"
+                id="shipping_policy_attachment_form"
+                data-turbo="true"
+                data-turbo-stream="true"
+                style="display:none;">
+            <%= hidden_field_tag :authenticity_token, form_authenticity_token %>
+            <input type="file" name="attachment[file]"
+                   id="shipping_policy_file_input"
+                   accept=".pdf,.docx,.txt"
+                   onchange="document.getElementById('shipping_policy_attachment_form').requestSubmit()" />
+          </form>
+
+        </div>
+      </details>
+
+      <%# ── Shipping Policy Modal ── %>
+      <div class="kb-modal-overlay" id="shipping_policy_modal"
+           data-policy-modal-target="modal backdrop"
+           data-action="click->policy-modal#backdropClick">
+        <div class="kb-modal">
+          <div class="kb-modal-header">
+            <span class="kb-modal-title">Edit Shipping Policy</span>
+            <button class="kb-modal-close" data-action="click->policy-modal#close" aria-label="Close">
+              <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor"><path d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"/></svg>
+            </button>
+          </div>
+          <div class="kb-modal-body">
+            <%= form_with(
+                  model: @shipping_policy,
+                  url: knowledge_base_shipping_policy_path(shop: @shop_origin, host: @host, embedded: 1),
+                  method: :patch,
+                  id: "shipping_policy_form",
+                  data: { policy_form: true, turbo_stream: true }
+                ) do |f| %>
+              <%= f.hidden_field :content, id: "shipping_policy_content_hidden",
+                    data: { "policy-modal-target": "hidden" } %>
+              <s-text-area
+                id="shipping_policy_content_textarea"
+                label="Policy text"
+                placeholder="e.g. We ship all orders within 1–2 business days. Standard delivery takes 3–5 business days..."
+                rows="14"
+                autocomplete="off"
+                value="<%= ERB::Util.html_escape(@shipping_policy.content.to_s) %>"
+                data-policy-modal-target="textarea"
+              ></s-text-area>
+            <% end %>
+          </div>
+          <div class="kb-modal-footer">
+            <s-button variant="primary" data-action="click->policy-modal#submit">Save Policy</s-button>
+            <s-button variant="tertiary" tone="neutral" data-action="click->policy-modal#close">Cancel</s-button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ════════════════════════════════════════════════════
+         RETURN POLICY
+    ════════════════════════════════════════════════════ -->
+    <div data-controller="policy-modal" id="return_policy_section_wrapper" style="margin-top:8px;">
+      <details class="kb-accordion" id="accordion_return">
+        <summary>
+          <div class="kb-acc-left">
+            <div class="kb-acc-title">
+              Return Policy
+              <%= render "knowledge_base/bases/policy_badge",
+                    policy: @return_policy,
+                    policy_type: "return_policy" %>
+            </div>
+            <div class="kb-acc-sub">Return window, eligibility conditions, and refund process</div>
+          </div>
+          <svg class="kb-acc-chevron" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd"/></svg>
+        </summary>
+
+        <div class="kb-acc-body" data-controller="policy-sync">
+
+          <%# Sync feedback banner (error / confirm) — replaced by Turbo Stream %>
+          <div id="return_policy_sync_banner"></div>
+
+          <%= render "knowledge_base/bases/policy_preview",
+                policy: @return_policy,
+                policy_type: "return_policy",
+                empty_message: policy_empty_message("return_policy") %>
+
+          <%= render "knowledge_base/bases/policy_summary",
+                policy: @return_policy,
+                policy_type: "return_policy" %>
+
+          <%= render "knowledge_base/bases/policy_actions",
+                policy: @return_policy,
+                policy_type: "return_policy",
+                shop_origin: @shop_origin,
+                host: @host %>
+
+          <%= render "knowledge_base/bases/policy_attachment",
+                policy: @return_policy,
+                policy_type: "return_policy",
+                shop_origin: @shop_origin,
+                host: @host %>
+
+          <%# Hidden file upload form %>
+          <form action="<%= knowledge_base_return_policy_attachment_path(shop: @shop_origin, host: @host, embedded: 1) %>"
+                method="post"
+                enctype="multipart/form-data"
+                id="return_policy_attachment_form"
+                data-turbo="true"
+                data-turbo-stream="true"
+                style="display:none;">
+            <%= hidden_field_tag :authenticity_token, form_authenticity_token %>
+            <input type="file" name="attachment[file]"
+                   id="return_policy_file_input"
+                   accept=".pdf,.docx,.txt"
+                   onchange="document.getElementById('return_policy_attachment_form').requestSubmit()" />
+          </form>
+
+        </div>
+      </details>
+
+      <%# ── Return Policy Modal ── %>
+      <div class="kb-modal-overlay" id="return_policy_modal"
+           data-policy-modal-target="modal backdrop"
+           data-action="click->policy-modal#backdropClick">
+        <div class="kb-modal">
+          <div class="kb-modal-header">
+            <span class="kb-modal-title">Edit Return Policy</span>
+            <button class="kb-modal-close" data-action="click->policy-modal#close" aria-label="Close">
+              <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor"><path d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"/></svg>
+            </button>
+          </div>
+          <div class="kb-modal-body">
+            <%= form_with(
+                  model: @return_policy,
+                  url: knowledge_base_return_policy_path(shop: @shop_origin, host: @host, embedded: 1),
+                  method: :patch,
+                  id: "return_policy_form",
+                  data: { policy_form: true, turbo_stream: true }
+                ) do |f| %>
+              <%= f.hidden_field :content, id: "return_policy_content_hidden",
+                    data: { "policy-modal-target": "hidden" } %>
+              <s-text-area
+                id="return_policy_content_textarea"
+                label="Policy text"
+                placeholder="e.g. We accept returns within 30 days of purchase. Items must be unused and in original packaging..."
+                rows="14"
+                autocomplete="off"
+                value="<%= ERB::Util.html_escape(@return_policy.content.to_s) %>"
+                data-policy-modal-target="textarea"
+              ></s-text-area>
+            <% end %>
+          </div>
+          <div class="kb-modal-footer">
+            <s-button variant="primary" data-action="click->policy-modal#submit">Save Policy</s-button>
+            <s-button variant="tertiary" tone="neutral" data-action="click->policy-modal#close">Cancel</s-button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ════════════════════════════════════════════════════
+         FAQs
+    ════════════════════════════════════════════════════ -->
+    <details class="kb-accordion" id="accordion_faqs" style="margin-top:8px;">
+      <summary>
+        <div class="kb-acc-left">
+          <div class="kb-acc-title">
+            FAQs
+            <span class="kb-badge <%= @faqs.any? ? 'kb-badge-info' : 'kb-badge-subdued' %>" id="faq_count_badge">
+              <%= @faqs.size %> <%= @faqs.size == 1 ? "FAQ" : "FAQs" %>
+            </span>
+          </div>
+          <div class="kb-acc-sub">Frequently asked questions your chatbot uses to answer customers</div>
+        </div>
+        <svg class="kb-acc-chevron" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd"/></svg>
+      </summary>
+
+      <div class="kb-acc-body">
+        <div class="kb-actions" style="margin-bottom:10px;">
+          <s-button variant="primary" icon="plus"
+            data-action="click->faq-modal#openNew">Add FAQ</s-button>
+          <s-button variant="secondary" icon="import"
+            commandFor="faq-import-modal"
+            onclick="document.getElementById('faq_import_panel').src = '<%= new_knowledge_base_faq_import_path(shop: @shop_origin, host: @host, embedded: 1) %>'">
+            Import FAQs
+          </s-button>
+          <s-button variant="tertiary" tone="neutral" icon="magic"
+            commandFor="faq-suggestions-modal"
+            data-action="click->faq-suggestions#openModal">
+            Generate Suggestions
+          </s-button>
+        </div>
+
+        <div id="faq_list" class="kb-faq-list">
+          <% if @faqs.empty? %>
+            <div id="faq_empty_state">
+              <p style="font-size:12px;color:#8c9196;margin:4px 0;">No FAQs yet. Click <strong>Add FAQ</strong> or <strong>Import FAQs</strong> to get started.</p>
+            </div>
+          <% else %>
+            <div id="faq_empty_state"></div>
+            <% @faqs.each do |faq| %>
+              <%= render "knowledge_base/faqs/faq", faq: faq, shop_origin: @shop_origin, host: @host %>
+            <% end %>
+          <% end %>
+        </div>
+      </div>
+    </details>
+
+    <!-- ════════════════════════════════════════════════════
+         DOCUMENTS
+    ════════════════════════════════════════════════════ -->
+    <details class="kb-accordion" id="accordion_documents" <%= @documents.any? ? "open" : "" %> style="margin-top:8px;">
+      <summary>
+        <div class="kb-acc-left">
+          <div class="kb-acc-title">
+            Documents
+            <span class="kb-badge <%= @documents.any? ? 'kb-badge-info' : 'kb-badge-subdued' %>" id="document_count_badge">
+              <%= @documents.size %> <%= @documents.size == 1 ? "file" : "files" %>
+            </span>
+          </div>
+          <div class="kb-acc-sub">Upload PDFs, DOCX, or TXT files to train your AI chatbot</div>
+        </div>
+        <svg class="kb-acc-chevron" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd"/></svg>
+      </summary>
+
+      <div class="kb-acc-body">
+        <%= render "knowledge_base/documents/actions", documents: @documents %>
+
+        <%= turbo_frame_tag "document_upload_form" do %>
+          <%= render "knowledge_base/documents/upload_form", shop_origin: @shop_origin, host: @host %>
+        <% end %>
+
+        <div id="document_list">
+          <% if @documents.empty? %>
+            <div id="document_empty_state">
+              <p style="font-size:12px;color:#8c9196;margin:4px 0;">No documents uploaded yet.</p>
+            </div>
+          <% else %>
+            <div id="document_empty_state"></div>
+            <% @documents.each do |doc| %>
+              <%= render "knowledge_base/documents/document", document: doc, shop_origin: @shop_origin, host: @host %>
+            <% end %>
+          <% end %>
+        </div>
+      </div>
+    </details>
+
+  </s-section>
+
+  <%# ── FAQ Add/Edit Modal ── %>
+  <%= render "knowledge_base/faqs/form_modal",
+        shop_origin: @shop_origin,
+        host: @host %>
+
+  <%# ── FAQ Import Modal ── %>
+  <s-modal id="faq-import-modal" heading="Import FAQs" size="base">
+    <%= turbo_frame_tag "faq_import_panel" do %>
+      <%= render "knowledge_base/faq_imports/form_panel",
+            shop_origin: @shop_origin,
+            host: @host %>
+    <% end %>
+  </s-modal>
+
+  <%# ── FAQ Suggestions Modal ── %>
+  <s-modal id="faq-suggestions-modal" heading="Generate FAQ Suggestions" size="large"
+           data-controller="faq-suggestions"
+           data-faq-suggestions-suggest-url-value="<%= suggest_knowledge_base_faq_suggestions_path(shop: @shop_origin, host: @host, embedded: 1) %>"
+           data-faq-suggestions-import-url-value="<%= import_knowledge_base_faq_suggestions_path(shop: @shop_origin, host: @host, embedded: 1) %>">
+    <%= turbo_frame_tag "faq_suggestion_panel" do %>
+      <%= render "knowledge_base/faq_suggestions/suggestion_panel",
+            shop_origin: @shop_origin,
+            host: @host %>
+    <% end %>
+  </s-modal>
+
+  <%# ── FAQ Delete Modal ── %>
+  <s-modal id="faq-delete-modal" heading="Delete FAQ?" size="small">
+    <s-stack gap="base">
+      <s-text id="faq-delete-message">Are you sure you want to delete this FAQ?</s-text>
+      <s-text tone="caution">This action cannot be undone.</s-text>
+    </s-stack>
+
+    <s-button
+      slot="secondary-actions"
+      variant="secondary"
+      commandFor="faq-delete-modal"
+      command="--hide"
+    >
+      Cancel
+    </s-button>
+    <s-button
+      slot="primary-action"
+      variant="primary"
+      tone="critical"
+      id="faq-confirm-delete"
+    >
+      Delete
+    </s-button>
+  </s-modal>
+
+  <%# ── Document Delete Modal ── %>
+  <s-modal id="document-delete-modal" heading="Delete document?" size="small">
+    <s-stack gap="base">
+      <s-text id="document-delete-message">Are you sure you want to delete this document?</s-text>
+      <s-text tone="caution">This action cannot be undone.</s-text>
+    </s-stack>
+
+    <s-button
+      slot="secondary-actions"
+      variant="secondary"
+      commandFor="document-delete-modal"
+      command="--hide"
+    >
+      Cancel
+    </s-button>
+    <s-button
+      slot="primary-action"
+      variant="primary"
+      tone="critical"
+      id="document-confirm-delete"
+    >
+      Delete
+    </s-button>
+  </s-modal>
+
+  <%# ── Policy Attachment Delete Modal ── %>
+  <s-modal id="policy-delete-modal" heading="Delete file?" size="small">
+    <s-stack gap="base">
+      <s-text id="policy-delete-message">Are you sure you want to delete this file?</s-text>
+      <s-text tone="caution">This action cannot be undone.</s-text>
+    </s-stack>
+
+    <s-button
+      slot="secondary-actions"
+      variant="secondary"
+      commandFor="policy-delete-modal"
+      command="--hide"
+    >
+      Cancel
+    </s-button>
+    <s-button
+      slot="primary-action"
+      variant="primary"
+      tone="critical"
+      id="policy-confirm-delete"
+    >
+      Delete
+    </s-button>
+  </s-modal>
+
+  <%# Hidden delete forms ── %>
+  <form id="faq-delete-form" method="post" style="display: none;">
+    <input type="hidden" name="_method" value="delete">
+    <%= hidden_field_tag :authenticity_token, form_authenticity_token %>
+  </form>
+  <form id="document-delete-form" method="post" style="display: none;">
+    <input type="hidden" name="_method" value="delete">
+    <%= hidden_field_tag :authenticity_token, form_authenticity_token %>
+  </form>
+  <form id="policy-delete-form" method="post" style="display: none;">
+    <input type="hidden" name="_method" value="delete">
+    <%= hidden_field_tag :authenticity_token, form_authenticity_token %>
+  </form>
+
+  <script>
+    // Helper to reset file inputs
+    function resetFileInput(inputId) {
+      const input = document.getElementById(inputId);
+      if (input) {
+        input.value = '';
+      }
+    }
+
+    async function renderTurboStreamResponse(response) {
+      const html = await response.text();
+
+      if (html.trim() && window.Turbo && typeof window.Turbo.renderStreamMessage === 'function') {
+        window.Turbo.renderStreamMessage(html);
+        return true;
+      }
+
+      return false;
+    }
+
+    // Handle FAQ deletion
+    const faqDeleteModal = document.getElementById('faq-delete-modal');
+    const faqConfirmBtn = document.getElementById('faq-confirm-delete');
+    let faqDeletePath = null;
+    let faqFrameId = null;
+
+    document.addEventListener('click', function(e) {
+      if (e.target.matches('[commandFor="faq-delete-modal"]')) {
+        faqDeletePath = e.target.dataset.deletePath;
+        faqFrameId = e.target.closest('turbo-frame')?.id || 'faq_' + e.target.dataset.faqId;
+        const title = e.target.dataset.faqTitle;
+        document.getElementById('faq-delete-message').textContent = `Are you sure you want to delete "${title}"?`;
+      }
+    });
+
+    faqConfirmBtn.addEventListener('click', async function() {
+      if (faqDeletePath) {
+        faqConfirmBtn.loading = true;
+        try {
+          const response = await fetch(faqDeletePath, {
+            method: 'DELETE',
+            headers: {
+              'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]').content,
+              'Accept': 'text/vnd.turbo-stream.html'
+            }
+          });
+          if (response.ok) {
+            const rendered = await renderTurboStreamResponse(response);
+
+            if (!rendered) {
+              const frameEl = document.getElementById(faqFrameId);
+              if (frameEl) {
+                frameEl.remove();
+              }
+            }
+
+            faqDeleteModal.hideOverlay();
+          }
+        } catch (error) {
+          console.error('Error deleting FAQ:', error);
+        } finally {
+          faqConfirmBtn.loading = false;
+        }
+      }
+    });
+
+    // Handle Document deletion
+    const documentDeleteModal = document.getElementById('document-delete-modal');
+    const documentConfirmBtn = document.getElementById('document-confirm-delete');
+    let documentDeletePath = null;
+    let documentFrameId = null;
+
+    document.addEventListener('click', function(e) {
+      if (e.target.matches('[commandFor="document-delete-modal"]')) {
+        documentDeletePath = e.target.dataset.deletePath;
+        documentFrameId = e.target.closest('turbo-frame')?.id || 'training_document_' + e.target.dataset.documentId;
+        const name = e.target.dataset.documentName;
+        document.getElementById('document-delete-message').textContent = `Are you sure you want to delete "${name}"?`;
+      }
+    });
+
+    documentConfirmBtn.addEventListener('click', async function() {
+      if (documentDeletePath) {
+        documentConfirmBtn.loading = true;
+        try {
+          const response = await fetch(documentDeletePath, {
+            method: 'DELETE',
+            headers: {
+              'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]').content,
+              'Accept': 'text/vnd.turbo-stream.html'
+            }
+          });
+          if (response.ok) {
+            const rendered = await renderTurboStreamResponse(response);
+
+            if (!rendered) {
+              const frameEl = document.getElementById(documentFrameId);
+              if (frameEl) {
+                frameEl.remove();
+              }
+            }
+
+            documentDeleteModal.hideOverlay();
+          }
+        } catch (error) {
+          console.error('Error deleting document:', error);
+        } finally {
+          documentConfirmBtn.loading = false;
+        }
+      }
+    });
+
+    // Handle Policy Attachment deletion
+    const policyDeleteModal = document.getElementById('policy-delete-modal');
+    const policyConfirmBtn = document.getElementById('policy-confirm-delete');
+    let policyDeletePath = null;
+
+    document.addEventListener('click', function(e) {
+      if (e.target.matches('[commandFor="policy-delete-modal"]')) {
+        policyDeletePath = e.target.dataset.deletePath;
+        const filename = e.target.dataset.policyFilename;
+        const policyType = e.target.dataset.policyType;
+        document.getElementById('policy-delete-message').textContent = `Are you sure you want to delete "${filename}"?`;
+        
+        // Store which section/area to clear
+        policyConfirmBtn.dataset.policyType = policyType;
+      }
+    });
+
+    policyConfirmBtn.addEventListener('click', async function() {
+      if (policyDeletePath) {
+        policyConfirmBtn.loading = true;
+        const policyType = policyConfirmBtn.dataset.policyType;
+        try {
+          const response = await fetch(policyDeletePath, {
+            method: 'DELETE',
+            headers: {
+              'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]').content,
+              'Accept': 'text/vnd.turbo-stream.html'
+            }
+          });
+          if (response.ok) {
+            const rendered = await renderTurboStreamResponse(response);
+
+            if (!rendered) {
+              // Fallback for environments where Turbo is unavailable.
+              const attachmentArea = document.getElementById(policyType + '_attachment_area');
+              if (attachmentArea) {
+                attachmentArea.innerHTML = '';
+              }
+
+              const badge = document.getElementById(policyType + '_badge');
+              if (badge) {
+                badge.classList.remove('kb-badge-success');
+                badge.classList.add('kb-badge-warning');
+                badge.textContent = 'Missing';
+              }
+
+              const uploadBtn = document.getElementById(policyType + '_upload_btn');
+              if (uploadBtn) {
+                uploadBtn.style.display = '';
+              }
+            }
+
+            resetFileInput(policyType + '_file_input');
+            policyDeleteModal.hideOverlay();
+          }
+        } catch (error) {
+          console.error('Error deleting policy attachment:', error);
+        } finally {
+          policyConfirmBtn.loading = false;
+        }
+      }
+    });
+
+    // Add event listeners to file inputs to reset after submission
+    const shippingFileInput = document.getElementById('shipping_policy_file_input');
+    if (shippingFileInput) {
+      shippingFileInput.addEventListener('change', function() {
+        // Log for debugging
+        console.log('Shipping policy file selected:', this.value);
+      });
+    }
+
+    const returnFileInput = document.getElementById('return_policy_file_input');
+    if (returnFileInput) {
+      returnFileInput.addEventListener('change', function() {
+        // Log for debugging  
+        console.log('Return policy file selected:', this.value);
+      });
+    }
+
+    // Handle file upload form submissions - hide button after successful upload
+    function handleUploadFormCompletion(policyType) {
+      const uploadBtn = document.getElementById(policyType + '_upload_btn');
+      if (uploadBtn) {
+        uploadBtn.style.display = 'none';
+      }
+    }
+
+    // Listen to turbo:submit-end event for shipping policy attachment upload form
+    const shippingAttachmentForm = document.getElementById('shipping_policy_attachment_form');
+    if (shippingAttachmentForm) {
+      shippingAttachmentForm.addEventListener('turbo:submit-end', function(e) {
+        // Check if submission was successful (no error)
+        if (e.detail.success) {
+          handleUploadFormCompletion('shipping_policy');
+        }
+      });
+    }
+
+    // Listen to turbo:submit-end event for return policy attachment upload form
+    const returnAttachmentForm = document.getElementById('return_policy_attachment_form');
+    if (returnAttachmentForm) {
+      returnAttachmentForm.addEventListener('turbo:submit-end', function(e) {
+        // Check if submission was successful (no error)
+        if (e.detail.success) {
+          handleUploadFormCompletion('return_policy');
+        }
+      });
+    }
+  </script>
+
+</s-page>

@@ -1,0 +1,53 @@
+<%# faq: { "question" => "...", "answer" => "..." }, idx: Integer %>
+<div class="faq-preview-row" id="faq_preview_row_<%= idx %>" data-idx="<%= idx %>">
+  <s-box border="base" borderRadius="base" padding="base" background="base">
+    <s-grid gridTemplateColumns="auto 1fr auto" alignItems="start" gap="base">
+
+      <%# Checkbox %>
+      <div style="padding-top:0.6rem;">
+        <input
+          type="checkbox"
+          class="faq-preview-checkbox"
+          name="faqs[<%= idx %>][selected]"
+          value="1"
+          id="faq_selected_<%= idx %>"
+          checked
+          style="width:18px;height:18px;cursor:pointer;accent-color:#008060;flex-shrink:0;"
+        >
+      </div>
+
+      <%# Editable fields %>
+      <s-grid gap="small-200">
+        <input type="hidden" name="faqs[<%= idx %>][question]" id="faq_q_hidden_<%= idx %>" value="<%= ERB::Util.html_escape(faq["question"]) %>">
+        <input type="hidden" name="faqs[<%= idx %>][answer]"   id="faq_a_hidden_<%= idx %>" value="<%= ERB::Util.html_escape(faq["answer"]) %>">
+
+        <s-text-field
+          id="faq_q_field_<%= idx %>"
+          label="Question"
+          value="<%= ERB::Util.html_escape(faq["question"]) %>"
+          autocomplete="off"
+        ></s-text-field>
+
+        <s-text-area
+          id="faq_a_field_<%= idx %>"
+          label="Answer"
+          value="<%= ERB::Util.html_escape(faq["answer"]) %>"
+          rows="3"
+        ></s-text-area>
+      </s-grid>
+
+      <%# Delete row %>
+      <div style="padding-top:0.35rem;">
+        <s-button
+          variant="tertiary"
+          tone="critical"
+          icon="delete"
+          accessibilityLabel="Remove this FAQ"
+          type="button"
+          onclick="document.getElementById('faq_preview_row_<%= idx %>').remove(); updateFaqSelectedCount();"
+        ></s-button>
+      </div>
+
+    </s-grid>
+  </s-box>
+</div>

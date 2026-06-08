@@ -1,0 +1,53 @@
+<%# Rendered inside turbo_frame_tag "faq_suggestion_panel"
+    Locals: shop_origin, host
+    Shows the loading prompt the merchant sees before suggestions arrive. %>
+<%= turbo_frame_tag "faq_suggestion_panel" do %>
+  <div data-controller="faq-suggestions"
+       data-faq-suggestions-suggest-url-value="<%= suggest_knowledge_base_faq_suggestions_path(shop: shop_origin, host: host, embedded: 1) %>"
+       data-faq-suggestions-import-url-value="<%= import_knowledge_base_faq_suggestions_path(shop: shop_origin, host: host, embedded: 1) %>"
+  >
+    <s-grid gap="base">
+      <s-paragraph color="subdued">
+        The AI will scan your shipping policy, return policy, and uploaded documents to generate
+        suggested FAQs tailored to your store. Already-existing FAQs are automatically excluded.
+      </s-paragraph>
+
+      <%# Error banner (replaced by Turbo Stream on failure) %>
+      <div id="faq_suggestion_error"></div>
+
+      <%# Loading indicator (hidden initially, shown by Stimulus on submit) %>
+      <div id="faq_suggestion_loading" style="display:none">
+        <s-box background="subdued" borderRadius="base" padding="base">
+          <s-stack direction="inline" gap="small-200" alignItems="center">
+            <s-spinner size="base"></s-spinner>
+            <s-paragraph color="subdued">Scanning your knowledge base and generating FAQ suggestions&hellip;</s-paragraph>
+          </s-stack>
+        </s-box>
+      </div>
+
+      <%# Hidden form — submitted programmatically by the Stimulus controller %>
+      <%= form_with url: suggest_knowledge_base_faq_suggestions_path(shop: shop_origin, host: host, embedded: 1),
+                    method: :post,
+                    id: "faq_suggest_form",
+                    data: { turbo_frame: "faq_suggestion_panel" } do %>
+      <% end %>
+
+    </s-grid>
+
+    <s-stack direction="inline" gap="small-200" style="margin-top:1rem;">
+      <s-button
+        variant="primary"
+        icon="magic"
+        id="faq_suggest_btn"
+        data-action="click->faq-suggestions#generate"
+      >Generate Suggestions</s-button>
+      <s-button
+        variant="tertiary"
+        tone="neutral"
+        commandFor="faq-suggestions-modal"
+        command="--hide"
+        data-action="click->faq-suggestions#close"
+      >Cancel</s-button>
+    </s-stack>
+  </div>
+<% end %>
