@@ -1,0 +1,8 @@
+<%# Locals: title, messages %>
+<div id="faq_form_error" data-modal-target="error">
+  <s-banner tone="critical" title="<%= title %>">
+    <% messages.each do |msg| %>
+      <s-paragraph><%= msg %></s-paragraph>
+    <% end %>
+  </s-banner>
+</div>

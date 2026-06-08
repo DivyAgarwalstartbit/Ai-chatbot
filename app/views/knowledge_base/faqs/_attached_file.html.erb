@@ -15,9 +15,9 @@
           variant="tertiary"
           icon="refresh"
           accessibilityLabel="Replace file"
-          href="<%= new_knowledge_base_faq_attachment_path(faq, shop: shop_origin, host: host, embedded: 1) %>"
+          href="<%= attachment_new_knowledge_base_faq_path(faq, shop: shop_origin, host: host, embedded: 1) %>"
           data-turbo-frame="<%= frame_id %>">Replace</s-button>
-        <%= button_to knowledge_base_faq_attachment_path(faq, shop: shop_origin, host: host, embedded: 1),
+        <%= button_to attachment_knowledge_base_faq_path(faq, shop: shop_origin, host: host, embedded: 1),
               method: :delete,
               data: {
                 turbo_frame: frame_id,
@@ -30,7 +30,7 @@
     </s-grid>
   </s-box>
 <% else %>
-  <%= render "knowledge_base/faq_attachments/upload_form",
+  <%= render "knowledge_base/faqs/upload_form",
         faq: faq,
         frame_id: frame_id,
         shop_origin: shop_origin,

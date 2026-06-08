@@ -3,8 +3,8 @@
     Shows the loading prompt the merchant sees before suggestions arrive. %>
 <%= turbo_frame_tag "faq_suggestion_panel" do %>
   <div data-controller="faq-suggestions"
-       data-faq-suggestions-suggest-url-value="<%= suggest_knowledge_base_faq_suggestions_path(shop: shop_origin, host: host, embedded: 1) %>"
-       data-faq-suggestions-import-url-value="<%= import_knowledge_base_faq_suggestions_path(shop: shop_origin, host: host, embedded: 1) %>"
+       data-faq-suggestions-suggest-url-value="<%= suggest_knowledge_base_faqs_path(shop: shop_origin, host: host, embedded: 1) %>"
+       data-faq-suggestions-import-url-value="<%= suggest_import_knowledge_base_faqs_path(shop: shop_origin, host: host, embedded: 1) %>"
   >
     <s-grid gap="base">
       <s-paragraph color="subdued">
@@ -26,7 +26,7 @@
       </div>
 
       <%# Hidden form — submitted programmatically by the Stimulus controller %>
-      <%= form_with url: suggest_knowledge_base_faq_suggestions_path(shop: shop_origin, host: host, embedded: 1),
+      <%= form_with url: suggest_knowledge_base_faqs_path(shop: shop_origin, host: host, embedded: 1),
                     method: :post,
                     id: "faq_suggest_form",
                     data: { turbo_frame: "faq_suggestion_panel" } do %>

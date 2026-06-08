@@ -1,0 +1,4 @@
+<%# Locals: id, count, label (singular word, pluralized automatically) %>
+<span class="kb-badge <%= count > 0 ? 'kb-badge-info' : 'kb-badge-subdued' %>" id="<%= id %>">
+  <%= count %> <%= count == 1 ? label : label.pluralize %>
+</span>

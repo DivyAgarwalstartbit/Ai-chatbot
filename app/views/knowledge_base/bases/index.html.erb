@@ -1,6 +1,7 @@
 <s-page
-  data-controller="faq-modal"
-  data-faq-modal-create-url-value="<%= knowledge_base_faqs_path(shop: @shop_origin, host: @host, embedded: 1) %>"
+  data-controller="modal"
+  data-modal-type-value="faq"
+  data-modal-create-url-value="<%= knowledge_base_faqs_path(shop: @shop_origin, host: @host, embedded: 1) %>"
 >
 
 <style>
@@ -290,7 +291,7 @@
           title: "Shipping Policy",
           subtitle: "Delivery timeframes, carriers, and shipping terms",
           form_url: knowledge_base_shipping_policy_path(shop: @shop_origin, host: @host, embedded: 1),
-          attachment_url: knowledge_base_shipping_policy_attachment_path(shop: @shop_origin, host: @host, embedded: 1),
+          attachment_url: attachment_knowledge_base_shipping_policy_path(shop: @shop_origin, host: @host, embedded: 1),
           placeholder: "e.g. We ship all orders within 1-2 business days. Standard delivery takes 3-5 business days...",
           shop_origin: @shop_origin,
           host: @host,
@@ -302,7 +303,7 @@
           title: "Return Policy",
           subtitle: "Return window, eligibility conditions, and refund process",
           form_url: knowledge_base_return_policy_path(shop: @shop_origin, host: @host, embedded: 1),
-          attachment_url: knowledge_base_return_policy_attachment_path(shop: @shop_origin, host: @host, embedded: 1),
+          attachment_url: attachment_knowledge_base_return_policy_path(shop: @shop_origin, host: @host, embedded: 1),
           placeholder: "e.g. We accept returns within 30 days of purchase. Items must be unused and in original packaging...",
           shop_origin: @shop_origin,
           host: @host %>
@@ -327,10 +328,10 @@
       <div class="kb-acc-body">
         <div class="kb-actions" style="margin-bottom:10px;">
           <s-button variant="primary" icon="plus"
-            data-action="click->faq-modal#openNew">Add FAQ</s-button>
+            data-action="click->modal#openNew">Add FAQ</s-button>
           <s-button variant="secondary" icon="import"
             commandFor="faq-import-modal"
-            onclick="document.getElementById('faq_import_panel').src = '<%= new_knowledge_base_faq_import_path(shop: @shop_origin, host: @host, embedded: 1) %>'">
+            onclick="document.getElementById('faq_import_panel').src = '<%= import_panel_knowledge_base_faqs_path(shop: @shop_origin, host: @host, embedded: 1) %>'">
             Import FAQs
           </s-button>
           <s-button variant="tertiary" tone="neutral" icon="magic"
@@ -404,7 +405,7 @@
   <%# ── FAQ Import Modal ── %>
   <s-modal id="faq-import-modal" heading="Import FAQs" size="base">
     <%= turbo_frame_tag "faq_import_panel" do %>
-      <%= render "knowledge_base/faq_imports/form_panel",
+      <%= render "knowledge_base/faqs/import_panel",
             shop_origin: @shop_origin,
             host: @host %>
     <% end %>
@@ -413,10 +414,10 @@
   <%# ── FAQ Suggestions Modal ── %>
   <s-modal id="faq-suggestions-modal" heading="Generate FAQ Suggestions" size="large"
            data-controller="faq-suggestions"
-           data-faq-suggestions-suggest-url-value="<%= suggest_knowledge_base_faq_suggestions_path(shop: @shop_origin, host: @host, embedded: 1) %>"
-           data-faq-suggestions-import-url-value="<%= import_knowledge_base_faq_suggestions_path(shop: @shop_origin, host: @host, embedded: 1) %>">
+           data-faq-suggestions-suggest-url-value="<%= suggest_knowledge_base_faqs_path(shop: @shop_origin, host: @host, embedded: 1) %>"
+           data-faq-suggestions-import-url-value="<%= suggest_import_knowledge_base_faqs_path(shop: @shop_origin, host: @host, embedded: 1) %>">
     <%= turbo_frame_tag "faq_suggestion_panel" do %>
-      <%= render "knowledge_base/faq_suggestions/suggestion_panel",
+      <%= render "knowledge_base/faqs/suggestion_panel",
             shop_origin: @shop_origin,
             host: @host %>
     <% end %>

@@ -26,7 +26,7 @@
       commandFor="policy-delete-modal"
       data-policy-type="<%= policy_type %>"
       data-policy-filename="<%= policy.file.filename %>"
-      data-delete-path="<%= send(:"knowledge_base_#{policy_type}_attachment_path", shop: shop_origin, host: host, embedded: 1) %>">
+      data-delete-path="<%= send(:"attachment_knowledge_base_#{policy_type}_path", shop: shop_origin, host: host, embedded: 1) %>">
       Delete
     </s-button>
   </div>

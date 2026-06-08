@@ -3,7 +3,7 @@
   data-controller="faq-import file-upload"
   data-faq-import-shop-value="<%= shop_origin %>"
   data-faq-import-host-value="<%= host %>"
-  data-faq-import-reset-url-value="<%= new_knowledge_base_faq_import_path(shop: shop_origin, host: host, embedded: 1) %>"
+  data-faq-import-reset-url-value="<%= import_panel_knowledge_base_faqs_path(shop: shop_origin, host: host, embedded: 1) %>"
 >
   <s-grid gap="base">
     <s-paragraph color="subdued">
@@ -30,7 +30,7 @@
 
     <%# ── Paste tab ── %>
     <div data-faq-import-target="pastePanel">
-      <%= form_with url: extract_knowledge_base_faq_import_path(shop: shop_origin, host: host, embedded: 1),
+      <%= form_with url: extract_knowledge_base_faqs_path(shop: shop_origin, host: host, embedded: 1),
                     method: :post,
                     id: "faq_import_paste_form",
                     data: { turbo_frame: "faq_import_panel" } do |f| %>
@@ -47,7 +47,7 @@
 
     <%# ── Upload tab ── %>
     <div data-faq-import-target="uploadPanel" style="display:none">
-      <%= form_with url: extract_knowledge_base_faq_import_path(shop: shop_origin, host: host, embedded: 1),
+      <%= form_with url: extract_knowledge_base_faqs_path(shop: shop_origin, host: host, embedded: 1),
                     method: :post,
                     id: "faq_import_upload_form",
                     multipart: true,

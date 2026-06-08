@@ -9,10 +9,10 @@
       <% if mode == :import %>
         data-faq-import-shop-value="<%= shop_origin %>"
         data-faq-import-host-value="<%= host %>"
-        data-faq-import-reset-url-value="<%= new_knowledge_base_faq_import_path(shop: shop_origin, host: host, embedded: 1) %>"
+        data-faq-import-reset-url-value="<%= import_panel_knowledge_base_faqs_path(shop: shop_origin, host: host, embedded: 1) %>"
       <% elsif mode == :suggestions %>
-        data-faq-suggestions-suggest-url-value="<%= suggest_knowledge_base_faq_suggestions_path(shop: shop_origin, host: host, embedded: 1) %>"
-        data-faq-suggestions-import-url-value="<%= import_knowledge_base_faq_suggestions_path(shop: shop_origin, host: host, embedded: 1) %>"
+        data-faq-suggestions-suggest-url-value="<%= suggest_knowledge_base_faqs_path(shop: shop_origin, host: host, embedded: 1) %>"
+        data-faq-suggestions-import-url-value="<%= suggest_import_knowledge_base_faqs_path(shop: shop_origin, host: host, embedded: 1) %>"
       <% end %>
     <% end %>
   >
@@ -28,7 +28,7 @@
             <s-button
               variant="tertiary"
               tone="neutral"
-              href="<%= new_knowledge_base_faq_import_path(shop: shop_origin, host: host, embedded: 1) %>"
+              href="<%= import_panel_knowledge_base_faqs_path(shop: shop_origin, host: host, embedded: 1) %>"
               data-turbo-frame="faq_import_panel">Start over</s-button>
           <% else %>
             <s-button

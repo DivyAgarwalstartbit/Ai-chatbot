@@ -1,7 +1,7 @@
 <%# Locals: policy, policy_type, title, subtitle, form_url, attachment_url, placeholder, shop_origin, host %>
 <% policy_key = policy_type.to_s.delete_suffix("_policy") %>
 
-<div data-controller="policy-modal" id="<%= policy_type %>_section_wrapper" style="<%= "margin-top:8px;" unless local_assigns[:first] %>">
+<div data-controller="modal" data-modal-type-value="policy" id="<%= policy_type %>_section_wrapper" style="<%= "margin-top:8px;" unless local_assigns[:first] %>">
   <details class="kb-accordion" id="accordion_<%= policy_key %>">
     <summary>
       <div class="kb-acc-left">
@@ -57,12 +57,12 @@
   </details>
 
   <div class="kb-modal-overlay" id="<%= policy_type %>_modal"
-       data-policy-modal-target="modal backdrop"
-       data-action="click->policy-modal#backdropClick">
+       data-modal-target="modal backdrop"
+       data-action="click->modal#backdropClick">
     <div class="kb-modal">
       <div class="kb-modal-header">
         <span class="kb-modal-title">Edit <%= title %></span>
-        <button class="kb-modal-close" data-action="click->policy-modal#close" aria-label="Close">
+        <button class="kb-modal-close" data-action="click->modal#close" aria-label="Close">
           <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor"><path d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"/></svg>
         </button>
       </div>
@@ -75,7 +75,7 @@
               data: { policy_form: true, turbo_stream: true }
             ) do |f| %>
           <%= f.hidden_field :content, id: "#{policy_type}_content_hidden",
-                data: { "policy-modal-target": "hidden" } %>
+                data: { "modal-target": "hidden" } %>
           <s-text-area
             id="<%= policy_type %>_content_textarea"
             label="Policy text"
@@ -83,13 +83,13 @@
             rows="14"
             autocomplete="off"
             value="<%= ERB::Util.html_escape(policy.content.to_s) %>"
-            data-policy-modal-target="textarea"
+            data-modal-target="textarea"
           ></s-text-area>
         <% end %>
       </div>
       <div class="kb-modal-footer">
-        <s-button variant="primary" data-action="click->policy-modal#submit">Save Policy</s-button>
-        <s-button variant="tertiary" tone="neutral" data-action="click->policy-modal#close">Cancel</s-button>
+        <s-button variant="primary" data-action="click->modal#submit">Save Policy</s-button>
+        <s-button variant="tertiary" tone="neutral" data-action="click->modal#close">Cancel</s-button>
       </div>
     </div>
   </div>

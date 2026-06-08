@@ -1,6 +1,6 @@
-<%# Locals: faq, frame_id, shop_origin, host %>
+<%# Locals: policy, policy_type, frame_id, shop_origin, host %>
 <%= form_with(
-  url: knowledge_base_faq_attachment_path(faq, shop: shop_origin, host: host, embedded: 1),
+  url: send(:"attachment_knowledge_base_#{policy_type}_path", shop: shop_origin, host: host, embedded: 1),
   method: :post,
   multipart: true,
   data: {
@@ -10,9 +10,10 @@
 ) do |f| %>
 
   <s-grid gap="small-200">
+    <%# Hidden file input %>
     <%= f.file_field "file",
           name: "attachment[file]",
-          id: "faq_#{faq.id}_file_input",
+          id: "#{policy_type}_file_input",
           accept: ".pdf,.docx,.txt",
           data: { file_upload_target: "input", action: "change->file-upload#fileChosen" },
           style: "display:none" %>
@@ -28,9 +29,10 @@
     >
       <s-stack alignItems="center" gap="small-200">
         <s-icon source="upload" tone="subdued"></s-icon>
-        <s-paragraph color="subdued">
-          <strong>Click to browse</strong> or drag &amp; drop &mdash; PDF, DOCX, TXT (max 10 MB)
-        </s-paragraph>
+        <s-grid gap="extra-small" style="text-align:center">
+          <s-paragraph><strong>Click to browse</strong> or drag &amp; drop</s-paragraph>
+          <s-text color="subdued">PDF, DOCX, TXT &mdash; max 10 MB</s-text>
+        </s-grid>
         <s-badge tone="info" data-file-upload-target="badge" style="display:none"></s-badge>
       </s-stack>
     </s-box>
@@ -38,6 +40,7 @@
     <s-stack direction="inline" gap="small-200">
       <s-button
         variant="primary"
+        icon="upload"
         disabled
         data-file-upload-target="submit"
         onclick="this.closest('form').requestSubmit()">
