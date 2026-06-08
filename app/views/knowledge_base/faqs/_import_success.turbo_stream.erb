@@ -1,0 +1,37 @@
+<%# Locals: imported_faqs, total_faqs, panel_target, panel_partial, modal_id, banner_id, banner_title, shop_origin, host %>
+<%= turbo_stream.replace panel_target do %>
+  <%= turbo_frame_tag panel_target do %>
+    <%= render panel_partial, shop_origin: shop_origin, host: host %>
+  <% end %>
+<% end %>
+
+<%= turbo_stream.replace "faq_empty_state" do %>
+  <div id="faq_empty_state"></div>
+<% end %>
+
+<% imported_faqs.each do |faq| %>
+  <%= turbo_stream.append "faq_list" do %>
+    <%= render "knowledge_base/faqs/faq", faq: faq, shop_origin: shop_origin, host: host %>
+  <% end %>
+<% end %>
+
+<%= turbo_stream.replace "faq_count_badge" do %>
+  <span class="kb-badge kb-badge-info" id="faq_count_badge">
+    <%= total_faqs %> <%= total_faqs == 1 ? "FAQ" : "FAQs" %>
+  </span>
+<% end %>
+
+<%= turbo_stream.prepend "faq_list" do %>
+  <div id="<%= banner_id %>" style="margin-bottom:6px;">
+    <s-banner tone="success" title="<%= banner_title %>" onDismiss="this.remove()"></s-banner>
+  </div>
+<% end %>
+
+<script>
+  (function() {
+    var modal = document.getElementById('<%= modal_id %>');
+    if (modal && typeof modal.hideOverlay === 'function') {
+      modal.hideOverlay();
+    }
+  })();
+</script>

@@ -86,7 +86,7 @@ export default class extends Controller {
     if (e) e.preventDefault()
 
     // Sync Polaris s-text-field / s-text-area values → hidden inputs
-    document.querySelectorAll("#faq_suggestion_list .faq-preview-row").forEach(row => {
+    this.element.querySelectorAll(".faq-preview-row").forEach(row => {
       const idx     = row.dataset.idx
       const qField  = document.getElementById("faq_q_field_"  + idx)
       const qHidden = document.getElementById("faq_q_hidden_" + idx)
@@ -101,6 +101,27 @@ export default class extends Controller {
 
     const form = document.getElementById("faq_suggestions_import_form")
     if (form) form.requestSubmit()
+    else this.element.querySelector("form")?.requestSubmit()
+  }
+
+  selectAll(e) {
+    if (e) e.preventDefault()
+    this._setReviewSelection(true)
+  }
+
+  deselectAll(e) {
+    if (e) e.preventDefault()
+    this._setReviewSelection(false)
+  }
+
+  removeRow(e) {
+    e.preventDefault()
+    e.currentTarget.closest(".faq-preview-row")?.remove()
+    this._updateSelectedCount()
+  }
+
+  updateSelectedCount() {
+    this._updateSelectedCount()
   }
 
   // ── Close ────────────────────────────────────────────────────────────────
@@ -118,5 +139,19 @@ export default class extends Controller {
     if (err) err.innerHTML = ""
     const importErr = document.getElementById("faq_suggestion_import_error")
     if (importErr) importErr.innerHTML = ""
+  }
+
+  _setReviewSelection(checked) {
+    this.element.querySelectorAll(".faq-preview-checkbox").forEach(checkbox => {
+      checkbox.checked = checked
+    })
+    this._updateSelectedCount()
+  }
+
+  _updateSelectedCount() {
+    const checkboxes = Array.from(this.element.querySelectorAll(".faq-preview-checkbox"))
+    const selected = checkboxes.filter(checkbox => checkbox.checked).length
+    const count = document.getElementById("suggest_selected_count")
+    if (count) count.textContent = `${selected} selected`
   }
 }

@@ -1,0 +1,81 @@
+<%# Locals: items, form_url, mode, title, description, panel_controller, list_id, error_id, selected_count_id, import_button_id, shop_origin, host %>
+<% rows_partial = "knowledge_base/faqs/review_row" %>
+<% form_id = mode == :suggestions ? "faq_suggestions_import_form" : "faq_import_form" %>
+
+<s-box border="base" borderRadius="base" padding="base">
+  <div
+    <% if panel_controller.present? %>
+      data-controller="<%= panel_controller %>"
+      <% if mode == :import %>
+        data-faq-import-shop-value="<%= shop_origin %>"
+        data-faq-import-host-value="<%= host %>"
+        data-faq-import-reset-url-value="<%= new_knowledge_base_faq_import_path(shop: shop_origin, host: host, embedded: 1) %>"
+      <% elsif mode == :suggestions %>
+        data-faq-suggestions-suggest-url-value="<%= suggest_knowledge_base_faq_suggestions_path(shop: shop_origin, host: host, embedded: 1) %>"
+        data-faq-suggestions-import-url-value="<%= import_knowledge_base_faq_suggestions_path(shop: shop_origin, host: host, embedded: 1) %>"
+      <% end %>
+    <% end %>
+  >
+    <%= form_with url: form_url, method: :post, id: form_id do %>
+      <s-grid gap="base">
+        <s-grid gridTemplateColumns="1fr auto" alignItems="start">
+          <s-grid gap="extra-small">
+            <s-heading element="h3"><%= title %></s-heading>
+            <s-paragraph color="subdued"><%= description %></s-paragraph>
+          </s-grid>
+
+          <% if mode == :import %>
+            <s-button
+              variant="tertiary"
+              tone="neutral"
+              href="<%= new_knowledge_base_faq_import_path(shop: shop_origin, host: host, embedded: 1) %>"
+              data-turbo-frame="faq_import_panel">Start over</s-button>
+          <% else %>
+            <s-button
+              variant="tertiary"
+              tone="neutral"
+              data-action="click->faq-suggestions#regenerate">Regenerate</s-button>
+          <% end %>
+        </s-grid>
+
+        <s-stack direction="inline" gap="small-300" alignItems="center">
+          <s-button variant="tertiary" tone="neutral" data-action="click-><%= panel_controller %>#selectAll" type="button">Select all</s-button>
+          <s-button variant="tertiary" tone="neutral" data-action="click-><%= panel_controller %>#deselectAll" type="button">Deselect all</s-button>
+          <s-badge tone="info" id="<%= selected_count_id %>"><%= items.size %> selected</s-badge>
+        </s-stack>
+
+        <s-divider></s-divider>
+
+        <div id="<%= list_id %>" data-review-list>
+          <s-grid gap="base">
+            <% items.each_with_index do |faq, idx| %>
+              <%= render rows_partial, faq: faq, idx: idx, controller: panel_controller %>
+            <% end %>
+          </s-grid>
+        </div>
+
+        <s-divider></s-divider>
+
+        <div id="<%= error_id %>"></div>
+
+        <s-stack direction="inline" gap="small-200">
+          <s-button
+            variant="primary"
+            id="<%= import_button_id %>"
+            type="button"
+            data-action="click-><%= panel_controller %>#submitImport"
+          >Import selected</s-button>
+          <s-button
+            variant="tertiary"
+            tone="neutral"
+            <% if mode == :suggestions %>
+              commandFor="faq-suggestions-modal"
+              command="--hide"
+            <% end %>
+            data-action="click-><%= panel_controller %>#close"
+          >Cancel</s-button>
+        </s-stack>
+      </s-grid>
+    <% end %>
+  </div>
+</s-box>

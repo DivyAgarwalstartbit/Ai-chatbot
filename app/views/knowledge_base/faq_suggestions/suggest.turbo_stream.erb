@@ -1,9 +1,18 @@
 <%# Replace the suggestion panel with the review/preview UI %>
 <%= turbo_stream.replace "faq_suggestion_panel" do %>
   <%= turbo_frame_tag "faq_suggestion_panel" do %>
-    <%= render "suggestion_preview",
-          suggestions: @suggestions,
+    <%= render "knowledge_base/faqs/review_panel",
+          items: @suggestions,
+          form_url: import_knowledge_base_faq_suggestions_path(shop: @shop_origin, host: @host, embedded: 1),
+          mode: :suggestions,
+          title: "Suggested FAQs",
+          description: "#{@suggestions.size} suggestion#{@suggestions.size == 1 ? '' : 's'} generated from your knowledge base. Duplicates of existing FAQs have been removed.",
+          panel_controller: "faq-suggestions",
+          list_id: "faq_suggestion_list",
+          error_id: "faq_suggestion_import_error",
+          selected_count_id: "suggest_selected_count",
+          import_button_id: "suggest_import_btn",
           shop_origin: @shop_origin,
-          host:        @host %>
+          host: @host %>
   <% end %>
 <% end %>

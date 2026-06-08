@@ -1,0 +1,55 @@
+<%# Locals: policy, policy_type, form_url, frame_id, description, placeholder, shop_origin, host %>
+<%= form_with(
+  model: policy,
+  url: form_url,
+  method: :patch,
+  data: { turbo_frame: frame_id },
+  id: "#{policy_type}_form"
+) do |f| %>
+
+  <s-grid gap="base">
+    <% if policy.errors.any? %>
+      <s-banner tone="critical">
+        <% policy.errors.full_messages.each do |msg| %>
+          <s-paragraph><%= msg %></s-paragraph>
+        <% end %>
+      </s-banner>
+    <% end %>
+
+    <s-banner tone="info">
+      <s-paragraph>
+        <%= description %>
+        Your chatbot will use this to answer customer questions.
+      </s-paragraph>
+    </s-banner>
+
+    <%= f.hidden_field :content, id: "#{policy_type}_content_hidden" %>
+
+    <s-text-area
+      id="<%= policy_type %>_content"
+      label="Policy text"
+      placeholder="<%= placeholder %>"
+      rows="12"
+      autocomplete="off"
+      value="<%= ERB::Util.html_escape(policy.content.to_s) %>"
+    ></s-text-area>
+
+    <s-stack direction="inline" gap="small-200">
+      <s-button variant="primary" onclick="submitPolicyForm('<%= policy_type %>')">Save policy</s-button>
+      <s-button variant="tertiary" tone="neutral"
+        href="<%= knowledge_base_root_path(shop: shop_origin, host: host, embedded: 1) %>"
+        data-turbo-frame="<%= frame_id %>">Cancel</s-button>
+    </s-stack>
+  </s-grid>
+
+<% end %>
+
+<script>
+  window.submitPolicyForm = window.submitPolicyForm || function(policyType) {
+    var ta = document.getElementById(policyType + '_content');
+    var hidden = document.getElementById(policyType + '_content_hidden');
+    if (ta && hidden) hidden.value = ta.value;
+    var form = document.getElementById(policyType + '_form');
+    if (form) form.requestSubmit();
+  };
+</script>

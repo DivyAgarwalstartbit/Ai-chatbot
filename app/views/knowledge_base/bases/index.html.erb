@@ -284,209 +284,28 @@
 
   <s-section>
 
-    <!-- ════════════════════════════════════════════════════
-         SHIPPING POLICY
-    ════════════════════════════════════════════════════ -->
-    <div data-controller="policy-modal" id="shipping_policy_section_wrapper">
-      <details class="kb-accordion" id="accordion_shipping">
-        <summary>
-          <div class="kb-acc-left">
-            <div class="kb-acc-title">
-              Shipping Policy
-              <%= render "knowledge_base/bases/policy_badge",
-                    policy: @shipping_policy,
-                    policy_type: "shipping_policy" %>
-            </div>
-            <div class="kb-acc-sub">Delivery timeframes, carriers, and shipping terms</div>
-          </div>
-          <svg class="kb-acc-chevron" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd"/></svg>
-        </summary>
+    <%= render "knowledge_base/policies/section",
+          policy: @shipping_policy,
+          policy_type: "shipping_policy",
+          title: "Shipping Policy",
+          subtitle: "Delivery timeframes, carriers, and shipping terms",
+          form_url: knowledge_base_shipping_policy_path(shop: @shop_origin, host: @host, embedded: 1),
+          attachment_url: knowledge_base_shipping_policy_attachment_path(shop: @shop_origin, host: @host, embedded: 1),
+          placeholder: "e.g. We ship all orders within 1-2 business days. Standard delivery takes 3-5 business days...",
+          shop_origin: @shop_origin,
+          host: @host,
+          first: true %>
 
-        <div class="kb-acc-body" data-controller="policy-sync">
-
-          <%# Sync feedback banner (error / confirm) — replaced by Turbo Stream %>
-          <div id="shipping_policy_sync_banner"></div>
-
-          <%= render "knowledge_base/bases/policy_preview",
-                policy: @shipping_policy,
-                policy_type: "shipping_policy",
-                empty_message: policy_empty_message("shipping_policy") %>
-
-          <%= render "knowledge_base/bases/policy_summary",
-                policy: @shipping_policy,
-                policy_type: "shipping_policy" %>
-
-          <%= render "knowledge_base/bases/policy_actions",
-                policy: @shipping_policy,
-                policy_type: "shipping_policy",
-                shop_origin: @shop_origin,
-                host: @host %>
-
-          <%= render "knowledge_base/bases/policy_attachment",
-                policy: @shipping_policy,
-                policy_type: "shipping_policy",
-                shop_origin: @shop_origin,
-                host: @host %>
-
-          <%# Hidden file upload form for document %>
-          <form action="<%= knowledge_base_shipping_policy_attachment_path(shop: @shop_origin, host: @host, embedded: 1) %>"
-                method="post"
-                enctype="multipart/form-data"
-                id="shipping_policy_attachment_form"
-                data-turbo="true"
-                data-turbo-stream="true"
-                style="display:none;">
-            <%= hidden_field_tag :authenticity_token, form_authenticity_token %>
-            <input type="file" name="attachment[file]"
-                   id="shipping_policy_file_input"
-                   accept=".pdf,.docx,.txt"
-                   onchange="document.getElementById('shipping_policy_attachment_form').requestSubmit()" />
-          </form>
-
-        </div>
-      </details>
-
-      <%# ── Shipping Policy Modal ── %>
-      <div class="kb-modal-overlay" id="shipping_policy_modal"
-           data-policy-modal-target="modal backdrop"
-           data-action="click->policy-modal#backdropClick">
-        <div class="kb-modal">
-          <div class="kb-modal-header">
-            <span class="kb-modal-title">Edit Shipping Policy</span>
-            <button class="kb-modal-close" data-action="click->policy-modal#close" aria-label="Close">
-              <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor"><path d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"/></svg>
-            </button>
-          </div>
-          <div class="kb-modal-body">
-            <%= form_with(
-                  model: @shipping_policy,
-                  url: knowledge_base_shipping_policy_path(shop: @shop_origin, host: @host, embedded: 1),
-                  method: :patch,
-                  id: "shipping_policy_form",
-                  data: { policy_form: true, turbo_stream: true }
-                ) do |f| %>
-              <%= f.hidden_field :content, id: "shipping_policy_content_hidden",
-                    data: { "policy-modal-target": "hidden" } %>
-              <s-text-area
-                id="shipping_policy_content_textarea"
-                label="Policy text"
-                placeholder="e.g. We ship all orders within 1–2 business days. Standard delivery takes 3–5 business days..."
-                rows="14"
-                autocomplete="off"
-                value="<%= ERB::Util.html_escape(@shipping_policy.content.to_s) %>"
-                data-policy-modal-target="textarea"
-              ></s-text-area>
-            <% end %>
-          </div>
-          <div class="kb-modal-footer">
-            <s-button variant="primary" data-action="click->policy-modal#submit">Save Policy</s-button>
-            <s-button variant="tertiary" tone="neutral" data-action="click->policy-modal#close">Cancel</s-button>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- ════════════════════════════════════════════════════
-         RETURN POLICY
-    ════════════════════════════════════════════════════ -->
-    <div data-controller="policy-modal" id="return_policy_section_wrapper" style="margin-top:8px;">
-      <details class="kb-accordion" id="accordion_return">
-        <summary>
-          <div class="kb-acc-left">
-            <div class="kb-acc-title">
-              Return Policy
-              <%= render "knowledge_base/bases/policy_badge",
-                    policy: @return_policy,
-                    policy_type: "return_policy" %>
-            </div>
-            <div class="kb-acc-sub">Return window, eligibility conditions, and refund process</div>
-          </div>
-          <svg class="kb-acc-chevron" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd"/></svg>
-        </summary>
-
-        <div class="kb-acc-body" data-controller="policy-sync">
-
-          <%# Sync feedback banner (error / confirm) — replaced by Turbo Stream %>
-          <div id="return_policy_sync_banner"></div>
-
-          <%= render "knowledge_base/bases/policy_preview",
-                policy: @return_policy,
-                policy_type: "return_policy",
-                empty_message: policy_empty_message("return_policy") %>
-
-          <%= render "knowledge_base/bases/policy_summary",
-                policy: @return_policy,
-                policy_type: "return_policy" %>
-
-          <%= render "knowledge_base/bases/policy_actions",
-                policy: @return_policy,
-                policy_type: "return_policy",
-                shop_origin: @shop_origin,
-                host: @host %>
-
-          <%= render "knowledge_base/bases/policy_attachment",
-                policy: @return_policy,
-                policy_type: "return_policy",
-                shop_origin: @shop_origin,
-                host: @host %>
-
-          <%# Hidden file upload form %>
-          <form action="<%= knowledge_base_return_policy_attachment_path(shop: @shop_origin, host: @host, embedded: 1) %>"
-                method="post"
-                enctype="multipart/form-data"
-                id="return_policy_attachment_form"
-                data-turbo="true"
-                data-turbo-stream="true"
-                style="display:none;">
-            <%= hidden_field_tag :authenticity_token, form_authenticity_token %>
-            <input type="file" name="attachment[file]"
-                   id="return_policy_file_input"
-                   accept=".pdf,.docx,.txt"
-                   onchange="document.getElementById('return_policy_attachment_form').requestSubmit()" />
-          </form>
-
-        </div>
-      </details>
-
-      <%# ── Return Policy Modal ── %>
-      <div class="kb-modal-overlay" id="return_policy_modal"
-           data-policy-modal-target="modal backdrop"
-           data-action="click->policy-modal#backdropClick">
-        <div class="kb-modal">
-          <div class="kb-modal-header">
-            <span class="kb-modal-title">Edit Return Policy</span>
-            <button class="kb-modal-close" data-action="click->policy-modal#close" aria-label="Close">
-              <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor"><path d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"/></svg>
-            </button>
-          </div>
-          <div class="kb-modal-body">
-            <%= form_with(
-                  model: @return_policy,
-                  url: knowledge_base_return_policy_path(shop: @shop_origin, host: @host, embedded: 1),
-                  method: :patch,
-                  id: "return_policy_form",
-                  data: { policy_form: true, turbo_stream: true }
-                ) do |f| %>
-              <%= f.hidden_field :content, id: "return_policy_content_hidden",
-                    data: { "policy-modal-target": "hidden" } %>
-              <s-text-area
-                id="return_policy_content_textarea"
-                label="Policy text"
-                placeholder="e.g. We accept returns within 30 days of purchase. Items must be unused and in original packaging..."
-                rows="14"
-                autocomplete="off"
-                value="<%= ERB::Util.html_escape(@return_policy.content.to_s) %>"
-                data-policy-modal-target="textarea"
-              ></s-text-area>
-            <% end %>
-          </div>
-          <div class="kb-modal-footer">
-            <s-button variant="primary" data-action="click->policy-modal#submit">Save Policy</s-button>
-            <s-button variant="tertiary" tone="neutral" data-action="click->policy-modal#close">Cancel</s-button>
-          </div>
-        </div>
-      </div>
-    </div>
+    <%= render "knowledge_base/policies/section",
+          policy: @return_policy,
+          policy_type: "return_policy",
+          title: "Return Policy",
+          subtitle: "Return window, eligibility conditions, and refund process",
+          form_url: knowledge_base_return_policy_path(shop: @shop_origin, host: @host, embedded: 1),
+          attachment_url: knowledge_base_return_policy_attachment_path(shop: @shop_origin, host: @host, embedded: 1),
+          placeholder: "e.g. We accept returns within 30 days of purchase. Items must be unused and in original packaging...",
+          shop_origin: @shop_origin,
+          host: @host %>
 
     <!-- ════════════════════════════════════════════════════
          FAQs

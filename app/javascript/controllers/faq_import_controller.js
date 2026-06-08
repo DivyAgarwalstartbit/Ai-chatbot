@@ -146,6 +146,32 @@ export default class extends Controller {
     this._submitUpload()
   }
 
+  submitImport(e) {
+    if (e) e.preventDefault()
+    this._syncReviewRows()
+    this.element.querySelector("form")?.requestSubmit()
+  }
+
+  selectAll(e) {
+    if (e) e.preventDefault()
+    this._setReviewSelection(true)
+  }
+
+  deselectAll(e) {
+    if (e) e.preventDefault()
+    this._setReviewSelection(false)
+  }
+
+  removeRow(e) {
+    e.preventDefault()
+    e.currentTarget.closest(".faq-preview-row")?.remove()
+    this._updateSelectedCount()
+  }
+
+  updateSelectedCount() {
+    this._updateSelectedCount()
+  }
+
   // Called by Turbo form submit event (data-action="submit->faq-import#submitExtract")
   submitExtract(_e) {
     // Loading already started by _submitPaste / _submitUpload.
@@ -203,6 +229,32 @@ export default class extends Controller {
     const errorEl = document.getElementById("faq_import_error")
     if (errorEl) errorEl.innerHTML = ""
     else if (this.hasErrorBannerTarget) this.errorBannerTarget.innerHTML = ""
+  }
+
+  _syncReviewRows() {
+    this.element.querySelectorAll(".faq-preview-row").forEach(row => {
+      const idx = row.dataset.idx
+      const qField  = document.getElementById("faq_q_field_" + idx)
+      const qHidden = document.getElementById("faq_q_hidden_" + idx)
+      const aField  = document.getElementById("faq_a_field_" + idx)
+      const aHidden = document.getElementById("faq_a_hidden_" + idx)
+      if (qField && qHidden) qHidden.value = qField.value || ""
+      if (aField && aHidden) aHidden.value = aField.value || ""
+    })
+  }
+
+  _setReviewSelection(checked) {
+    this.element.querySelectorAll(".faq-preview-checkbox").forEach(checkbox => {
+      checkbox.checked = checked
+    })
+    this._updateSelectedCount()
+  }
+
+  _updateSelectedCount() {
+    const checkboxes = Array.from(this.element.querySelectorAll(".faq-preview-checkbox"))
+    const selected = checkboxes.filter(checkbox => checkbox.checked).length
+    const count = document.getElementById("faq_selected_count")
+    if (count) count.textContent = `${selected} selected`
   }
 
   // ── Cancel / close ───────────────────────────────────────────────────────

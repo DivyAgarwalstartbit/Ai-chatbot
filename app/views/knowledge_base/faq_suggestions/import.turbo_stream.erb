@@ -1,45 +1,11 @@
-<%# Success: close modal, append new FAQs to the list, update count badge %>
-
-<%# 1. Reset the suggestion panel back to the prompt screen %>
-<%= turbo_stream.replace "faq_suggestion_panel" do %>
-  <%= turbo_frame_tag "faq_suggestion_panel" do %>
-    <%= render "suggestion_panel", shop_origin: @shop_origin, host: @host %>
-  <% end %>
-<% end %>
-
-<%# 2. Hide empty state %>
-<%= turbo_stream.replace "faq_empty_state" do %>
-  <div id="faq_empty_state"></div>
-<% end %>
-
-<%# 3. Append each imported FAQ to the main FAQ list %>
-<% @imported_faqs.each do |faq| %>
-  <%= turbo_stream.append "faq_list" do %>
-    <%= render "knowledge_base/faqs/faq", faq: faq, shop_origin: @shop_origin, host: @host %>
-  <% end %>
-<% end %>
-
-<%# 4. Update count badge %>
 <% total_faqs = current_shop.training_documents.where(document_type: "faq").count rescue @imported_faqs.size %>
-<%= turbo_stream.replace "faq_count_badge" do %>
-  <span class="kb-badge kb-badge-info" id="faq_count_badge">
-    <%= total_faqs %> <%= total_faqs == 1 ? "FAQ" : "FAQs" %>
-  </span>
-<% end %>
-
-<%# 5. Success banner at top of FAQ list %>
-<%= turbo_stream.prepend "faq_list" do %>
-  <div id="faq_suggestion_success_banner" style="margin-bottom:6px;">
-    <s-banner tone="success"
-      title="<%= @imported_faqs.size %> FAQ<%= @imported_faqs.size == 1 ? '' : 's' %> added from suggestions"
-      onDismiss="this.remove()">
-    </s-banner>
-  </div>
-<% end %>
-
-<script>
-  (function() {
-    var modal = document.getElementById('faq-suggestions-modal');
-    if (modal && typeof modal.hideOverlay === 'function') modal.hideOverlay();
-  })();
-</script>
+<%= render "knowledge_base/faqs/import_success",
+      imported_faqs: @imported_faqs,
+      total_faqs: total_faqs,
+      panel_target: "faq_suggestion_panel",
+      panel_partial: "knowledge_base/faq_suggestions/suggestion_panel",
+      modal_id: "faq-suggestions-modal",
+      banner_id: "faq_suggestion_success_banner",
+      banner_title: "#{@imported_faqs.size} FAQ#{@imported_faqs.size == 1 ? '' : 's'} added from suggestions",
+      shop_origin: @shop_origin,
+      host: @host %>

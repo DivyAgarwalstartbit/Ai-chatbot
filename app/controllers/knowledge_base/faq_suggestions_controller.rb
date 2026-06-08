@@ -7,8 +7,7 @@
 #   POST /knowledge_base/faq_suggestions/import   → save selected suggestions as FAQs
 #
 # The suggest action renders a Turbo Stream that replaces the suggestion panel
-# inside the faq-suggestions-modal with the preview UI (reuses the same
-# _preview_row partial from faq_imports).
+# inside the faq-suggestions-modal with the shared FAQ review UI.
 #
 # The import action is identical to FaqImportsController#import — it creates
 # TrainingDocument records with document_type: "faq".
