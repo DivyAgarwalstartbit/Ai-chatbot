@@ -1,0 +1,22 @@
+<%= turbo_frame_tag dom_id(document) do %>
+  <div class="kb-file-row" style="margin-bottom:4px;">
+    <% ext = document.file.filename.to_s.split('.').last&.downcase %>
+    <svg width="14" height="14" viewBox="0 0 20 20" fill="#6d7175" style="flex-shrink:0"><path d="M4 18a2 2 0 01-2-2V4a2 2 0 012-2h8l4 4v10a2 2 0 01-2 2H4zm7-13v3h3l-3-3z"/></svg>
+    <span class="kb-file-name"><%= document.file.filename %></span>
+    <span class="kb-file-meta">
+      <span class="kb-badge kb-badge-subdued" style="font-size:10px;padding:1px 5px;"><%= ext&.upcase %></span>
+      &nbsp;<%= number_to_human_size(document.file.byte_size) %> &middot; <%= time_ago_in_words(document.created_at) %> ago
+    </span>
+    <s-button
+      variant="tertiary"
+      tone="critical"
+      icon="delete"
+      size="slim"
+      accessibilityLabel="Delete"
+      commandFor="document-delete-modal"
+      data-document-id="<%= document.id %>"
+      data-document-name="<%= document.file.filename %>"
+      data-delete-path="<%= knowledge_base_document_path(document, shop: shop_origin, host: host, embedded: 1) %>"
+    ></s-button>
+  </div>
+<% end %>

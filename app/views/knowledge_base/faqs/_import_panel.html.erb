@@ -1,0 +1,138 @@
+<%# Locals: shop_origin, host %>
+<div
+  data-controller="faq-import file-upload"
+  data-faq-import-shop-value="<%= shop_origin %>"
+  data-faq-import-host-value="<%= host %>"
+  data-faq-import-reset-url-value="<%= import_panel_knowledge_base_faqs_path(shop: shop_origin, host: host, embedded: 1) %>"
+>
+  <s-grid gap="base">
+    <s-paragraph color="subdued">
+      Paste store content or upload a document. The AI will generate FAQ pairs you can review before saving.
+    </s-paragraph>
+
+    <%# ── Tab switcher ── %>
+    <s-stack direction="inline" gap="small-200">
+      <s-button
+        id="tab_paste"
+        variant="primary"
+        data-action="click->faq-import#showPasteTab"
+        data-faq-import-target="pasteTabBtn">Paste text</s-button>
+      <s-button
+        id="tab_upload"
+        variant="tertiary"
+        tone="neutral"
+        data-action="click->faq-import#showUploadTab"
+        data-faq-import-target="uploadTabBtn">Upload document</s-button>
+    </s-stack>
+
+    <%# ── Error banner ── %>
+    <div id="faq_import_error" data-faq-import-target="errorBanner"></div>
+
+    <%# ── Paste tab ── %>
+    <div data-faq-import-target="pastePanel">
+      <%= form_with url: extract_knowledge_base_faqs_path(shop: shop_origin, host: host, embedded: 1),
+                    method: :post,
+                    id: "faq_import_paste_form",
+                    data: { turbo_frame: "faq_import_panel" } do |f| %>
+        <%= f.hidden_field :text, name: "faq_import[text]", id: "faq_import_text_hidden" %>
+        <s-text-area
+          id="faq_import_text_area"
+          label="Content"
+          placeholder="Paste shipping policy, return policy, product info, brand story, or other store content…"
+          rows="9"
+          data-faq-import-target="textArea"
+        ></s-text-area>
+      <% end %>
+    </div>
+
+    <%# ── Upload tab ── %>
+    <div data-faq-import-target="uploadPanel" style="display:none">
+      <%= form_with url: extract_knowledge_base_faqs_path(shop: shop_origin, host: host, embedded: 1),
+                    method: :post,
+                    id: "faq_import_upload_form",
+                    multipart: true,
+                    data: { turbo_frame: "faq_import_panel" } do |f| %>
+
+        <%# Drop zone %>
+        <div
+          class="kb-faq-import-drop-zone"
+          data-file-upload-target="dropZone"
+          data-action="click->file-upload#open"
+        >
+          <%= f.file_field :file,
+                name: "faq_import[file]",
+                accept: ".pdf,.docx,.txt",
+                style: "display:none",
+                data: {
+                  "file-upload-target": "input",
+                  action: "change->file-upload#fileChosen"
+                } %>
+          <s-stack alignItems="center" gap="small-200">
+            <s-icon source="import" size="large" tone="subdued"></s-icon>
+            <s-text type="strong">Click to browse or drag and drop</s-text>
+            <s-text color="subdued">PDF, DOCX, or TXT &mdash; max 10&nbsp;MB</s-text>
+          </s-stack>
+        </div>
+
+        <%# File chosen indicator %>
+        <div id="faq_upload_file_info" style="display:none; margin-top:0.5rem;">
+          <s-box background="subdued" borderRadius="base" padding="small-200">
+            <s-stack direction="inline" gap="small-200" alignItems="center">
+              <s-icon source="attach" size="base" tone="subdued"></s-icon>
+              <s-text data-file-upload-target="badge" color="subdued"></s-text>
+              <s-button
+                variant="plain"
+                tone="critical"
+                type="button"
+                data-action="click->file-upload#clear"
+              >Remove</s-button>
+            </s-stack>
+          </s-box>
+        </div>
+
+      <% end %>
+    </div>
+
+    <%# ── Loading indicator ── %>
+    <div data-faq-import-target="loadingIndicator" style="display:none">
+      <s-box background="subdued" borderRadius="base" padding="base">
+        <s-stack direction="inline" gap="small-200" alignItems="center">
+          <s-spinner size="base"></s-spinner>
+          <s-paragraph color="subdued" data-faq-import-target="loadingText">
+            Analysing content and generating FAQs&hellip;
+          </s-paragraph>
+        </s-stack>
+      </s-box>
+    </div>
+
+  <s-divider></s-divider>
+  <div></div>
+  </s-grid>
+  <%# ── Action buttons ── %>
+  <s-stack direction="inline" gap="small-200" style="margin-top:1rem;">
+    <%# Paste tab button %>
+    <s-button
+      variant="primary"
+      data-action="click->faq-import#submitActive"
+      data-faq-import-target="generateBtn"
+    >Generate FAQs</s-button>
+
+    <%# Upload tab button — hidden until upload tab is active %>
+    <s-button
+      variant="primary"
+      disabled
+      data-action="click->faq-import#submitUpload"
+      data-faq-import-target="uploadBtn"
+      data-file-upload-target="submit"
+      style="display:none"
+    >Generate FAQs</s-button>
+
+    <s-button
+      variant="tertiary"
+      tone="neutral"
+      commandFor="faq-import-modal"
+      command="--hide"
+      data-action="click->faq-import#close"
+    >Cancel</s-button>
+  </s-stack>
+</div>

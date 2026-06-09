@@ -1,0 +1,15 @@
+<%= turbo_frame_tag "#{@policy_type}_section" do %>
+  <%= render "knowledge_base/policies/form",
+        policy: @policy,
+        policy_type: @policy_type,
+        form_url: send(:"knowledge_base_#{@policy_type}_path", shop: @shop_origin, host: @host, embedded: 1),
+        frame_id: "#{@policy_type}_section",
+        description: @policy_type == "shipping_policy" ?
+          "Describe your store's shipping policy — processing times, carriers, delivery estimates, and any international shipping rules." :
+          "Describe your store's return policy — return window, eligibility conditions, refund process, and any exceptions.",
+        placeholder: @policy_type == "shipping_policy" ?
+          "e.g. We ship all orders within 1-2 business days via USPS. Standard delivery takes 3-5 business days. Free shipping on orders over $50..." :
+          "e.g. We accept returns within 30 days of purchase. Items must be unused and in original packaging. Refunds are processed within 5-7 business days...",
+        shop_origin: @shop_origin,
+        host: @host %>
+<% end %>

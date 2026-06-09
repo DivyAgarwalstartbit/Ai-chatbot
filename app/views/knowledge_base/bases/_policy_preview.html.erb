@@ -1,0 +1,41 @@
+<%# Locals: policy, policy_type, empty_message
+    Shows content from all available sources in priority order:
+      1. Manual content (merchant-entered text)
+      2. Shopify-synced content
+      3. Uploaded document indicator
+      4. Empty state %>
+
+<div id="<%= policy_type %>_preview_area">
+  <% if policy.content.present? && policy.shopify_content.present? %>
+    <%# Both manual and Shopify content exist — show both %>
+    <div style="display:flex;flex-direction:column;gap:8px;">
+      <div>
+        <p style="font-size:11px;font-weight:600;color:#6d7175;margin:0 0 4px;">
+          ✍️ Manual Entry
+        </p>
+        <div class="kb-policy-preview"><%= policy.content %></div>
+      </div>
+      <div>
+        <p style="font-size:11px;font-weight:600;color:#6d7175;margin:0 0 4px;">
+          🔄 Shopify Sync
+        </p>
+        <div class="kb-policy-preview"><%= policy.shopify_content %></div>
+      </div>
+    </div>
+
+  <% elsif policy.content.present? %>
+    <div class="kb-policy-preview"><%= policy.content %></div>
+
+  <% elsif policy.shopify_content.present? %>
+    <p style="font-size:11px;font-weight:600;color:#6d7175;margin:0 0 4px;">
+      🔄 Shopify Sync
+    </p>
+    <div class="kb-policy-preview"><%= policy.shopify_content %></div>
+
+  <% elsif policy.file.attached? %>
+    <p class="kb-policy-empty">Policy information is sourced from the uploaded document.</p>
+
+  <% else %>
+    <p class="kb-policy-empty"><%= empty_message %></p>
+  <% end %>
+</div>

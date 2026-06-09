@@ -33,6 +33,10 @@ gem "shopify_api"
 gem "dotenv-rails", groups: [ :development, :test ]
 gem "pgvector"
 gem "neighbor"
+gem "ruby-openai", "~> 7.0"
+gem "faraday", "~> 2.0"        # Gemini API HTTP client
+gem "pdf-reader", "~> 2.0"     # PDF text extraction
+gem "docx", "~> 0.8"           # DOCX text extraction
 
 #-------------------------------------------------------------------------------------------------
 

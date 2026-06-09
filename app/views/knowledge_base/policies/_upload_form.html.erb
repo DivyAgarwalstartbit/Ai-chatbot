@@ -1,0 +1,52 @@
+<%# Locals: policy, policy_type, frame_id, shop_origin, host %>
+<%= form_with(
+  url: send(:"attachment_knowledge_base_#{policy_type}_path", shop: shop_origin, host: host, embedded: 1),
+  method: :post,
+  multipart: true,
+  data: {
+    controller: "file-upload",
+    turbo_frame: frame_id
+  }
+) do |f| %>
+
+  <s-grid gap="small-200">
+    <%# Hidden file input %>
+    <%= f.file_field "file",
+          name: "attachment[file]",
+          id: "#{policy_type}_file_input",
+          accept: ".pdf,.docx,.txt",
+          data: { file_upload_target: "input", action: "change->file-upload#fileChosen" },
+          style: "display:none" %>
+
+    <s-box
+      border="dashed"
+      borderRadius="base"
+      padding="base"
+      background="subdued"
+      style="cursor:pointer;"
+      data-file-upload-target="dropZone"
+      data-action="click->file-upload#open"
+    >
+      <s-stack alignItems="center" gap="small-200">
+        <s-icon source="upload" tone="subdued"></s-icon>
+        <s-grid gap="extra-small" style="text-align:center">
+          <s-paragraph><strong>Click to browse</strong> or drag &amp; drop</s-paragraph>
+          <s-text color="subdued">PDF, DOCX, TXT &mdash; max 10 MB</s-text>
+        </s-grid>
+        <s-badge tone="info" data-file-upload-target="badge" style="display:none"></s-badge>
+      </s-stack>
+    </s-box>
+
+    <s-stack direction="inline" gap="small-200">
+      <s-button
+        variant="primary"
+        icon="upload"
+        disabled
+        data-file-upload-target="submit"
+        onclick="this.closest('form').requestSubmit()">
+        Upload file
+      </s-button>
+    </s-stack>
+  </s-grid>
+
+<% end %>

@@ -1,0 +1,9 @@
+<%# Locals: documents %>
+<div class="kb-actions" id="document_actions" style="margin-bottom:10px;">
+  <% if documents.empty? %>
+    <s-button variant="primary" icon="upload"
+      onclick="document.getElementById('doc_file_input').click()">
+      Upload Document
+    </s-button>
+  <% end %>
+</div>
