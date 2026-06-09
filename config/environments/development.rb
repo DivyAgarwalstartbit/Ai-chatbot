@@ -18,7 +18,7 @@ Rails.application.configure do
   config.hosts << "selectively-spikiest-alfredo.ngrok-free.dev"
     config.hosts << "selectively-spikiest-alfredo.ngrok-free.dev"
 
-
+config.active_job.queue_adapter = :sidekiq
   # Enable server timing.
   config.server_timing = true
 
