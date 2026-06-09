@@ -40,9 +40,6 @@ end
 
 
 
-
-
-
 private
 
 
@@ -65,7 +62,6 @@ You are a friendly and professional e-commerce customer support agent that sells
 Additional Instructions:
 
 #{@instructions}
-
 
 
 Context:

@@ -1,66 +1,158 @@
 module Ai
 class MemoryService
-LIMIT = 10
+RECENT_LIMIT = 6
+
+SUMMARY_AFTER = 20
 
 
 def initialize(
  shop:,
+ customer:,
  session_id:
 )
- @shop = shop
- @session_id = session_id
+ @conversation =
+  Conversation
+  .find_or_create_by!(
+
+   shop: shop,
+
+   customer: customer,
+
+   session_id: session_id
+
+  ) do |c|
+    c.started_at = Time.current
+  end
 end
 
 
+# ==========================
+# READ CONTEXT
+# ==========================
 
-def history
- ChatMessage
- .where(
-  shop_id: @shop.id,
-  session_id: @session_id
+
+def context
+<<~TEXT
+
+Conversation Summary:
+
+#{summary}
+
+
+Recent Messages:
+
+#{recent_messages}
+
+
+TEXT
+end
+
+
+# ==========================
+# SAVE MESSAGE
+# ==========================
+
+
+def add(
+ role:,
+ content:
+)
+return if content.blank?
+
+
+
+@conversation
+.messages
+.create!(
+
+ role: role,
+
+ content: content
+
+)
+
+schedule_summary
+end
+
+
+def set_context(key, value)
+ redis.hset(
+  context_key,
+  key,
+  value
  )
- .order(
-  created_at: :desc
+
+ redis.expire(
+  context_key,
+  7.days
  )
- .limit(LIMIT)
+end
+
+def get_context
+ redis.hgetall(
+  context_key
+ )
+end
+
+
+def context_key
+ "ai:ctx:conversation:#{@conversation.id}"
+end
+
+
+private
+
+def recent_messages
+ @conversation
+ .messages
+ .order(created_at: :desc)
+ .limit(RECENT_LIMIT)
  .reverse
- .map do |msg|
- "#{msg.role}: #{msg.content}"
+ .map do |m|
+ "#{m.role}: #{m.content}"
  end
  .join("\n")
 end
 
 
-def save_user(message)
- save(
-  "user",
-  message
+def summary
+ redis.get(
+  summary_key
  )
 end
 
-def save_assistant(message)
- save(
-  "assistant",
-  message
+def schedule_summary
+count =
+ @conversation
+ .messages
+ .count
+
+return if count < SUMMARY_AFTER
+
+# every 5 messages update summary
+
+return unless count % 5 == 0
+
+
+Ai::MemorySummaryJob
+.perform_later(
+
+ @conversation.id
+
+)
+end
+
+
+def redis
+@redis ||=
+ Redis.new(
+  url: ENV["REDIS_URL"]
  )
 end
 
-private
 
-
-
-def save(role, message)
- ChatMessage.create!(
-
-  shop: @shop,
-
-  session_id: @session_id,
-
-  role: role,
-
-  content: message
-
- )
+def summary_key
+"ai:summary:conversation:#{@conversation.id}"
 end
 end
 end

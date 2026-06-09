@@ -2,99 +2,144 @@ module Ai
 class RouterService
 def initialize(
  shop:,
+ customer: nil,
  message:,
- intent_data:
+ intent:,
+ memory: ""
 )
  @shop = shop
 
+ @customer = customer
+
  @message = message
 
- @intent_data = intent_data
+ @intent = intent.to_s.downcase
+
+ @memory = memory
 end
+
+
 
 
 
 
 def call
- case intent
+case @intent
 
 
- when "PRODUCT_SEARCH",
-      "PRODUCT_DETAIL"
+when "product_search",
+     "product_detail",
+     "product_recommendation"
 
 
-  Ai::ProductAgentService
-  .new(
-   shop: @shop,
-   message: @message
-  )
-  .call
-
- when "RETURN_POLICY",
-      "SHIPPING_POLICY",
-      "FAQ"
-
-
-  Ai::KnowledgeAgentService
-  .new(
-   shop: @shop,
-   message: @message
-  )
-  .call
+ Ai::ProductAgentService
+ .new(
+  shop: @shop,
+  message: @message,
+  intent: @intent,
+  memory: @memory
+ )
+ .call
 
 
 
 
 
- when "ORDER_STATUS"
+
+when "return_policy",
+     "shipping_policy",
+     "faq",
+     "additional_docs"
 
 
-  Ai::OrderAgentService
-  .new(
-   shop: @shop,
-   message: @message
-  )
-  .call
+
+ Ai::KnowledgeAgentService
+ .new(
+  shop: @shop,
+  message: @message,
+  memory: @memory
+ )
+ .call
 
 
- else
 
-  general_response
 
- end
+
+
+
+when "order_status"
+
+
+
+ Ai::OrderAgentService
+ .new(
+  shop: @shop,
+  customer: @customer,
+  message: @message,
+  memory: @memory
+ )
+ .call
+
+
+
+
+
+
+
+else
+
+
+ general_response
+
+
 end
+end
+
+
+
+
+
+
+
 
 private
 
-def intent
- @intent_data["intent"]
-end
+
+
+
+
+
 
 
 def general_response
- messages = [
+Ai::ChatGenerationService
+.new(
 
-  {
-   role: "system",
-
-   content:
-   "You are a helpful and precise assistant for answering customer questions about their orders, returns, shipping, and product information ignore all other message
-   . If you don't know the answer, say you don't know. Always be polite and professional."
-  },
+ message: @message,
 
 
-  {
-   role: "user",
-   content: @message
-  }
+ context:
+ "
+ Previous conversation:
 
- ]
+ #{@memory}
+ ",
 
 
+ instructions:
+ "
+ You are an ecommerce support assistant.
 
- Ai::GroqService
- .new(messages)
- .call
+ Rules:
+
+ - Answer politely.
+ - Help with products, orders, shipping and returns.
+ - Use previous conversation if required.
+ - If you don't know, say you don't know.
+ "
+
+)
+.call
 end
 end
 end

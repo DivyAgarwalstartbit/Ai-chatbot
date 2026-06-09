@@ -1,58 +1,80 @@
 module Ai
 class ChatService
-def initialize(
+  def initialize(
  shop:,
+ customer:,
+ session_id:,
  message:
 )
  @shop = shop
+
+ @customer = customer
+
+ @session_id = session_id
+
  @message = message
 end
 
 
-
-
-
 def call
- # Step 1: detect intent
-
- intent_data =
-  Ai::IntentService
-  .new(
-    @message
+ memory =
+  Ai::MemoryService.new(
+   shop: @shop,
+   customer: @customer,
+   session_id: @session_id
   )
-  .call
 
+ # save user msg
+ memory.add(
+  role: "user",
+  content: @message
+ )
+
+ # intent ONLY current message
+
+ intent =
+Ai::IntentService.new(
+ message: @message,
+ context: memory.get_context
+).call
 
 
 
  Rails.logger.info(
-  "========= AI INTENT ========="
+  "INTENT => #{intent}"
  )
 
- Rails.logger.info(
-  intent_data
- )
+ # memory only for answering
 
- Rails.logger.info(
-  "============================="
- )
-
-
- # Step 2: send to router
-
+ response =
  Ai::RouterService
  .new(
 
   shop: @shop,
 
+  customer: @customer,
 
   message: @message,
 
+  intent: intent,
 
-  intent_data: intent_data
+  memory: memory
 
  )
  .call
+
+
+ memory.add(
+  role: "assistant",
+  content: response
+ )
+
+ memory.set_context(
+ "last_intent",
+ intent
+)
+
+ response
 end
 end
 end
