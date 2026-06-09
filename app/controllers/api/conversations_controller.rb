@@ -43,11 +43,6 @@ render json: {
 end
 
 
-
-
-
-
-
 private
 
 
@@ -62,17 +57,8 @@ SecureRandom.uuid
 end
 
 
-
-
-
-
-
-
 def find_or_create_customer(shop)
 return logged_customer(shop) if params[:customer_id].present?
-
-
-
 
 Customer.find_or_create_by!(
 
