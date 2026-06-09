@@ -52,6 +52,14 @@ Rails.application.routes.draw do
     resources :documents, only: %i[index create destroy]
   end
 
+  namespace :api do
+    post   "/chat", to: "conversations#create"
+    match  "/chat", to: "conversations#options", via: :options
+  end
+
+  # Shopify App Proxy — storefront POSTs /apps/ai-chat/chat → forwarded here
+  post  "/apps/ai-chat/chat", to: "api/conversations#create"
+
   mount ShopifyApp::Engine, at: "/"
 
   get "up" => "rails/health#show", as: :rails_health_check
