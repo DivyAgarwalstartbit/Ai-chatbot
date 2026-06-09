@@ -1,0 +1,1176 @@
+<%
+  ws   = (@config.widget_settings || {}).with_indifferent_access
+  sp   = Array(@config.starter_prompts)
+  vr   = (@config.visibility_rules || {}).with_indifferent_access
+  starter_prompt_defaults = ["Do you ship internationally?", "What are your return policies?"]
+  starter_prompt_values   = sp.map { |prompt| prompt.to_s.strip }.reject(&:blank?)
+  starter_prompt_fields   = starter_prompt_values.presence || starter_prompt_defaults
+
+  # widget_settings defaults
+  theme              = ws[:theme]              || "light"
+  primary_color      = ws[:primary_color]      || "#C6A8DC"
+  bg_color           = ws[:background_color]   || "#FFFFFF"
+  text_color         = ws[:text_color]         || "#1A202C"
+  font_family        = ws[:font_family]        || "Inter"
+  desk_align         = ws[:desktop_alignment]  || "right"
+  mob_align          = ws[:mobile_alignment]   || "right"
+  desk_spacing       = ws[:desktop_side_spacing].to_i.nonzero? || 16
+  mob_spacing        = ws[:mobile_side_spacing].to_i.nonzero?  || 8
+  desk_offset        = ws[:desktop_vertical_offset].to_i.nonzero? || 80
+  mob_offset         = ws[:mobile_vertical_offset].to_i.nonzero?  || 130
+  biz_logo           = ws[:business_logo_url]  || ""
+  custom_instructions = ws[:custom_instructions] || ""
+%>
+
+<style>
+  *, *::before, *::after { box-sizing: border-box; }
+  body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #f6f6f7; }
+
+  /* ── Editor shell ── */
+  .bs-editor { display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
+
+  /* ── Top bar ── */
+  .bs-topbar { display: flex; align-items: center; justify-content: space-between; padding: 10px 16px; background: #fff; border-bottom: 1px solid #e1e3e5; flex-shrink: 0; gap: 12px; }
+  .bs-topbar-title { font-size: 15px; font-weight: 650; color: #1a1a1a; }
+  .bs-topbar-actions { display: flex; gap: 8px; align-items: center; }
+
+  /* ── Tab bar ── */
+  .bs-tabs { display: flex; align-items: center; padding: 0 16px; background: #f6f6f7; border-bottom: 1px solid #e1e3e5; flex-shrink: 0; }
+  .bs-tab-btn { border: none; background: transparent; color: #6d7175; font-weight: 500; font-size: 13.5px; cursor: pointer; padding: 10px 14px; border-bottom: 2px solid transparent; transition: color .12s, border-color .12s; white-space: nowrap; margin-bottom: -1px; }
+  .bs-tab-btn.active { color: #202223; border-bottom-color: #202223; font-weight: 600; }
+  .bs-tab-btn:hover:not(.active) { color: #202223; }
+
+  /* ── Body: form + preview ── */
+  .bs-body { display: flex; flex: 1; overflow: hidden; }
+
+  /* ── Left form panel ── */
+  .bs-form-panel { width: clamp(620px, 47vw, 620px); min-width: 520px; display: flex; flex-direction: column; background: #fff; border-right: 1px solid #e1e3e5; overflow: hidden; }
+  .bs-form-scroll { flex: 1; overflow-y: auto; padding: 20px 24px; }
+  .bs-tab-content { display: none; }
+  .bs-tab-content.active { display: block; }
+
+  /* ── Section headers ── */
+  .bs-section-title { font-size: 11px; font-weight: 600; color: #6d7175; text-transform: uppercase; letter-spacing: 0.4px; margin: 0 0 10px; }
+  .bs-section-divider { border: none; border-top: 1px solid #e1e3e5; margin: 20px 0; }
+
+  /* ── Card block ── */
+  .bs-card { background: #fff; border: 1px solid #e1e3e5; border-radius: 10px; padding: 16px; margin-bottom: 14px; }
+  .bs-card-title { font-size: 13px; font-weight: 600; color: #202223; margin: 0 0 4px; }
+  .bs-card-desc  { font-size: 12px; color: #6d7175; margin: 0 0 14px; }
+  .bs-profile-card { padding: 18px; }
+  .bs-profile-section { margin-top: 18px; }
+  .bs-profile-section:first-of-type { margin-top: 12px; }
+  .bs-profile-section s-text-field,
+  .bs-profile-section s-select { width: 100%; }
+  .bs-media-field { display: grid; grid-template-columns: 78px minmax(0, 1fr); gap: 14px; align-items: center; margin-bottom: 14px; }
+  .bs-media-preview { width: 78px; height: 78px; border-radius: 8px; border: 1px solid #e1e3e5; background: #f6f6f7; overflow: hidden; display: flex; align-items: center; justify-content: center; }
+  .bs-media-preview.avatar { border-radius: 10px; }
+  .bs-media-preview img { width: 100%; height: 100%; object-fit: cover; }
+  .bs-media-content { min-width: 0; }
+  .bs-media-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 6px; }
+
+  /* ── Field helpers ── */
+  .bs-field-wrap { margin-bottom: 14px; }
+  .bs-field-label { display: block; font-size: 13px; font-weight: 500; color: #202223; margin-bottom: 6px; }
+  .bs-field-hint  { font-size: 12px; color: #6d7175; margin-top: 4px; }
+
+  /* ── Alignment button group ── */
+  .bs-btn-group { display: flex; gap: 4px; }
+  .bs-btn-group input[type="radio"] { display: none; }
+  .bs-btn-group label {
+    display: flex; align-items: center; justify-content: center;
+    min-width: 56px; height: 34px; padding: 0 10px;
+    border: 1px solid #c9cccf; border-radius: 6px; cursor: pointer;
+    font-size: 13px; font-weight: 500; color: #6d7175;
+    background: #fff; transition: all 0.12s; user-select: none;
+  }
+  .bs-btn-group input[type="radio"]:checked + label { background: #202223; color: #fff; border-color: #202223; }
+
+  /* ── Theme preset buttons ── */
+  .bs-theme-group { display: flex; gap: 8px; margin-bottom: 14px; }
+  .bs-theme-btn { flex: 1; padding: 8px 12px; border: 1px solid #c9cccf; border-radius: 8px; background: #fff; font-size: 13px; font-weight: 500; color: #6d7175; cursor: pointer; transition: all .12s; }
+  .bs-theme-btn.active, .bs-theme-btn:hover { border-color: #202223; color: #202223; background: #f3f3f3; }
+
+  /* ── Two-column grid ── */
+  .bs-row-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+  /* ── Starter prompt rows ── */
+  .bs-prompt-list { display: flex; flex-direction: column; gap: 8px; margin-bottom: 10px; }
+  .bs-prompt-row  { display: flex; align-items: center; gap: 8px; }
+  .bs-prompt-row s-text-field { flex: 1; }
+  .bs-prompt-remove { background: none; border: none; cursor: pointer; color: #8c9196; padding: 4px; display: flex; align-items: center; }
+  .bs-prompt-remove:hover { color: #d82c0d; }
+
+  /* ── Toggle switch for widget enabled ── */
+  .bs-toggle-row { display: flex; align-items: center; justify-content: space-between; }
+  .bs-toggle-label { font-size: 13.5px; font-weight: 500; color: #202223; }
+  .bs-toggle-hint  { font-size: 12px; color: #6d7175; margin-top: 2px; }
+
+  /* ── Right: chat preview panel ── */
+  .bs-preview-panel { flex: 1; overflow-y: auto; background: #f6f6f7; padding: 24px; display: flex; justify-content: center; align-items: flex-start; }
+  .bs-preview-wrap  { width: 100%; max-width: 400px; }
+
+  /* ── Chat widget mock ── */
+  .bs-chat-mock { border-radius: 16px; overflow: hidden; box-shadow: 0 8px 32px rgba(0,0,0,.12); font-family: var(--bs-font, 'Inter', sans-serif); }
+  .bs-chat-header { padding: 14px 16px; display: flex; align-items: center; gap: 10px; }
+  .bs-chat-logo { width: 36px; height: 36px; border-radius: 10px; object-fit: cover; background: rgba(255,255,255,.92); display: flex; align-items: center; justify-content: center; overflow: hidden; flex-shrink: 0; box-shadow: inset 0 0 0 1px rgba(0,0,0,.06); }
+  .bs-chat-logo img { width: 100%; height: 100%; object-fit: cover; }
+  .bs-chat-avatar { width: 36px; height: 36px; border-radius: 50%; object-fit: cover; background: #e1e3e5; display: flex; align-items: center; justify-content: center; overflow: hidden; flex-shrink: 0; }
+  .bs-chat-avatar img { width: 100%; height: 100%; object-fit: cover; }
+  .bs-chat-avatar-placeholder { width: 36px; height: 36px; border-radius: 50%; background: rgba(255,255,255,.25); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .bs-chat-name { font-size: 14px; font-weight: 600; color: #fff; }
+  .bs-chat-status { font-size: 11px; color: rgba(255,255,255,.75); margin-top: 1px; }
+  .bs-chat-body { padding: 16px; min-height: 200px; display: flex; flex-direction: column; gap: 10px; }
+  .bs-chat-message-row { display: flex; align-items: flex-start; gap: 8px; }
+  .bs-chat-message-avatar { width: 28px; height: 28px; border-radius: 50%; object-fit: cover; background: #e1e3e5; display: flex; align-items: center; justify-content: center; overflow: hidden; flex-shrink: 0; margin-top: 2px; }
+  .bs-chat-message-avatar img { width: 100%; height: 100%; object-fit: cover; }
+  .bs-chat-bubble { max-width: 80%; padding: 10px 14px; border-radius: 14px; font-size: 13px; line-height: 1.45; }
+  .bs-chat-bubble.bot { align-self: flex-start; border-bottom-left-radius: 4px; }
+  .bs-chat-bubble.user { align-self: flex-end; border-bottom-right-radius: 4px; color: #fff; }
+  .bs-chat-prompts { padding: 0 16px 12px; display: flex; flex-direction: column; gap: 6px; }
+  .bs-chat-prompt-btn { padding: 8px 12px; border-radius: 20px; border: 1px solid; font-size: 12px; cursor: pointer; text-align: left; background: transparent; transition: background .12s; }
+  .bs-chat-footer { padding: 10px 12px; border-top: 1px solid #e1e3e5; display: flex; gap: 8px; align-items: center; background: #fff; }
+  .bs-chat-input-mock { flex: 1; height: 34px; border: 1px solid #e1e3e5; border-radius: 20px; background: #f6f6f7; font-size: 13px; color: #8c9196; padding: 0 14px; display: flex; align-items: center; }
+  .bs-chat-send { width: 34px; height: 34px; border-radius: 50%; border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+
+  .bs-preview-label { font-size: 11px; font-weight: 600; color: #6d7175; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 12px; }
+
+  /* ── Widget launcher button ── */
+  .bs-launcher { width: 52px; height: 52px; border-radius: 50%; border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; margin: 16px auto 0; box-shadow: 0 4px 12px rgba(0,0,0,.2); }
+
+  @media (max-width: 1100px) {
+    .bs-form-panel { width: 52vw; min-width: 460px; }
+    .bs-preview-wrap { max-width: 380px; }
+  }
+
+  @media (max-width: 820px) {
+    .bs-body { flex-direction: column; overflow: auto; }
+    .bs-form-panel { width: 100%; min-width: 0; border-right: none; border-bottom: 1px solid #e1e3e5; overflow: visible; }
+    .bs-form-scroll { overflow: visible; }
+    .bs-preview-panel { min-height: 560px; }
+  }
+</style>
+
+<%= form_with model: @config, url: bot_settings_path(shop: @shop_origin, host: @host, embedded: 1),
+              method: :patch,
+              local: true,
+              data: { turbo: false },
+              html: { id: "bs-form" } do |f| %>
+
+<div class="bs-editor">
+
+  <!-- ══ TOP BAR ══ -->
+  <div class="bs-topbar">
+    <span class="bs-topbar-title">Chatbot Settings</span>
+    <div class="bs-topbar-actions">
+      <s-button id="bs-discard-btn" variant="secondary" disabled type="button">Discard</s-button>
+      <s-button id="bs-save-btn"    variant="primary" disabled type="button">Save</s-button>
+    </div>
+  </div>
+
+  <!-- ══ TAB BAR ══ -->
+  <div class="bs-tabs">
+    <button class="bs-tab-btn active" type="button" data-tab="profile">Bot Info</button>
+    <button class="bs-tab-btn"        type="button" data-tab="welcome">Welcome</button>
+    <button class="bs-tab-btn"        type="button" data-tab="ai">AI</button>
+    <button class="bs-tab-btn"        type="button" data-tab="colors">Colors</button>
+    <button class="bs-tab-btn"        type="button" data-tab="placement">Placement</button>
+    <button class="bs-tab-btn"        type="button" data-tab="advanced">Advanced</button>
+  </div>
+
+  <div class="bs-body">
+
+    <!-- ════════════════════════════════ LEFT: FORM PANEL ════════════════════════════════ -->
+    <div class="bs-form-panel">
+      <div class="bs-form-scroll">
+
+        <!-- ═══ TAB: BOT INFO ═══ -->
+        <div class="bs-tab-content active" data-panel="profile">
+
+          <div class="bs-card bs-profile-card">
+            <p class="bs-card-title">Bot Info</p>
+
+            <div class="bs-profile-section">
+              <label class="bs-field-label">Business Logo</label>
+              <p class="bs-card-desc">Shown in the chat header alongside your brand</p>
+              <div class="bs-media-field">
+                <div id="bs-logo-preview" class="bs-media-preview">
+                  <% if biz_logo.present? %>
+                    <img src="<%= biz_logo %>" alt="business logo">
+                  <% else %>
+                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#9a3f4b" stroke-width="1.5"><path d="M4 14c5 0 9-4 9-9 5 0 7 4 7 8 0 5-4 8-9 8-4 0-7-3-7-7Z"/><path d="M4 14c4 0 8 2 10 6"/></svg>
+                  <% end %>
+                </div>
+                <div class="bs-media-content">
+                  <div class="bs-media-actions">
+                    <s-button variant="secondary" type="button" id="bs-logo-upload-btn">Change Image</s-button>
+                    <s-button variant="secondary" tone="critical" type="button" id="bs-logo-remove-btn">Remove</s-button>
+                  </div>
+                  <input type="file" id="bs-logo-file" accept="image/png,image/jpeg,image/jpg,image/webp" style="display:none;">
+                  <p class="bs-field-hint">PNG, JPG up to 2MB</p>
+                </div>
+              </div>
+              <input type="hidden" id="bs-logo-url" name="ai_shopper_configuration[widget_settings][business_logo_url]" value="<%= biz_logo %>">
+              <s-text-field label="Or paste image URL" placeholder="https://…" value="<%= biz_logo %>" id="bs-logo-url-field" autocomplete="off"></s-text-field>
+            </div>
+
+            <div class="bs-profile-section">
+              <label class="bs-field-label">Business Name</label>
+              <s-text-field
+                label="Agent Name"
+                name="ai_shopper_configuration[assistant_name]"
+                value="<%= @config.assistant_name %>"
+                placeholder="e.g. Customstore Assistant"
+                autocomplete="off"
+                id="bs-assistant-name">
+              </s-text-field>
+              <p class="bs-field-hint">The name your customers will see when chatting</p>
+            </div>
+
+            <div class="bs-profile-section">
+              <label class="bs-field-label">Agent Avatar</label>
+              <p class="bs-card-desc">Small avatar shown on chat messages</p>
+              <div class="bs-media-field">
+                <div id="bs-avatar-preview" class="bs-media-preview avatar">
+                  <% if @config.assistant_avatar_url.present? %>
+                    <img src="<%= @config.assistant_avatar_url %>" alt="agent avatar">
+                  <% else %>
+                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#c9cccf" stroke-width="1.5"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                  <% end %>
+                </div>
+                <div class="bs-media-content">
+                  <div class="bs-media-actions">
+                    <s-button variant="secondary" type="button" id="bs-avatar-upload-btn">Change Image</s-button>
+                    <s-button variant="secondary" tone="critical" type="button" id="bs-avatar-remove-btn">Remove</s-button>
+                  </div>
+                  <input type="file" id="bs-avatar-file" accept="image/png,image/jpeg,image/jpg,image/webp" style="display:none;">
+                  <p class="bs-field-hint">PNG, JPG up to 2MB</p>
+                </div>
+              </div>
+              <s-text-field
+                label="Or paste avatar URL"
+                name="ai_shopper_configuration[assistant_avatar_url]"
+                value="<%= @config.assistant_avatar_url %>"
+                placeholder="https://…"
+                autocomplete="off"
+                id="bs-avatar-url">
+              </s-text-field>
+            </div>
+
+            <div class="bs-profile-section">
+              <label class="bs-field-label">Language</label>
+              <p class="bs-card-desc">Default response language for the chatbot</p>
+              <s-select label="Language" name="ai_shopper_configuration[language]" id="bs-language" value="<%= @config.language || 'en' %>">
+                <s-option value="en"    <%= "selected" if (@config.language || "en") == "en"    %>>English</s-option>
+                <s-option value="es"    <%= "selected" if @config.language == "es"    %>>Spanish</s-option>
+                <s-option value="fr"    <%= "selected" if @config.language == "fr"    %>>French</s-option>
+                <s-option value="de"    <%= "selected" if @config.language == "de"    %>>German</s-option>
+                <s-option value="pt"    <%= "selected" if @config.language == "pt"    %>>Portuguese</s-option>
+                <s-option value="it"    <%= "selected" if @config.language == "it"    %>>Italian</s-option>
+                <s-option value="ja"    <%= "selected" if @config.language == "ja"    %>>Japanese</s-option>
+                <s-option value="zh"    <%= "selected" if @config.language == "zh"    %>>Chinese</s-option>
+                <s-option value="ar"    <%= "selected" if @config.language == "ar"    %>>Arabic</s-option>
+                <s-option value="hi"    <%= "selected" if @config.language == "hi"    %>>Hindi</s-option>
+              </s-select>
+            </div>
+          </div>
+
+        </div><!-- /profile tab -->
+
+
+        <!-- ═══ TAB: WELCOME ═══ -->
+        <div class="bs-tab-content" data-panel="welcome">
+
+          <div class="bs-card">
+            <p class="bs-card-title">Welcome Message</p>
+            <p class="bs-card-desc">The first message customers see when starting a chat</p>
+            <s-text-area
+              label="Greeting"
+              name="ai_shopper_configuration[greeting]"
+              value="<%= @config.greeting %>"
+              placeholder="Welcome! How can I help you today?"
+              rows="3"
+              id="bs-greeting">
+            </s-text-area>
+          </div>
+
+          <div class="bs-card">
+            <p class="bs-card-title">Suggested Starting Prompts</p>
+            <p class="bs-card-desc">These prompts help customers start a conversation</p>
+            <div class="bs-prompt-list" id="bs-prompt-list">
+              <% starter_prompt_fields.each_with_index do |prompt, i| %>
+                <div class="bs-prompt-row">
+                  <s-text-field
+                    label="Prompt <%= i + 1 %>"
+                    name="ai_shopper_configuration[starter_prompts][]"
+                    value="<%= prompt %>"
+                    placeholder="e.g. What are your return policies?"
+                    autocomplete="off">
+                  </s-text-field>
+                  <button type="button" class="bs-prompt-remove" title="Remove prompt">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                  </button>
+                </div>
+              <% end %>
+            </div>
+            <s-button variant="secondary" type="button" id="bs-add-prompt" icon="plus">Add Prompt</s-button>
+          </div>
+
+        </div><!-- /welcome tab -->
+
+
+        <!-- ═══ TAB: AI ═══ -->
+        <div class="bs-tab-content" data-panel="ai">
+
+          <div class="bs-card">
+            <p class="bs-card-title">Brand Tone</p>
+            <p class="bs-card-desc">How the AI communicates with your customers</p>
+            <s-select label="Tone" name="ai_shopper_configuration[brand_tone]" id="bs-brand-tone" value="<%= @config.brand_tone || 'friendly' %>">
+              <s-option value="friendly"    <%= "selected" if (@config.brand_tone || "friendly") == "friendly"    %>>Friendly &amp; Casual</s-option>
+              <s-option value="professional" <%= "selected" if @config.brand_tone == "professional" %>>Professional</s-option>
+              <s-option value="formal"      <%= "selected" if @config.brand_tone == "formal"      %>>Formal</s-option>
+              <s-option value="playful"     <%= "selected" if @config.brand_tone == "playful"     %>>Playful</s-option>
+              <s-option value="empathetic"  <%= "selected" if @config.brand_tone == "empathetic"  %>>Empathetic</s-option>
+              <s-option value="concise"     <%= "selected" if @config.brand_tone == "concise"     %>>Concise &amp; Direct</s-option>
+            </s-select>
+          </div>
+
+          <div class="bs-card">
+            <p class="bs-card-title">Custom Instructions</p>
+            <p class="bs-card-desc">Extra instructions that guide the AI's behaviour</p>
+            <s-text-area
+              label="Instructions"
+              name="ai_shopper_configuration[widget_settings][custom_instructions]"
+              value="<%= custom_instructions %>"
+              placeholder="e.g. Always recommend our premium collection first. Never discuss competitors."
+              rows="5"
+              id="bs-custom-instructions">
+            </s-text-area>
+          </div>
+
+        </div><!-- /ai tab -->
+
+
+        <!-- ═══ TAB: COLORS ═══ -->
+        <div class="bs-tab-content" data-panel="colors">
+
+          <div class="bs-card">
+            <p class="bs-card-title">Theme Presets</p>
+            <p class="bs-card-desc">Customize the colors of your chat widget.</p>
+            <div class="bs-theme-group">
+              <button type="button" class="bs-theme-btn <%= 'active' if theme == 'light' %>" data-theme="light">Light Theme</button>
+              <button type="button" class="bs-theme-btn <%= 'active' if theme == 'dark'  %>" data-theme="dark">Dark Theme</button>
+            </div>
+            <input type="hidden" name="ai_shopper_configuration[widget_settings][theme]" id="bs-theme-input" value="<%= theme %>">
+          </div>
+
+          <div class="bs-card">
+            <p class="bs-card-title">Colors</p>
+            <div class="bs-row-2">
+              <div class="bs-field-wrap">
+                <s-color-field label="Primary Color" name="ai_shopper_configuration[widget_settings][primary_color]" value="<%= primary_color %>" id="bs-primary-color"></s-color-field>
+                <p class="bs-field-hint">Brand/action color</p>
+              </div>
+              <div class="bs-field-wrap">
+                <s-color-field label="Background Color" name="ai_shopper_configuration[widget_settings][background_color]" value="<%= bg_color %>" id="bs-bg-color"></s-color-field>
+                <p class="bs-field-hint">Widget background</p>
+              </div>
+              <div class="bs-field-wrap">
+                <s-color-field label="Text Color" name="ai_shopper_configuration[widget_settings][text_color]" value="<%= text_color %>" id="bs-text-color"></s-color-field>
+                <p class="bs-field-hint">Primary text color</p>
+              </div>
+              <div class="bs-field-wrap">
+                <s-color-field label="Error Color" name="ai_shopper_configuration[widget_settings][error_color]" value="<%= ws[:error_color] || '#FF383C' %>" id="bs-error-color"></s-color-field>
+                <p class="bs-field-hint">Error messages</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="bs-card">
+            <p class="bs-card-title">Font Family</p>
+            <s-select label="Font" name="ai_shopper_configuration[widget_settings][font_family]" id="bs-font-family" value="<%= font_family %>">
+              <s-option value="Inter"       <%= "selected" if font_family == "Inter"       %>>Inter</s-option>
+              <s-option value="system-ui"   <%= "selected" if font_family == "system-ui"   %>>System Default</s-option>
+              <s-option value="Georgia"     <%= "selected" if font_family == "Georgia"     %>>Georgia (Serif)</s-option>
+              <s-option value="Roboto"      <%= "selected" if font_family == "Roboto"      %>>Roboto</s-option>
+              <s-option value="Poppins"     <%= "selected" if font_family == "Poppins"     %>>Poppins</s-option>
+              <s-option value="Lato"        <%= "selected" if font_family == "Lato"        %>>Lato</s-option>
+            </s-select>
+          </div>
+
+        </div><!-- /colors tab -->
+
+
+        <!-- ═══ TAB: PLACEMENT ═══ -->
+        <div class="bs-tab-content" data-panel="placement">
+
+          <div class="bs-card">
+            <p class="bs-card-title">Widget Alignment</p>
+            <p class="bs-card-desc">Where the chat widget launcher appears on the screen</p>
+
+            <div class="bs-field-wrap">
+              <label class="bs-field-label">Desktop</label>
+              <div class="bs-btn-group">
+                <input id="bs-desk-align-left"  type="radio" name="ai_shopper_configuration[widget_settings][desktop_alignment]" value="left"  <%= "checked" if desk_align == "left"  %>>
+                <label for="bs-desk-align-left">Left</label>
+                <input id="bs-desk-align-right" type="radio" name="ai_shopper_configuration[widget_settings][desktop_alignment]" value="right" <%= "checked" if desk_align == "right" || desk_align.blank? %>>
+                <label for="bs-desk-align-right">Right</label>
+              </div>
+            </div>
+
+            <div class="bs-field-wrap">
+              <label class="bs-field-label">Mobile</label>
+              <div class="bs-btn-group">
+                <input id="bs-mob-align-left"  type="radio" name="ai_shopper_configuration[widget_settings][mobile_alignment]" value="left"  <%= "checked" if mob_align == "left"  %>>
+                <label for="bs-mob-align-left">Left</label>
+                <input id="bs-mob-align-right" type="radio" name="ai_shopper_configuration[widget_settings][mobile_alignment]" value="right" <%= "checked" if mob_align == "right" || mob_align.blank? %>>
+                <label for="bs-mob-align-right">Right</label>
+              </div>
+            </div>
+          </div>
+
+          <div class="bs-card">
+            <p class="bs-card-title">Widget Position</p>
+
+            <div class="bs-row-2">
+              <div class="bs-field-wrap">
+                <s-number-field
+                  label="Desktop Side Spacing"
+                  name="ai_shopper_configuration[widget_settings][desktop_side_spacing]"
+                  value="<%= desk_spacing %>"
+                  min="0" max="200" step="1"
+                  suffix="px"
+                  id="bs-desk-spacing">
+                </s-number-field>
+              </div>
+              <div class="bs-field-wrap">
+                <s-number-field
+                  label="Mobile Side Spacing"
+                  name="ai_shopper_configuration[widget_settings][mobile_side_spacing]"
+                  value="<%= mob_spacing %>"
+                  min="0" max="100" step="1"
+                  suffix="px"
+                  id="bs-mob-spacing">
+                </s-number-field>
+              </div>
+              <div class="bs-field-wrap">
+                <s-number-field
+                  label="Desktop Vertical Offset"
+                  name="ai_shopper_configuration[widget_settings][desktop_vertical_offset]"
+                  value="<%= desk_offset %>"
+                  min="-500" max="500" step="1"
+                  suffix="px"
+                  id="bs-desk-offset">
+                </s-number-field>
+              </div>
+              <div class="bs-field-wrap">
+                <s-number-field
+                  label="Mobile Vertical Offset"
+                  name="ai_shopper_configuration[widget_settings][mobile_vertical_offset]"
+                  value="<%= mob_offset %>"
+                  min="-500" max="500" step="1"
+                  suffix="px"
+                  id="bs-mob-offset">
+                </s-number-field>
+              </div>
+            </div>
+            <p class="bs-field-hint">Vertical offset: positive moves down, negative moves up from center.</p>
+          </div>
+
+        </div><!-- /placement tab -->
+
+
+        <!-- ═══ TAB: ADVANCED ═══ -->
+        <div class="bs-tab-content" data-panel="advanced">
+
+          <div class="bs-card">
+            <p class="bs-card-title">Widget Enabled</p>
+            <p class="bs-card-desc">Toggle the chat widget on or off for your storefront</p>
+            <div class="bs-toggle-row">
+              <div>
+                <div class="bs-toggle-label">Show widget on storefront</div>
+                <div class="bs-toggle-hint">Disable to hide the widget without deleting settings</div>
+              </div>
+              <s-checkbox
+                name="ai_shopper_configuration[widget_enabled]"
+                value="1"
+                <%= "checked" if @config.widget_enabled %>
+                id="bs-widget-enabled">
+              </s-checkbox>
+            </div>
+            <input type="hidden" name="ai_shopper_configuration[widget_enabled]" value="0">
+          </div>
+
+          <div class="bs-card">
+            <p class="bs-card-title">Business Handoff Links</p>
+            <p class="bs-card-desc">Escalation links shown when the bot can't help</p>
+            <% handoff = (@config.visibility_rules || {}).with_indifferent_access %>
+            <s-stack gap="base">
+              <s-text-field
+                label="Support Email"
+                name="ai_shopper_configuration[visibility_rules][support_email]"
+                value="<%= handoff[:support_email] %>"
+                placeholder="support@yourstore.com"
+                autocomplete="off">
+              </s-text-field>
+              <s-text-field
+                label="WhatsApp Number"
+                name="ai_shopper_configuration[visibility_rules][whatsapp]"
+                value="<%= handoff[:whatsapp] %>"
+                placeholder="+1 555 000 0000"
+                autocomplete="off">
+              </s-text-field>
+              <s-text-field
+                label="Live Chat URL"
+                name="ai_shopper_configuration[visibility_rules][live_chat_url]"
+                value="<%= handoff[:live_chat_url] %>"
+                placeholder="https://…"
+                autocomplete="off">
+              </s-text-field>
+            </s-stack>
+          </div>
+
+          <div class="bs-card">
+            <p class="bs-card-title">Visibility Rules</p>
+            <p class="bs-card-desc">Control when the widget appears</p>
+            <s-stack gap="base">
+              <s-checkbox
+                name="ai_shopper_configuration[visibility_rules][hide_on_mobile]"
+                value="1"
+                <%= "checked" if vr[:hide_on_mobile].to_s == "1" || vr[:hide_on_mobile] == true %>
+                label="Hide on mobile devices">
+              </s-checkbox>
+              <s-checkbox
+                name="ai_shopper_configuration[visibility_rules][hide_on_checkout]"
+                value="1"
+                <%= "checked" if vr[:hide_on_checkout].to_s == "1" || vr[:hide_on_checkout] == true %>
+                label="Hide on checkout page">
+              </s-checkbox>
+            </s-stack>
+          </div>
+
+        </div><!-- /advanced tab -->
+
+      </div><!-- /form-scroll -->
+    </div><!-- /form-panel -->
+
+
+    <!-- ════════════════════════════════ RIGHT: PREVIEW PANEL ════════════════════════════════ -->
+    <div class="bs-preview-panel">
+      <div class="bs-preview-wrap">
+        <p class="bs-preview-label">Live Preview</p>
+
+        <!-- Chat widget mock -->
+        <div class="bs-chat-mock" id="bs-chat-mock">
+          <!-- Header -->
+          <div class="bs-chat-header" id="bs-pv-header" style="background: <%= primary_color %>;">
+            <div class="bs-chat-logo" id="bs-pv-logo">
+              <% if biz_logo.present? %>
+                <img src="<%= biz_logo %>" alt="business logo">
+              <% else %>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#8c5fb6" stroke-width="1.6"><path d="M4 14c5 0 9-4 9-9 5 0 7 4 7 8 0 5-4 8-9 8-4 0-7-3-7-7Z"/><path d="M4 14c4 0 8 2 10 6"/></svg>
+              <% end %>
+            </div>
+            <div>
+              <div class="bs-chat-name" id="bs-pv-name"><%= @config.assistant_name.presence || "Customstore Assistant" %></div>
+              <div class="bs-chat-status">Online · Typically replies instantly</div>
+            </div>
+          </div>
+
+          <!-- Body -->
+          <div class="bs-chat-body" id="bs-pv-body" style="background: <%= bg_color %>;">
+            <div class="bs-chat-message-row">
+              <div class="bs-chat-message-avatar" id="bs-pv-message-avatar">
+                <% if @config.assistant_avatar_url.present? %>
+                  <img src="<%= @config.assistant_avatar_url %>" alt="avatar">
+                <% else %>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#8c9196" stroke-width="1.8"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                <% end %>
+              </div>
+              <div class="bs-chat-bubble bot" id="bs-pv-greeting" style="background: #f1f1f1; color: <%= text_color %>;">
+                <%= @config.greeting.presence || "Welcome! How can I help you today?" %>
+              </div>
+            </div>
+          </div>
+
+          <!-- Starter prompts -->
+          <div class="bs-chat-prompts" id="bs-pv-prompts" style="background: <%= bg_color %>;">
+            <% starter_prompt_fields.first(3).each do |prompt| %>
+              <button type="button" class="bs-chat-prompt-btn" style="border-color: <%= primary_color %>; color: <%= primary_color %>;">
+                <%= prompt %>
+              </button>
+            <% end %>
+          </div>
+
+          <!-- Footer -->
+          <div class="bs-chat-footer">
+            <div class="bs-chat-input-mock">Type a message…</div>
+            <button type="button" class="bs-chat-send" id="bs-pv-send" style="background: <%= primary_color %>;">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+            </button>
+          </div>
+        </div>
+
+        <!-- Launcher button -->
+        <button type="button" class="bs-launcher" id="bs-pv-launcher" style="background: <%= primary_color %>;">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+        </button>
+      </div>
+    </div><!-- /preview-panel -->
+
+  </div><!-- /body -->
+</div><!-- /editor -->
+<% end %>
+
+<script>
+(function() {
+  /* ──────────────── dirty-state tracking ──────────────── */
+  const form      = document.getElementById("bs-form");
+  const saveBtn   = document.getElementById("bs-save-btn");
+  const discardBtn = document.getElementById("bs-discard-btn");
+  const defaultPrompts = ["Do you ship internationally?", "What are your return policies?"];
+  let   originalData = null;
+  let   pendingImageUploads = 0;
+  let   isSubmitting = false;
+
+  function setDisabled(el, disabled) {
+    if (!el) return;
+    el.disabled = disabled;
+    if (disabled) el.setAttribute("disabled", "");
+    else el.removeAttribute("disabled");
+  }
+
+  function serializeForm() {
+    const data = {};
+    form.querySelectorAll("input, textarea, s-text-field, s-text-area, s-select, s-color-field, s-number-field, s-checkbox").forEach(el => {
+      const name = el.getAttribute("name");
+      if (!name) return;
+      if (el.tagName.startsWith("S-")) {
+        data[name] = el.value !== undefined ? el.value : "";
+      } else if (el.type === "radio") {
+        if (el.checked) data[name] = el.value;
+      } else if (el.type === "checkbox") {
+        data[name] = el.checked ? "1" : "0";
+      } else {
+        data[name] = el.value;
+      }
+    });
+    return JSON.stringify(data);
+  }
+
+  function setDirty(dirty) {
+    if (pendingImageUploads > 0) {
+      setDisabled(saveBtn, true);
+      setDisabled(discardBtn, true);
+      return;
+    }
+
+    if (dirty) {
+      setDisabled(saveBtn, false);
+      setDisabled(discardBtn, false);
+    } else {
+      setDisabled(saveBtn, true);
+      setDisabled(discardBtn, true);
+    }
+  }
+
+  window.addEventListener("load", function() {
+    originalData = serializeForm();
+  });
+
+  function onFormChange() {
+    setDirty(serializeForm() !== originalData);
+    updatePreview();
+  }
+
+  form.addEventListener("input",  onFormChange);
+  form.addEventListener("change", onFormChange);
+
+  discardBtn.addEventListener("click", function() {
+    form.reset();
+    // reset Polaris Web Components that don't respond to form.reset()
+    form.querySelectorAll("s-text-field, s-text-area, s-color-field, s-number-field").forEach(el => {
+      const input = el.shadowRoot ? el.shadowRoot.querySelector("input, textarea") : null;
+      if (input) input.dispatchEvent(new Event("input", { bubbles: true }));
+    });
+    setDirty(false);
+    updatePreview();
+  });
+
+
+  /* ──────────────── tab switching ──────────────── */
+  const tabBtns     = document.querySelectorAll(".bs-tab-btn");
+  const tabPanels   = document.querySelectorAll(".bs-tab-content");
+
+  tabBtns.forEach(btn => {
+    btn.addEventListener("click", function() {
+      const target = this.dataset.tab;
+      tabBtns.forEach(b => b.classList.remove("active"));
+      tabPanels.forEach(p => p.classList.remove("active"));
+      this.classList.add("active");
+      document.querySelector(`.bs-tab-content[data-panel="${target}"]`).classList.add("active");
+    });
+  });
+
+
+  /* ──────────────── starter prompts add/remove ──────────────── */
+  const promptList = document.getElementById("bs-prompt-list");
+
+  promptList.addEventListener("click", function(e) {
+    const removeBtn = e.target.closest(".bs-prompt-remove");
+    if (!removeBtn) return;
+    const row = removeBtn.closest(".bs-prompt-row");
+    if (promptList.querySelectorAll(".bs-prompt-row").length > 1) {
+      row.remove();
+      renumberPrompts();
+      onFormChange();
+    }
+  });
+
+  document.getElementById("bs-add-prompt").addEventListener("click", function() {
+    const rows  = promptList.querySelectorAll(".bs-prompt-row");
+    const count = rows.length + 1;
+    const div   = document.createElement("div");
+    div.className = "bs-prompt-row";
+    div.innerHTML = `
+      <s-text-field label="Prompt ${count}" name="ai_shopper_configuration[starter_prompts][]" value="" placeholder="e.g. How long does delivery take?" autocomplete="off"></s-text-field>
+      <button type="button" class="bs-prompt-remove" title="Remove prompt">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>`;
+    promptList.appendChild(div);
+    div.querySelector("s-text-field").addEventListener("input", onFormChange);
+    onFormChange();
+  });
+
+  function renumberPrompts() {
+    promptList.querySelectorAll(".bs-prompt-row").forEach((row, i) => {
+      const sf = row.querySelector("s-text-field");
+      if (sf) sf.setAttribute("label", "Prompt " + (i + 1));
+    });
+  }
+
+
+  /* ──────────────── theme preset buttons ──────────────── */
+  const themeInput = document.getElementById("bs-theme-input");
+  document.querySelectorAll(".bs-theme-btn").forEach(btn => {
+    btn.addEventListener("click", function() {
+      document.querySelectorAll(".bs-theme-btn").forEach(b => b.classList.remove("active"));
+      this.classList.add("active");
+      themeInput.value = this.dataset.theme;
+      if (this.dataset.theme === "dark") {
+        setColorField("bs-bg-color",   "#1A202C");
+        setColorField("bs-text-color", "#F7FAFC");
+      } else {
+        setColorField("bs-bg-color",   "#FFFFFF");
+        setColorField("bs-text-color", "#1A202C");
+      }
+      onFormChange();
+    });
+  });
+
+  function setColorField(id, value) {
+    const el = document.getElementById(id);
+    if (el) { el.value = value; el.setAttribute("value", value); }
+  }
+
+  /* ──────────────── image upload helpers ──────────────── */
+  var CLOUDINARY_CLOUD_NAME   = "dklabnmsq";
+  var CLOUDINARY_UPLOAD_PRESET = "sab_bg_image";
+  var CLOUDINARY_UPLOAD_URL    = "https://api.cloudinary.com/v1_1/" + CLOUDINARY_CLOUD_NAME + "/image/upload";
+
+  function currentFieldValue(field) {
+    if (!field) return "";
+    return field.value !== undefined ? field.value : field.getAttribute("value") || "";
+  }
+
+  function setFieldValue(field, value) {
+    if (!field) return;
+    field.value = value;
+    field.setAttribute("value", value);
+  }
+
+  function setUploadBusy(busy) {
+    pendingImageUploads += busy ? 1 : -1;
+    if (pendingImageUploads < 0) pendingImageUploads = 0;
+    setDirty(serializeForm() !== originalData);
+  }
+
+  async function uploadImageToCloudinary(file) {
+    const data = new FormData();
+    data.append("file", file);
+    data.append("upload_preset", CLOUDINARY_UPLOAD_PRESET);
+
+    const response = await fetch(CLOUDINARY_UPLOAD_URL, {
+      method: "POST",
+      body: data
+    });
+    const json = await response.json().catch(() => ({}));
+
+    if (!response.ok || !json.secure_url) {
+      throw new Error(json.error && json.error.message ? json.error.message : "Image upload failed.");
+    }
+
+    return json.secure_url;
+  }
+
+  function setImagePreview(preview, url, fallbackHtml, isCircle) {
+    if (!preview) return;
+    if (!url) {
+      preview.innerHTML = fallbackHtml;
+      return;
+    }
+
+    const img = document.createElement("img");
+    img.src = url;
+    img.style.width = "100%";
+    img.style.height = "100%";
+    img.style.objectFit = "cover";
+    img.style.borderRadius = isCircle ? "50%" : "6px";
+    img.onerror = function() {
+      preview.innerHTML = fallbackHtml;
+    };
+
+    preview.replaceChildren(img);
+  }
+
+  function imageFallbackHtml(previewId) {
+    if (previewId === "bs-logo-preview") {
+      return `<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#9a3f4b" stroke-width="1.5"><path d="M4 14c5 0 9-4 9-9 5 0 7 4 7 8 0 5-4 8-9 8-4 0-7-3-7-7Z"/><path d="M4 14c4 0 8 2 10 6"/></svg>`;
+    }
+
+    if (previewId === "bs-pv-logo") {
+      return `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#8c5fb6" stroke-width="1.6"><path d="M4 14c5 0 9-4 9-9 5 0 7 4 7 8 0 5-4 8-9 8-4 0-7-3-7-7Z"/><path d="M4 14c4 0 8 2 10 6"/></svg>`;
+    }
+
+    if (previewId === "bs-avatar-preview") {
+      return `<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#c9cccf" stroke-width="1.5"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>`;
+    }
+
+    if (previewId === "bs-pv-message-avatar") {
+      return `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#8c9196" stroke-width="1.8"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>`;
+    }
+
+    return "";
+  }
+
+  function wireImageUpload({ buttonId, fileInputId, urlFieldId, hiddenId, previewId, livePreviewId, removeButtonId, isCircle, liveIsCircle }) {
+    const button = document.getElementById(buttonId);
+    const fileInput = document.getElementById(fileInputId);
+    const urlField  = document.getElementById(urlFieldId);
+    const hidden    = document.getElementById(hiddenId);
+    const preview   = document.getElementById(previewId);
+    const livePreview = livePreviewId ? document.getElementById(livePreviewId) : null;
+    const removeButton = removeButtonId ? document.getElementById(removeButtonId) : null;
+    const fallbackHtml = imageFallbackHtml(previewId) || (preview ? preview.innerHTML : "");
+    const liveFallbackHtml = imageFallbackHtml(livePreviewId) || (livePreview ? livePreview.innerHTML : "");
+    const livePreviewIsCircle = typeof liveIsCircle === "boolean" ? liveIsCircle : isCircle;
+    const defaultButtonText = button ? button.textContent : "";
+    let uploadToken = 0;
+
+    if (!button || !fileInput || !preview) return;
+
+    button.addEventListener("click", function() {
+      fileInput.click();
+    });
+
+    fileInput.addEventListener("change", async function() {
+      const file = this.files[0];
+      if (!file) return;
+      if (file.size > 2 * 1024 * 1024) {
+        alert("Image must be under 2MB.");
+        this.value = "";
+        return;
+      }
+
+      const token = ++uploadToken;
+      const previousUrl = currentFieldValue(hidden) || currentFieldValue(urlField);
+      const localUrl = URL.createObjectURL(file);
+
+      setImagePreview(preview, localUrl, fallbackHtml, isCircle);
+      setImagePreview(livePreview, localUrl, liveFallbackHtml, livePreviewIsCircle);
+      setUploadBusy(true);
+      setDisabled(fileInput, true);
+      setDisabled(button, true);
+      button.textContent = "Uploading...";
+
+      try {
+        const uploadedUrl = await uploadImageToCloudinary(file);
+        if (token !== uploadToken) return;
+
+        setImagePreview(preview, uploadedUrl, fallbackHtml, isCircle);
+        setImagePreview(livePreview, uploadedUrl, liveFallbackHtml, livePreviewIsCircle);
+        setFieldValue(hidden, uploadedUrl);
+        setFieldValue(urlField, uploadedUrl);
+        onFormChange();
+      } catch (error) {
+        if (token === uploadToken) {
+          setImagePreview(preview, previousUrl, fallbackHtml, isCircle);
+          setImagePreview(livePreview, previousUrl, liveFallbackHtml, livePreviewIsCircle);
+          alert(error.message || "Image upload failed.");
+        }
+      } finally {
+        URL.revokeObjectURL(localUrl);
+        setDisabled(fileInput, false);
+        setDisabled(button, false);
+        button.textContent = defaultButtonText;
+        fileInput.value = "";
+        setUploadBusy(false);
+      }
+    });
+
+    if (urlField) {
+      urlField.addEventListener("input", function() {
+        const url = currentFieldValue(this);
+        setFieldValue(hidden, url);
+        setImagePreview(preview, url, fallbackHtml, isCircle);
+        setImagePreview(livePreview, url, liveFallbackHtml, livePreviewIsCircle);
+        onFormChange();
+      });
+    }
+
+    if (removeButton) {
+      removeButton.addEventListener("click", function() {
+        uploadToken++;
+        fileInput.value = "";
+        setFieldValue(hidden, "");
+        setFieldValue(urlField, "");
+        setImagePreview(preview, "", fallbackHtml, isCircle);
+        setImagePreview(livePreview, "", liveFallbackHtml, livePreviewIsCircle);
+        onFormChange();
+      });
+    }
+  }
+
+  wireImageUpload({ buttonId: "bs-logo-upload-btn", fileInputId: "bs-logo-file", urlFieldId: "bs-logo-url-field", hiddenId: "bs-logo-url", previewId: "bs-logo-preview", livePreviewId: "bs-pv-logo", removeButtonId: "bs-logo-remove-btn", isCircle: false, liveIsCircle: false });
+  wireImageUpload({ buttonId: "bs-avatar-upload-btn", fileInputId: "bs-avatar-file", urlFieldId: "bs-avatar-url", hiddenId: null, previewId: "bs-avatar-preview", livePreviewId: "bs-pv-message-avatar", removeButtonId: "bs-avatar-remove-btn", isCircle: true, liveIsCircle: true });
+
+
+  /* ──────────────── live preview updater ──────────────── */
+  function getVal(id) {
+    const el = document.getElementById(id);
+    if (!el) return "";
+    return el.value !== undefined ? el.value : el.getAttribute("value") || "";
+  }
+
+  function getCheckedRadio(name) {
+    const el = document.querySelector(`input[name="${name}"]:checked`);
+    return el ? el.value : "";
+  }
+
+  function getPrompts() {
+    const prompts = [];
+    promptList.querySelectorAll("s-text-field").forEach(el => {
+      const v = currentFieldValue(el);
+      if (v && v.trim()) prompts.push(v.trim());
+    });
+    return prompts.length > 0 ? prompts : defaultPrompts;
+  }
+
+  function escapeHtml(value) {
+    return String(value)
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#039;");
+  }
+
+  function updatePreview() {
+    const primary  = getVal("bs-primary-color")  || "#C6A8DC";
+    const bg       = getVal("bs-bg-color")        || "#FFFFFF";
+    const textCol  = getVal("bs-text-color")      || "#1A202C";
+    const name     = getVal("bs-assistant-name")  || "Customstore Assistant";
+    const greeting = document.getElementById("bs-greeting") ? document.getElementById("bs-greeting").value : "";
+    const logoUrl  = getVal("bs-logo-url-field") || getVal("bs-logo-url");
+    const avatarUrl = getVal("bs-avatar-url");
+
+    // header
+    const header = document.getElementById("bs-pv-header");
+    if (header) header.style.background = primary;
+
+    const pvLogo = document.getElementById("bs-pv-logo");
+    if (pvLogo) {
+      setImagePreview(pvLogo, logoUrl, imageFallbackHtml("bs-pv-logo"), false);
+    }
+
+    // name
+    const pvName = document.getElementById("bs-pv-name");
+    if (pvName) pvName.textContent = name;
+
+    // body bg + greeting
+    const body = document.getElementById("bs-pv-body");
+    if (body) body.style.background = bg;
+
+    const greetingEl = document.getElementById("bs-pv-greeting");
+    if (greetingEl) {
+      greetingEl.style.color = textCol;
+      if (greeting.trim()) greetingEl.textContent = greeting;
+    }
+
+    // message avatar
+    const pvMessageAvatar = document.getElementById("bs-pv-message-avatar");
+    if (pvMessageAvatar) {
+      setImagePreview(pvMessageAvatar, avatarUrl, imageFallbackHtml("bs-pv-message-avatar"), true);
+    }
+
+    // prompts bg + color
+    const pvPrompts = document.getElementById("bs-pv-prompts");
+    if (pvPrompts) {
+      pvPrompts.style.background = bg;
+      const prompts = getPrompts();
+      if (prompts.length > 0) {
+        pvPrompts.innerHTML = prompts.slice(0, 3).map(p =>
+          `<button type="button" class="bs-chat-prompt-btn" style="border-color:${primary};color:${primary};">${escapeHtml(p)}</button>`
+        ).join("");
+      }
+    }
+
+    // send button + launcher
+    const send = document.getElementById("bs-pv-send");
+    if (send) send.style.background = primary;
+
+    const launcher = document.getElementById("bs-pv-launcher");
+    if (launcher) launcher.style.background = primary;
+  }
+
+  function syncPolarisValues(formData) {
+    const fields = Array.from(form.querySelectorAll("s-text-field, s-text-area, s-select, s-color-field, s-number-field, s-checkbox"));
+    const names = new Set();
+
+    fields.forEach(function(el) {
+      const name = el.getAttribute("name");
+      if (name) names.add(name);
+    });
+
+    names.forEach(function(name) {
+      formData.delete(name);
+    });
+
+    fields.forEach(function(el) {
+      const name = el.getAttribute("name");
+      if (!name) return;
+
+      if (el.tagName === "S-CHECKBOX") {
+        const checked = (typeof el.checked !== "undefined") ? el.checked : el.hasAttribute("checked");
+        formData.append(name, checked ? "1" : "0");
+      } else {
+        formData.append(name, currentFieldValue(el));
+      }
+    });
+  }
+
+  form.addEventListener("formdata", function(event) {
+    syncPolarisValues(event.formData);
+  });
+
+  function getShopifySessionToken() {
+    if (window.shopify && typeof window.shopify.idToken === "function") {
+      return window.shopify.idToken();
+    }
+
+    return new Promise(function(resolve, reject) {
+      const appBridge = window["app-bridge"];
+      const app = window.app || createLegacyAppBridgeApp(appBridge);
+      const sessionToken = appBridge && appBridge.actions && appBridge.actions.SessionToken;
+
+      if (!appBridge || !app || !sessionToken) {
+        reject(new Error("Shopify App Bridge is not ready."));
+        return;
+      }
+
+      const unsubscribe = app.subscribe(sessionToken.Action.RESPOND, function(data) {
+        if (typeof unsubscribe === "function") unsubscribe();
+        resolve(data.sessionToken || "");
+      });
+
+      app.dispatch(sessionToken.request());
+    });
+  }
+
+  function createLegacyAppBridgeApp(appBridge) {
+    if (window.app) return window.app;
+
+    const init = document.getElementById("shopify-app-init");
+    if (!appBridge || !appBridge.default || !init || !init.dataset.apiKey || !init.dataset.host) {
+      return null;
+    }
+
+    window.app = appBridge.default({
+      apiKey: init.dataset.apiKey,
+      host: init.dataset.host
+    });
+
+    return window.app;
+  }
+
+  async function submitSettings() {
+    const token = await getShopifySessionToken();
+    if (!token) throw new Error("Could not get a Shopify session token.");
+
+    const formData = new FormData(form);
+    syncPolarisValues(formData);
+
+    const response = await fetch(form.action, {
+      method: "PATCH",
+      headers: {
+        "Authorization": "Bearer " + token,
+        "X-CSRF-Token": document.querySelector('meta[name="csrf-token"]')?.content || "",
+        "Accept": "text/html",
+        "X-Requested-With": "XMLHttpRequest"
+      },
+      body: formData,
+      credentials: "same-origin",
+      redirect: "follow"
+    });
+
+    if (!response.ok) {
+      throw new Error("Settings could not be saved.");
+    }
+
+    return response;
+  }
+
+  async function saveSettings() {
+    if (isSubmitting) return;
+    if (pendingImageUploads > 0) {
+      alert("Please wait for the image upload to finish.");
+      return;
+    }
+
+    isSubmitting = true;
+    setDisabled(saveBtn, true);
+    setDisabled(discardBtn, true);
+
+    try {
+      await submitSettings();
+      window.location.reload();
+    } catch (error) {
+      isSubmitting = false;
+      alert(error.message || "Settings could not be saved.");
+      setDirty(true);
+    }
+  }
+
+  saveBtn.addEventListener("click", function(event) {
+    event.preventDefault();
+    saveSettings();
+  });
+
+  form.addEventListener("submit", function(event) {
+    event.preventDefault();
+
+    if (pendingImageUploads > 0) {
+      alert("Please wait for the image upload to finish.");
+      return;
+    }
+
+    saveSettings();
+  });
+
+  // run once on page load
+  document.addEventListener("DOMContentLoaded", updatePreview);
+  // also after Polaris web components may have initialized
+  setTimeout(updatePreview, 300);
+
+})();
+</script>
