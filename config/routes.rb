@@ -1,26 +1,34 @@
 Rails.application.routes.draw do
-  root :to => 'home#index'
-  get '/products', :to => 'products#index'
+  root to: "home#index"
+  get "/products", to: "products#index"
+
+  namespace :app do
+  resource :product_sync,
+           only: [ :show, :create ] do
+    get :sync_status
+  end
+   end
+
 
   namespace :knowledge_base do
-    get '/', to: 'bases#index', as: :root
+    get "/", to: "bases#index", as: :root
 
     # Shipping Policy — show, update, sync, attachment
     resource :shipping_policy, only: %i[show update],
-             controller: 'policies', defaults: { policy_type: 'shipping_policy' } do
+             controller: "policies", defaults: { policy_type: "shipping_policy" } do
       post :sync
-      get  'attachment/new', action: :new_attachment, as: :attachment_new
-      post 'attachment',     action: :create_attachment, as: :attachment
-      delete 'attachment',   action: :destroy_attachment
+      get  "attachment/new", action: :new_attachment, as: :attachment_new
+      post "attachment",     action: :create_attachment, as: :attachment
+      delete "attachment",   action: :destroy_attachment
     end
 
     # Return Policy — identical surface, different policy_type default
     resource :return_policy, only: %i[show update],
-             controller: 'policies', defaults: { policy_type: 'return_policy' } do
+             controller: "policies", defaults: { policy_type: "return_policy" } do
       post :sync
-      get  'attachment/new', action: :new_attachment, as: :attachment_new
-      post 'attachment',     action: :create_attachment, as: :attachment
-      delete 'attachment',   action: :destroy_attachment
+      get  "attachment/new", action: :new_attachment, as: :attachment_new
+      post "attachment",     action: :create_attachment, as: :attachment
+      delete "attachment",   action: :destroy_attachment
     end
 
     # FAQs — CRUD + import + suggestions + attachments
@@ -35,16 +43,16 @@ Rails.application.routes.draw do
       end
 
       member do
-        get    'attachment/new', action: :new_attachment, as: :attachment_new
-        post   'attachment',     action: :create_attachment, as: :attachment
-        delete 'attachment',     action: :destroy_attachment
+        get    "attachment/new", action: :new_attachment, as: :attachment_new
+        post   "attachment",     action: :create_attachment, as: :attachment
+        delete "attachment",     action: :destroy_attachment
       end
     end
 
     resources :documents, only: %i[index create destroy]
   end
 
-  mount ShopifyApp::Engine, at: '/'
+  mount ShopifyApp::Engine, at: "/"
 
   get "up" => "rails/health#show", as: :rails_health_check
 end
