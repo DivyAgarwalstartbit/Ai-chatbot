@@ -34,11 +34,10 @@
 
       <s-app-nav>
         <s-link href="/"rel="home">Dashboard</s-link>
-        <s-link href="/products">Training data</s-link>
         <s-link href="/knowledge_base?shop=<%= ERB::Util.url_encode((@shop_origin || (@current_shopify_session.shop if @current_shopify_session)).to_s) %>&host=<%= ERB::Util.url_encode(@host.to_s) %>&embedded=1">Knowledge base</s-link>
-        <s-link href="/collections">Inbox</s-link>
-        <s-link href="/customers">Widget settings</s-link>
+        <s-link href="/conversations?shop=<%= ERB::Util.url_encode((@shop_origin || (@current_shopify_session.shop if @current_shopify_session)).to_s) %>&host=<%= ERB::Util.url_encode(@host.to_s) %>&embedded=1">Conversations</s-link>
         <s-link href="/bot_settings?shop=<%= ERB::Util.url_encode((@shop_origin || (@current_shopify_session.shop if @current_shopify_session)).to_s) %>&host=<%= ERB::Util.url_encode(@host.to_s) %>&embedded=1">Chatbot settings</s-link>
+        <s-link href="/plans?shop=<%= ERB::Util.url_encode((@shop_origin || (@current_shopify_session.shop if @current_shopify_session)).to_s) %>&host=<%= ERB::Util.url_encode(@host.to_s) %>&embedded=1">Pricing</s-link>
       </s-app-nav>
 
     <%= render 'layouts/flash_messages' %>

@@ -2,6 +2,8 @@ Rails.application.routes.draw do
   root :to => 'home#index'
   get '/products', :to => 'products#index'
   resource :bot_settings, only: %i[show update]
+  resources :conversations, only: %i[index show]
+  resources :tickets, only: %i[index show update]
 
   namespace :knowledge_base do
     get '/', to: 'bases#index', as: :root
@@ -44,6 +46,10 @@ Rails.application.routes.draw do
 
     resources :documents, only: %i[index create destroy]
   end
+
+  get  "/plans",            to: "plans#index",    as: :plans
+  get  "/billing/create",   to: "billing#create",   as: :billing_create
+  get  "/billing/callback", to: "billing#callback", as: :billing_callback
 
   mount ShopifyApp::Engine, at: '/'
 
