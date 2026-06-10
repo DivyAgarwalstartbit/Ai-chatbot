@@ -317,7 +317,7 @@ turbo-frame#conv-detail {
       </div>
 
       <!-- Conversation list (Turbo Frame so filters update only the list) -->
-      <turbo-frame id="conv-list" class="conv-list" style="display:flex;flex-direction:column;flex:1;overflow-y:auto;overflow-x:hidden;">
+      <turbo-frame id="conv-list" class="conv-list">
         <% if @conversations.empty? %>
           <div style="padding:32px 16px;">
             <s-empty-state heading="No conversations yet">

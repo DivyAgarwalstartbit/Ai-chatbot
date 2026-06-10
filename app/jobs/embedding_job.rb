@@ -52,21 +52,15 @@ class EmbeddingJob < ApplicationJob
 
       vectors = service.embed_batch(texts)
 
-      rows = batch.zip(vectors).map do |chunk, vector|
-        {
-          id:         chunk.id,
-          embedding:  vector,
-          updated_at: Time.current
-        }
-      end
+      now = Time.current
 
-      # Bulk-update embeddings. upsert_all matches on primary key and only
-      # writes the embedding + updated_at columns.
-      DocumentChunk.upsert_all(
-        rows,
-        update_only: %i[embedding updated_at],
-        unique_by:   :id
-      )
+      batch.zip(vectors).each do |chunk, vector|
+        chunk.update_columns(
+          embedding:   vector,
+          embedded_at: now,
+          updated_at:  now
+        )
+      end
 
       Rails.logger.info(
         "[EmbeddingJob] Embedded #{batch.size} chunk(s). " \

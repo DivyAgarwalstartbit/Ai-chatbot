@@ -137,6 +137,8 @@ class ChunkDocumentService
         {
           training_document_id: @document.id,
           shop_id:              @document.shop_id,
+          source_type:          "TrainingDocument",
+          source_id:            @document.id,
           content:              text,
           chunk_index:          idx,
           created_at:           Time.current,
