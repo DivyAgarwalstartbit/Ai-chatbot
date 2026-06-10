@@ -1,6 +1,8 @@
 Rails.application.routes.draw do
   root to: "home#index"
 
+  get "/home/check_app_embed_status", to: "home#check_app_embed_status"
+
   get "/products", to: "products#index"
 
   resource  :bot_settings, only: %i[show update]

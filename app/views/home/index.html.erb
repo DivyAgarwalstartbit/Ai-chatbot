@@ -1,7 +1,8 @@
 <%
   q           = @shop_origin.to_s
   h           = @host.to_s
-  embed_url   = "https://#{@shop_origin}/admin/themes/current/editor?context=apps&template=index&activateAppId=288ab506-3769-fe13-0858-10bbb247f01cb0ff7c2a/chat-widget"
+  app_key     = ENV.fetch("SHOPIFY_API_KEY", "")
+  embed_url   = "https://#{@shop_origin}/admin/themes/current/editor?context=apps&activateAppId=#{app_key}/ai_chat"
   plan_label  = Shop::PLANS.dig(@current_plan.to_s, :name) || "Free"
   has_plan    = @current_plan.present?
 %>
@@ -11,18 +12,30 @@
   <%# ── Primary action ── %>
   <s-button slot="primary-action" href="<%= embed_url %>" target="_blank">Enable chat widget</s-button>
 
-  <%# ── App embed warning banner ── %>
-  <s-banner
-    id="embed-banner"
-    heading="Chat widget is not active"
-    tone="warning"
-    dismissible
-  >
-    Enable the app embed in your theme so the chat bubble appears for customers.
-    <s-button slot="secondary-actions" variant="secondary" href="<%= embed_url %>" target="_blank">
-      Open theme editor
-    </s-button>
-  </s-banner>
+  <%# ── App embed warning banner (hidden when embed already enabled) ── %>
+  <div id="embed-warning-section" style="<%= @app_embed_enabled ? 'display:none;' : '' %>">
+    <s-banner heading="Chat widget is not active on your store" tone="warning">
+      Enable the app embed in your theme so the chat bubble appears for customers.
+      <s-button slot="secondary-actions" variant="secondary" href="<%= embed_url %>" target="_blank">
+        Enable app embed
+      </s-button>
+
+      <s-button slot="secondary-actions" variant="secondary" id="verify-embed-btn">
+        Verify
+      </s-button>
+    </s-banner>
+  </div>
+
+  <div id="embed-success-section" style="display:none;">
+    <s-banner
+      heading="App embed enabled successfully"
+      tone="success"
+      dismissible
+      onDismiss="document.getElementById('embed-success-section').style.display='none'"
+    >
+      Your chat widget is now live on your store.
+    </s-banner>
+  </div>
 
   <%# ── Metrics ── %>
   <s-section padding="base">
@@ -335,3 +348,38 @@
   </s-stack>
 
 </s-page>
+
+<script>
+(function() {
+  var verifyBtn = document.getElementById("verify-embed-btn");
+  if (!verifyBtn) return;
+
+  verifyBtn.addEventListener("click", function() {
+    verifyBtn.setAttribute("disabled", "");
+    verifyBtn.textContent = "Verifying…";
+
+    fetch("/home/check_app_embed_status?shop=<%= ERB::Util.url_encode(q) %>", {
+      headers: { "X-CSRF-Token": document.querySelector('meta[name="csrf-token"]')?.content || "" }
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      if (data.success) {
+        document.getElementById("embed-warning-section").style.display = "none";
+        document.getElementById("embed-success-section").style.display = "";
+      } else {
+        verifyBtn.removeAttribute("disabled");
+        verifyBtn.textContent = "Verify";
+        if (window.shopify && window.shopify.toast) {
+          window.shopify.toast.show(data.msg || "App embed is not enabled yet.", { isError: true, duration: 4000 });
+        } else {
+          alert(data.msg || "App embed is not enabled yet.");
+        }
+      }
+    })
+    .catch(function() {
+      verifyBtn.removeAttribute("disabled");
+      verifyBtn.textContent = "Verify";
+    });
+  });
+})();
+</script>
