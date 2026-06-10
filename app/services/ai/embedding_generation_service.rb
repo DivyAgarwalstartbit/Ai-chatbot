@@ -7,7 +7,7 @@ module Ai
   # Responsibilities:
   #   - Load every DocumentChunk for the document (ordered by chunk_index)
   #   - Embed them in batches via Ai::EmbeddingService
-  #   - Bulk-upsert the embedding vectors + embedded_at timestamp
+  #   - Update the existing chunks with embedding vectors + embedded_at timestamp
   #   - Update training_documents.embedding_status throughout the run
   #
   # Called by GenerateEmbeddingsJob. Never call directly from a web request.
@@ -56,22 +56,14 @@ module Ai
         vectors = service.embed_batch(texts)
 
         now = Time.current
-        rows = batch.zip(vectors).map do |chunk, vector|
-          {
-            id:          chunk.id,
-            embedding:   vector,
-            embedded_at: now
-          }
-        end
 
-        # update_only must NOT include updated_at — Rails adds it automatically
-        # via the record_timestamps mechanism. Including it explicitly causes
-        # PG::SyntaxError "multiple assignments to same column".
-        DocumentChunk.upsert_all(
-          rows,
-          update_only: %i[embedding embedded_at],
-          unique_by:   :id
-        )
+        batch.zip(vectors).each do |chunk, vector|
+          chunk.update_columns(
+            embedding:   vector,
+            embedded_at: now,
+            updated_at:  now
+          )
+        end
 
         embedded_count += batch.size
 

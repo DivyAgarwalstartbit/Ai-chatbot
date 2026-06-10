@@ -118,9 +118,17 @@ class KnowledgeBase::PoliciesController < AuthenticatedController
     end
 
     @policy.file.attach(attachment_params[:file])
+    @policy.assign_attributes(
+      processing_status: "pending",
+      processing_error:  nil,
+      embedding_status:  "pending",
+      embedding_error:   nil,
+      source_type:       add_source(@policy.source_type, "uploaded_document")
+    )
 
     if @policy.save
-      @policy.touch
+      ProcessDocumentJob.perform_later(@policy.id)
+
       respond_to do |format|
         format.turbo_stream { render turbo_stream: policy_attachment_refresh_streams }
         format.html { redirect_to knowledge_base_root_path(shop: @shop_origin, host: @host, embedded: 1) }

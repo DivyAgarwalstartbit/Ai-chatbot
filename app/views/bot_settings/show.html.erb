@@ -421,20 +421,13 @@
             <s-stack gap="base">
               <s-heading>Widget status</s-heading>
               <s-paragraph>Disable to hide the widget from your storefront without losing your settings.</s-paragraph>
-              <s-grid gridTemplateColumns="1fr auto" alignItems="center" gap="base">
-                <s-stack gap="small-200">
-                  <s-text type="strong">Show widget on storefront</s-text>
-                  <s-text color="subdued">Customers will see the chat bubble when enabled</s-text>
-                </s-stack>
-                <s-switch
-                  name="ai_shopper_configuration[widget_enabled]"
-                  <%= "checked" if @config.widget_enabled %>
-                  id="bs-widget-enabled"
-                  label="Show widget on storefront"
-                  labelAccessibilityVisibility="exclusive">
-                </s-switch>
-              </s-grid>
-              <input type="hidden" name="ai_shopper_configuration[widget_enabled]" value="0">
+              <s-checkbox
+                id="bs-widget-enabled"
+                label="Show widget on storefront"
+                details="Customers will see the chat bubble when enabled"
+                <%= "checked" if @config.widget_enabled %>
+              ></s-checkbox>
+              <input type="hidden" name="ai_shopper_configuration[widget_enabled]" id="bs-widget-enabled-hidden" value="<%= @config.widget_enabled ? '1' : '0' %>">
             </s-stack>
           </s-box>
 
@@ -572,12 +565,21 @@
     else el.removeAttribute("disabled");
   }
 
+  function readChoiceListValue(el) {
+    // s-choice-list exposes .values (array) — fall back to .value for single-select
+    if (el.values && Array.isArray(el.values)) return JSON.stringify(el.values);
+    if (el.value !== undefined && el.value !== null) return JSON.stringify(el.value);
+    return "";
+  }
+
   function serializeForm() {
     const data = {};
-    form.querySelectorAll("input, textarea, s-text-field, s-text-area, s-select, s-color-field, s-number-field, s-checkbox").forEach(el => {
+    form.querySelectorAll("input, textarea, s-text-field, s-text-area, s-select, s-color-field, s-number-field, s-choice-list").forEach(el => {
       const name = el.getAttribute("name");
       if (!name) return;
-      if (el.tagName.startsWith("S-")) {
+      if (el.tagName === "S-CHOICE-LIST") {
+        data[name] = readChoiceListValue(el);
+      } else if (el.tagName.startsWith("S-")) {
         data[name] = el.value !== undefined ? el.value : "";
       } else if (el.type === "radio") {
         if (el.checked) data[name] = el.value;
@@ -606,8 +608,12 @@
     }
   }
 
-  window.addEventListener("load", function() {
+  // Capture baseline only after s-choice-list and s-checkbox have fully hydrated
+  function captureOriginal() {
     originalData = serializeForm();
+  }
+  customElements.whenDefined("s-choice-list").catch(function() {}).then(function() {
+    setTimeout(captureOriginal, 1000);
   });
 
   function onFormChange() {
@@ -617,6 +623,30 @@
 
   form.addEventListener("input",  onFormChange);
   form.addEventListener("change", onFormChange);
+
+  // s-choice-list fires custom events — listen explicitly with deferred read
+  form.querySelectorAll("s-choice-list").forEach(el => {
+    ["change", "s-change", "input"].forEach(function(evtName) {
+      el.addEventListener(evtName, function() {
+        setTimeout(onFormChange, 0);
+      });
+    });
+  });
+  // widget enabled checkbox → sync hidden input + trigger dirty check
+  const widgetEnabledCb = document.getElementById("bs-widget-enabled");
+  if (widgetEnabledCb) {
+    ["change", "s-change", "click", "input"].forEach(function(evtName) {
+      widgetEnabledCb.addEventListener(evtName, function() {
+        setTimeout(function() {
+          const inner = widgetEnabledCb.shadowRoot && widgetEnabledCb.shadowRoot.querySelector("input[type='checkbox']");
+          const isOn = inner ? inner.checked : widgetEnabledCb.hasAttribute("checked");
+          const hidden = document.getElementById("bs-widget-enabled-hidden");
+          if (hidden) hidden.value = isOn ? "1" : "0";
+          onFormChange();
+        }, 0);
+      });
+    });
+  }
 
   discardBtn.addEventListener("click", function() {
     form.reset();
@@ -977,7 +1007,7 @@
   }
 
   function syncPolarisValues(formData) {
-    const fields = Array.from(form.querySelectorAll("s-text-field, s-text-area, s-select, s-color-field, s-number-field, s-checkbox"));
+    const fields = Array.from(form.querySelectorAll("s-text-field, s-text-area, s-select, s-color-field, s-number-field, s-choice-list"));
     const names = new Set();
 
     fields.forEach(function(el) {
@@ -993,9 +1023,12 @@
       const name = el.getAttribute("name");
       if (!name) return;
 
-      if (el.tagName === "S-CHECKBOX") {
-        const checked = (typeof el.checked !== "undefined") ? el.checked : el.hasAttribute("checked");
-        formData.append(name, checked ? "1" : "0");
+      if (el.tagName === "S-CHOICE-LIST") {
+        // s-choice-list uses .values (array) for its live state
+        const vals = (el.values && Array.isArray(el.values)) ? el.values
+                   : (el.value !== undefined && el.value !== null) ? [].concat(el.value)
+                   : [];
+        vals.forEach(function(v) { if (v !== "" && v !== null) formData.append(name, v); });
       } else {
         formData.append(name, currentFieldValue(el));
       }
