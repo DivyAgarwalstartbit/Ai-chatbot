@@ -58,11 +58,17 @@ Rails.application.routes.draw do
 
   scope "/apps/ai-chat" do
     namespace :api do
-      post  "/chat", to: "conversations#create"
+      post "/chat", to: "conversations#create"
       match "/chat", to: "conversations#options", via: :options
     end
   end
 
+  # Shopify App Proxy — storefront requests forwarded here by Shopify
+  get   "/apps/ai-chat/config", to: "api/conversations#config"
+  match "/apps/ai-chat/config", to: "api/conversations#options", via: :options
+  post  "/apps/ai-chat/chat",   to: "api/conversations#create"
+  match "/apps/ai-chat/chat",   to: "api/conversations#options", via: :options
+  get "/ping", to: "ping#index"
   mount ShopifyApp::Engine, at: "/"
 
   get "up" => "rails/health#show", as: :rails_health_check

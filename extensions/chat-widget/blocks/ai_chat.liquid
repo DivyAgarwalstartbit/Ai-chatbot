@@ -3,7 +3,6 @@
 <script>
 window.AI_WIDGET = {
   shop: "{{ shop.permanent_domain }}",
-  app_url: "https://{{ shop.permanent_domain }}/apps/ai-chat",
   customer: {
     id: "{{ customer.id }}",
     email: "{{ customer.email }}",
@@ -13,7 +12,7 @@ window.AI_WIDGET = {
 </script>
 
 {{ 'chat-widget.css' | asset_url | stylesheet_tag }}
-{{ 'chat-widget.js' | asset_url | script_tag }}
+<script src="{{ 'chat-widget.js' | asset_url }}" defer></script>
 
 
 {% schema %}
