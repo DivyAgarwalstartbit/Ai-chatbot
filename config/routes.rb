@@ -9,6 +9,8 @@ Rails.application.routes.draw do
   end
    end
 
+   resource :bot_settings, only: %i[show update]
+
 
   namespace :knowledge_base do
     get "/", to: "bases#index", as: :root
