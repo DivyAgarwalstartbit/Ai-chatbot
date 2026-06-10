@@ -1,4 +1,9 @@
 Rails.application.routes.draw do
+  root :to => 'home#index'
+  get '/products', :to => 'products#index'
+  resource :bot_settings, only: %i[show update]
+  resources :conversations, only: %i[index show]
+  resources :tickets, only: %i[index show update]
   root to: "home#index"
   get "/products", to: "products#index"
 
@@ -54,14 +59,17 @@ Rails.application.routes.draw do
     resources :documents, only: %i[index create destroy]
   end
 
+  get  "/plans",            to: "plans#index",    as: :plans
+  get  "/billing/create",   to: "billing#create",   as: :billing_create
+  get  "/billing/callback", to: "billing#callback", as: :billing_callback
+
+  mount ShopifyApp::Engine, at: '/'
  scope "/apps/ai-chat" do
   namespace :api do
     post   "/chat", to: "conversations#create"
     match  "/chat", to: "conversations#options", via: :options
   end
 end
-
-  mount ShopifyApp::Engine, at: "/"
 
   get "up" => "rails/health#show", as: :rails_health_check
 end

@@ -1,0 +1,368 @@
+<style>
+/* ── Ticket detail panel ── */
+.td-panel {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+}
+
+/* ── Header ── */
+.td-header {
+  flex-shrink: 0;
+  background: #fff;
+  border-bottom: 1px solid #e1e3e5;
+  padding: 12px 16px;
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  min-width: 0;
+}
+.td-header-info { flex: 1; min-width: 0; }
+.td-subject {
+  font-size: 14px;
+  font-weight: 700;
+  color: #202223;
+  line-height: 1.4;
+  word-break: break-word;
+  margin: 0 0 6px;
+}
+.td-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+.td-meta-item { font-size: 11.5px; color: #6d7175; display: flex; align-items: center; gap: 3px; }
+.td-meta-sep { color: #c9cccf; }
+
+/* ── Status form (hidden) ── */
+.td-status-form { display: none; }
+
+/* ── Body: two columns ── */
+.td-body {
+  flex: 1;
+  overflow: hidden;
+  display: flex;
+  flex-direction: row;
+  min-width: 0;
+}
+
+/* ── Timeline column ── */
+.td-timeline-col {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  background: #f6f6f7;
+  min-width: 0;
+}
+
+/* ── Timeline entries ── */
+.tl-entry {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 4px;
+}
+
+/* Chat bubbles — reuse inbox style */
+.tl-bubble-wrap {
+  display: flex;
+  flex-direction: column;
+  max-width: 75%;
+  min-width: 0;
+  margin-bottom: 8px;
+}
+.tl-bubble-wrap.customer  { align-self: flex-end;  align-items: flex-end; }
+.tl-bubble-wrap.assistant { align-self: flex-start; align-items: flex-start; }
+.tl-sender {
+  font-size: 10.5px;
+  font-weight: 600;
+  color: #8c9196;
+  margin-bottom: 2px;
+  padding: 0 4px;
+}
+.tl-bubble {
+  padding: 8px 12px;
+  border-radius: 14px;
+  font-size: 13px;
+  line-height: 1.5;
+  word-break: break-word;
+}
+.tl-bubble.customer {
+  background: #C6A8DC;
+  color: #fff;
+  border-bottom-right-radius: 4px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.10);
+}
+.tl-bubble.assistant {
+  background: #fff;
+  color: #1A202C;
+  border: 1px solid #e1e3e5;
+  border-bottom-left-radius: 4px;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.06);
+}
+.tl-time { font-size: 10px; color: #8c9196; margin-top: 2px; padding: 0 4px; }
+
+/* System / event entries */
+.tl-event {
+  align-self: center;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11.5px;
+  color: #6d7175;
+  background: #fff;
+  border: 1px solid #e1e3e5;
+  border-radius: 20px;
+  padding: 3px 12px;
+  margin: 6px auto;
+  max-width: 90%;
+  text-align: center;
+}
+.tl-event-dot {
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.tl-event-dot.created  { background: #C6A8DC; }
+.tl-event-dot.status   { background: #f5a623; }
+.tl-event-dot.ticket   { background: #50b83c; }
+
+/* ── Sidebar ── */
+.td-sidebar {
+  width: 220px;
+  flex-shrink: 0;
+  border-left: 1px solid #e1e3e5;
+  background: #fff;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+.td-sidebar-section {
+  padding: 12px 14px;
+  border-bottom: 1px solid #f1f2f3;
+}
+.td-sidebar-label {
+  font-size: 10px;
+  font-weight: 600;
+  color: #8c9196;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 8px;
+}
+.td-field { display: flex; flex-direction: column; gap: 1px; margin-bottom: 8px; }
+.td-field:last-child { margin-bottom: 0; }
+.td-field-label { font-size: 10.5px; color: #8c9196; }
+.td-field-value { font-size: 12.5px; color: #202223; font-weight: 500; word-break: break-word; }
+.td-field-value.muted { color: #8c9196; font-weight: 400; font-style: italic; }
+</style>
+
+<%
+  customer     = ticket.customer
+  display_name = if customer
+                   [customer.first_name, customer.last_name].compact.join(" ").presence ||
+                   customer.email.presence ||
+                   "Visitor ##{customer.visitor_id}"
+                 else
+                   "No customer"
+                 end
+  initials = if customer
+               parts = [customer.first_name, customer.last_name].compact
+               parts.map { |p| p[0].upcase }.join.first(2).presence || "?"
+             else
+               "?"
+             end
+  status     = ticket.status.presence || "open"
+  badge_tone = { "open" => "critical", "in_progress" => "warning", "resolved" => "info", "closed" => "neutral" }.fetch(status, "neutral")
+  source_labels = {
+    "customer_requested_human" => "Customer requested human",
+    "ai_escalation"            => "AI escalation",
+    "merchant_created"         => "Created by merchant"
+  }
+  source_label = source_labels.fetch(ticket.source.to_s, "—")
+  ticket_action_path = ticket_path(ticket, shop: @shop_origin, host: @host, embedded: 1)
+
+  # Build activity timeline: ticket creation + conversation messages
+  timeline = []
+  timeline << { type: :ticket_created, time: ticket.created_at }
+
+  if ticket.conversation
+    ticket.conversation.messages.order(:created_at).each do |msg|
+      timeline << { type: :message, role: msg.role, content: msg.content, time: msg.created_at }
+    end
+  end
+
+  timeline.sort_by! { |e| e[:time] }
+%>
+
+<!-- Hidden status forms — one per possible status -->
+<% Ticket::STATUSES.each do |s| %>
+  <% next if s == status %>
+  <form id="td-form-<%= ticket.id %>-<%= s %>"
+        class="td-status-form"
+        action="<%= ticket_action_path %>"
+        method="post"
+        data-turbo="false">
+    <input type="hidden" name="_method"            value="patch">
+    <input type="hidden" name="authenticity_token" value="<%= form_authenticity_token %>">
+    <input type="hidden" name="status"             value="<%= s %>">
+    <input type="hidden" name="q"                  value="<%= params[:q] %>">
+    <input type="hidden" name="status_filter"      value="<%= params[:status] %>">
+    <button id="td-btn-<%= ticket.id %>-<%= s %>" type="submit"></button>
+  </form>
+<% end %>
+
+<div class="td-panel">
+
+  <!-- ── Header ── -->
+  <div class="td-header">
+    <s-avatar initials="<%= initials %>" size="medium" style="flex-shrink:0;margin-top:2px;"></s-avatar>
+    <div class="td-header-info">
+      <p class="td-subject"><%= ticket.subject %></p>
+      <div class="td-meta">
+        <s-badge tone="<%= badge_tone %>"><%= status.tr("_", " ").capitalize %></s-badge>
+        <span class="td-meta-sep">·</span>
+        <span class="td-meta-item"><%= source_label %></span>
+        <span class="td-meta-sep">·</span>
+        <span class="td-meta-item"><%= ticket.created_at.strftime("%b %-d, %Y") %></span>
+      </div>
+    </div>
+    <!-- Status dropdown -->
+    <div style="flex-shrink:0;">
+      <s-select
+        label=""
+        value=""
+        style="min-width:140px;"
+        onchange="(function(sel){ var s=sel.value; if(s) document.getElementById('td-btn-<%= ticket.id %>-'+s).click(); })(this)"
+      >
+        <s-option value="">Change status…</s-option>
+        <% Ticket::STATUSES.each do |s| %>
+          <% next if s == status %>
+          <s-option value="<%= s %>"><%= s.tr("_"," ").capitalize %></s-option>
+        <% end %>
+      </s-select>
+    </div>
+  </div>
+
+  <!-- ── Body ── -->
+  <div class="td-body">
+
+    <!-- Timeline -->
+    <div class="td-timeline-col">
+
+      <!-- Ticket opened event -->
+      <div class="tl-event">
+        <span class="tl-event-dot ticket"></span>
+        Ticket opened · <%= ticket.created_at.strftime("%b %-d, %Y · %-I:%M %p") %>
+      </div>
+
+      <!-- Issue description -->
+      <% if ticket.issue.present? %>
+        <div class="tl-event" style="background:#fafafa;max-width:100%;border-radius:8px;padding:10px 14px;text-align:left;flex-direction:column;align-items:flex-start;gap:4px;font-size:13px;color:#202223;font-style:italic;">
+          <span style="font-size:10px;font-weight:600;color:#8c9196;text-transform:uppercase;letter-spacing:0.5px;">Issue</span>
+          <%= ticket.issue %>
+        </div>
+      <% end %>
+
+      <!-- Timeline entries -->
+      <% timeline.each do |entry| %>
+        <% next if entry[:type] == :ticket_created %>
+        <% if entry[:type] == :message %>
+          <% role = entry[:role] %>
+          <% if role == "system" %>
+            <div class="tl-event">
+              <span class="tl-event-dot status"></span>
+              <%= entry[:content] %>
+            </div>
+          <% else %>
+            <div class="tl-bubble-wrap <%= role %>">
+              <% if role == "assistant" %>
+                <span class="tl-sender">AI Assistant</span>
+              <% end %>
+              <div class="tl-bubble <%= role %>"><%= entry[:content] %></div>
+              <span class="tl-time"><%= entry[:time].strftime("%-I:%M %p") %></span>
+            </div>
+          <% end %>
+        <% end %>
+      <% end %>
+
+      <% unless ticket.conversation %>
+        <div style="flex:1;display:flex;align-items:center;justify-content:center;padding:24px 0;">
+          <s-text tone="subdued">No conversation linked to this ticket.</s-text>
+        </div>
+      <% end %>
+
+    </div><!-- /.td-timeline-col -->
+
+    <!-- Sidebar -->
+    <div class="td-sidebar">
+
+      <!-- Customer -->
+      <div class="td-sidebar-section">
+        <div class="td-sidebar-label">Customer</div>
+        <% if customer %>
+          <div class="td-field">
+            <span class="td-field-label">Name</span>
+            <span class="td-field-value"><%= display_name %></span>
+          </div>
+          <% if customer.email.present? %>
+            <div class="td-field">
+              <span class="td-field-label">Email</span>
+              <span class="td-field-value"><%= customer.email %></span>
+            </div>
+          <% end %>
+          <% if customer.phone.present? %>
+            <div class="td-field">
+              <span class="td-field-label">Phone</span>
+              <span class="td-field-value"><%= customer.phone %></span>
+            </div>
+          <% end %>
+        <% else %>
+          <span class="td-field-value muted">No customer</span>
+        <% end %>
+      </div>
+
+      <!-- Ticket details -->
+      <div class="td-sidebar-section">
+        <div class="td-sidebar-label">Details</div>
+        <div class="td-field">
+          <span class="td-field-label">Status</span>
+          <s-badge tone="<%= badge_tone %>"><%= status.tr("_", " ").capitalize %></s-badge>
+        </div>
+        <div class="td-field" style="margin-top:6px;">
+          <span class="td-field-label">Source</span>
+          <span class="td-field-value"><%= source_label %></span>
+        </div>
+        <div class="td-field" style="margin-top:6px;">
+          <span class="td-field-label">Created</span>
+          <span class="td-field-value"><%= ticket.created_at.strftime("%b %-d, %Y") %></span>
+        </div>
+      </div>
+
+      <!-- Linked conversation -->
+      <% if ticket.conversation %>
+        <div class="td-sidebar-section">
+          <div class="td-sidebar-label">Conversation</div>
+          <div class="td-field">
+            <span class="td-field-label">Messages</span>
+            <span class="td-field-value"><%= ticket.conversation.messages.size %></span>
+          </div>
+          <div style="margin-top:8px;">
+            <%= link_to conversation_path(ticket.conversation, shop: @shop_origin, host: @host, embedded: 1),
+                  data: { turbo: false } do %>
+              <s-button variant="tertiary" icon="external" size="slim" style="width:100%;">Open conversation</s-button>
+            <% end %>
+          </div>
+        </div>
+      <% end %>
+
+    </div><!-- /.td-sidebar -->
+
+  </div><!-- /.td-body -->
+
+</div><!-- /.td-panel -->
