@@ -5,14 +5,14 @@
 
   const cfg = window.AI_WIDGET || {};
   const shop = cfg.shop || "";
-  const appUrl = (cfg.app_url || "").replace(/\/$/, "");
+  const appUrl = (cfg.app_url || "/apps/ai-chat").replace(/\/$/, "");
 
   const visitorId = getOrCreateVisitorId();
   let sessionId = sessionStorage.getItem("ai_session_id") || null;
   let promptsHidden = false;
 
   // Fetch bot settings then render
-  fetch(`/apps/api/conversations/config?shop=${encodeURIComponent(shop)}`)
+  fetch(`${appUrl}/config?shop=${encodeURIComponent(shop)}`)
     .then(r => r.json())
     .then(s => boot(s))
     .catch(err => {
