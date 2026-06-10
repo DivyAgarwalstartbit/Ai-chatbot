@@ -10,24 +10,33 @@
   const visitorId = getOrCreateVisitorId();
   let sessionId = sessionStorage.getItem("ai_session_id") || null;
   let promptsHidden = false;
-
+  console.log(
+    "🔥 CONFIG URL:",
+    `${appUrl}/configuration?shop=${encodeURIComponent(shop)}`
+  );
   // Fetch bot settings then render
-  fetch(`${appUrl}/config?shop=${encodeURIComponent(shop)}`)
+  fetch(`${appUrl}/configuration?shop=${encodeURIComponent(shop)}`, {
+    cache: "no-store",
+    headers: {
+      "ngrok-skip-browser-warning": "true"
+    }
+  })
     .then(r => r.json())
     .then(s => boot(s))
     .catch(err => {
-      console.error(err);
+      console.error("[AI Config]", err);
       boot({});
     });
 
   // ─────────────────────────────────────────────────────────
   function boot(s) {
-    if (s.widget_enabled === false) return;
-    applyVars(s);
-    render(s);
+    console.log("🔥 CONFIG RESPONSE", s);
+
+
+    render(s);       // pehle HTML banao
+    applyVars(s);    // phir style lagao
     wire(s);
   }
-
   // ── Apply CSS variables from settings ────────────────────
   function applyVars(s) {
     const rs = document.documentElement.style;
@@ -185,7 +194,7 @@
     try {
       const r = await fetch(appUrl + "/chat", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", "ngrok-skip-browser-warning": "true" },
         body: JSON.stringify(body),
       });
       if (!r.ok) { const t = await r.text(); throw new Error(r.status + ": " + t.slice(0, 120)); }

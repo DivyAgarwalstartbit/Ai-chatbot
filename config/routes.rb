@@ -58,14 +58,31 @@ Rails.application.routes.draw do
   get "/billing/create",   to: "billing#create",   as: :billing_create
   get "/billing/callback", to: "billing#callback", as: :billing_callback
 
-  # Shopify App Proxy — storefront requests forwarded here by Shopify
-  scope "/apps/ai-chat" do
-    get   "/config", to: "output#config"
-    match "/config", to: "output#options", via: :options
-    post  "/chat",   to: "output#create"
-    match "/chat",   to: "output#options", via: :options
-  end
-  get "/ping", to: "ping#index"
+
+ # Shopify App Proxy — storefront requests forwarded here by Shopify
+ # Shopify App Proxy routes
+ get "/configuration",
+    to: "api/conversations#configuration"
+
+match "/configuration",
+      to: "api/conversations#options",
+      via: :options
+
+
+post "/chat",
+     to: "api/conversations#create"
+
+match "/chat",
+      to: "api/conversations#options",
+      via: :options
+
+
+
+# Direct API routes
+namespace :api do
+  get  "conversations/config", to: "conversations#configuration"
+  post "conversations/chat",   to: "conversations#create"
+end
   mount ShopifyApp::Engine, at: "/"
 
   get "up" => "rails/health#show", as: :rails_health_check

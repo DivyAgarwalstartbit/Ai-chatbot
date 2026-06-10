@@ -3,6 +3,6 @@ type = "theme"
 uid = "288ab506-3769-fe13-0858-10bbb247f01cb0ff7c2a"
 
 [app_proxy]
-url = "https://selectively-spikiest-alfredo.ngrok-free.dev"
+url = "https://selectively-spikiest-alfredo.ngrok-free.dev/"
 subpath = "ai-chat"
 prefix = "apps"
