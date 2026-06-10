@@ -1,0 +1,27 @@
+# Read about fixtures at https://api.rubyonrails.org/classes/ActiveRecord/FixtureSet.html
+
+one:
+  shop: one
+  product: one
+  shopify_variant_id: 
+  title: MyString
+  sku: MyString
+  price: 9.99
+  compare_at_price: 9.99
+  inventory_quantity: 1
+  inventory_policy: MyString
+  available: false
+  options: 
+
+two:
+  shop: two
+  product: two
+  shopify_variant_id: 
+  title: MyString
+  sku: MyString
+  price: 9.99
+  compare_at_price: 9.99
+  inventory_quantity: 1
+  inventory_policy: MyString
+  available: false
+  options: 

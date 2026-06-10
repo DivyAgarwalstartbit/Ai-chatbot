@@ -97,10 +97,13 @@ ActiveRecord::Schema[8.1].define(version: 2026_06_09_130000) do
     t.datetime "embedded_at"
     t.vector "embedding", limit: 768
     t.bigint "shop_id", null: false
-    t.bigint "training_document_id", null: false
+    t.bigint "source_id"
+    t.string "source_type"
+    t.bigint "training_document_id"
     t.datetime "updated_at", null: false
     t.index ["embedding"], name: "index_document_chunks_on_embedding_hnsw", opclass: :vector_cosine_ops, using: :hnsw
     t.index ["shop_id"], name: "index_document_chunks_on_shop_id"
+    t.index ["source_type", "source_id"], name: "index_document_chunks_on_source_type_and_source_id"
     t.index ["training_document_id", "chunk_index"], name: "index_document_chunks_on_doc_and_chunk_index"
     t.index ["training_document_id"], name: "index_document_chunks_on_training_document_id"
   end
@@ -115,19 +118,34 @@ ActiveRecord::Schema[8.1].define(version: 2026_06_09_130000) do
     t.index ["conversation_id"], name: "index_messages_on_conversation_id"
   end
 
+  create_table "product_variants", force: :cascade do |t|
+    t.boolean "available", default: true
+    t.decimal "compare_at_price"
+    t.datetime "created_at", null: false
+    t.integer "inventory_quantity", default: 0
+    t.jsonb "options", default: {}, null: false
+    t.decimal "price"
+    t.bigint "product_id", null: false
+    t.bigint "shop_id", null: false
+    t.bigint "shopify_variant_id"
+    t.string "sku"
+    t.string "title"
+    t.datetime "updated_at", null: false
+    t.index ["product_id"], name: "index_product_variants_on_product_id"
+    t.index ["shop_id", "shopify_variant_id"], name: "index_product_variants_on_shop_id_and_shopify_variant_id", unique: true
+    t.index ["shop_id"], name: "index_product_variants_on_shop_id"
+  end
+
   create_table "products", force: :cascade do |t|
-    t.jsonb "avaliability"
     t.datetime "created_at", null: false
     t.text "description"
     t.string "handle"
     t.string "image_url"
-    t.decimal "price"
     t.bigint "shop_id", null: false
-    t.bigint "shopify_product_id"
-    t.string "status"
+    t.bigint "shopify_product_id", null: false
     t.string "title"
     t.datetime "updated_at", null: false
-    t.string "vendor"
+    t.index ["shop_id", "shopify_product_id"], name: "index_products_on_shop_and_shopify_id", unique: true
     t.index ["shop_id"], name: "index_products_on_shop_id"
   end
 
@@ -142,6 +160,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_06_09_130000) do
     t.datetime "refresh_token_expires_at"
     t.string "shopify_domain", null: false
     t.string "shopify_token", null: false
+    t.string "sync_status", default: "idle", null: false
     t.datetime "updated_at", null: false
     t.index ["shopify_domain"], name: "index_shops_on_shopify_domain", unique: true
   end
@@ -313,6 +332,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_06_09_130000) do
   add_foreign_key "document_chunks", "shops"
   add_foreign_key "document_chunks", "training_documents"
   add_foreign_key "messages", "conversations"
+  add_foreign_key "product_variants", "products"
+  add_foreign_key "product_variants", "shops"
   add_foreign_key "products", "shops"
   add_foreign_key "solid_queue_blocked_executions", "solid_queue_jobs", column: "job_id", on_delete: :cascade
   add_foreign_key "solid_queue_claimed_executions", "solid_queue_jobs", column: "job_id", on_delete: :cascade

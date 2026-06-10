@@ -4,26 +4,38 @@ Rails.application.routes.draw do
   resource :bot_settings, only: %i[show update]
   resources :conversations, only: %i[index show]
   resources :tickets, only: %i[index show update]
+  root to: "home#index"
+  get "/products", to: "products#index"
+
+  namespace :app do
+  resource :product_sync,
+           only: [ :show, :create ] do
+    get :sync_status
+  end
+   end
+
+   resource :bot_settings, only: %i[show update]
+
 
   namespace :knowledge_base do
-    get '/', to: 'bases#index', as: :root
+    get "/", to: "bases#index", as: :root
 
     # Shipping Policy — show, update, sync, attachment
     resource :shipping_policy, only: %i[show update],
-             controller: 'policies', defaults: { policy_type: 'shipping_policy' } do
+             controller: "policies", defaults: { policy_type: "shipping_policy" } do
       post :sync
-      get  'attachment/new', action: :new_attachment, as: :attachment_new
-      post 'attachment',     action: :create_attachment, as: :attachment
-      delete 'attachment',   action: :destroy_attachment
+      get  "attachment/new", action: :new_attachment, as: :attachment_new
+      post "attachment",     action: :create_attachment, as: :attachment
+      delete "attachment",   action: :destroy_attachment
     end
 
     # Return Policy — identical surface, different policy_type default
     resource :return_policy, only: %i[show update],
-             controller: 'policies', defaults: { policy_type: 'return_policy' } do
+             controller: "policies", defaults: { policy_type: "return_policy" } do
       post :sync
-      get  'attachment/new', action: :new_attachment, as: :attachment_new
-      post 'attachment',     action: :create_attachment, as: :attachment
-      delete 'attachment',   action: :destroy_attachment
+      get  "attachment/new", action: :new_attachment, as: :attachment_new
+      post "attachment",     action: :create_attachment, as: :attachment
+      delete "attachment",   action: :destroy_attachment
     end
 
     # FAQs — CRUD + import + suggestions + attachments
@@ -38,9 +50,9 @@ Rails.application.routes.draw do
       end
 
       member do
-        get    'attachment/new', action: :new_attachment, as: :attachment_new
-        post   'attachment',     action: :create_attachment, as: :attachment
-        delete 'attachment',     action: :destroy_attachment
+        get    "attachment/new", action: :new_attachment, as: :attachment_new
+        post   "attachment",     action: :create_attachment, as: :attachment
+        delete "attachment",     action: :destroy_attachment
       end
     end
 
@@ -52,6 +64,12 @@ Rails.application.routes.draw do
   get  "/billing/callback", to: "billing#callback", as: :billing_callback
 
   mount ShopifyApp::Engine, at: '/'
+ scope "/apps/ai-chat" do
+  namespace :api do
+    post   "/chat", to: "conversations#create"
+    match  "/chat", to: "conversations#options", via: :options
+  end
+end
 
   get "up" => "rails/health#show", as: :rails_health_check
 end
