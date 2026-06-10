@@ -1,0 +1,600 @@
+<s-page heading="Product Sync">
+
+ <s-section title="Product sync status section">
+  <s-section-header title="Product Sync" />
+
+  <s-section-content>
+
+    <s-box
+      padding="base"
+      border="base"
+      border-radius="large-200"
+      background="base"
+    >
+
+      <s-stack 
+        direction="inline" 
+        justify-content="space-between"
+        align-items="center"
+        gap="base"
+      >
+
+        <!-- Left side -->
+        <s-stack 
+          direction="inline" 
+          gap="base"
+          align-items="start"
+        >
+
+
+          <s-stack gap="small">
+
+            <s-text variant="headingMd">
+              Sync Shopify Products
+            </s-text>
+
+  <s-box max-inline-size="600px">
+    <s-text tone="subdued">
+      Import your Shopify products to enable AI-powered support.
+      This allows your assistant to access product details and provide
+      accurate answers to customers.
+    </s-text>
+  </s-box>
+
+            <s-stack
+              direction="inline"
+              gap="small"
+              align-items="center"
+            >
+
+              <s-badge tone="success">
+                Synced
+              </s-badge>
+
+              <s-text tone="subdued">
+                <%= @products_count %> product<%= @products_count == 1 ? "" : "s" %>
+              </s-text>
+
+            </s-stack>
+
+          </s-stack>
+
+        </s-stack>
+
+        <!-- Action -->
+        <s-button
+          id="sync-btn"
+          variant="primary"
+          onclick="startSync()"
+        >
+          <span id="sync-btn-text">Sync Products</span>
+        </s-button>
+
+
+      </s-stack>
+
+    </s-box>
+
+  </s-section-content>
+</s-section>
+
+
+ <% if @products.blank? %>
+
+  <!-- ===== EMPTY STATE ===== -->
+  <s-section accessibilityLabel="Empty state section">
+    <s-grid gap="base" justifyItems="center" paddingBlock="large-400">
+
+      <s-box maxInlineSize="200px" maxBlockSize="200px">
+        <s-image
+          maxInlineSize="200px"
+          maxBlockSize="200px"
+          aspectRatio="1/0.5"
+          src="https://cdn.shopify.com/static/images/polaris/patterns/callout.png"
+          alt="Empty customers"
+        />
+      </s-box>
+
+      <s-grid justifyItems="center" maxInlineSize="450px" gap="base">
+
+        <s-stack alignItems="center">
+          <s-heading>No customers yet</s-heading>
+
+          <s-paragraph>
+           No products found. Sync your products to enable AI-powered support.
+          </s-paragraph>
+        </s-stack>
+
+        <s-button-group>
+          <s-button variant="secondary">
+            Learn more
+          </s-button>
+
+          <s-button
+            variant="primary"
+            onclick="startSync()"
+          >
+            <span id="sync-btn-text-empty">Sync Products</span>
+          </s-button>
+
+
+        
+        </s-button-group>
+
+      </s-grid>
+
+    </s-grid>
+  </s-section>
+
+<% else %>
+
+
+  <s-section padding="none" accessibilityLabel="Products table section">
+
+  <% if @products.any? %>
+
+    <s-table variant="auto" id="products-table">
+
+
+      <!-- Headers -->
+     <s-table-header-row>
+
+  <s-table-header listSlot="primary">
+    <s-box paddingBlock="small-200" paddingInline="small-300">
+      <s-text fontWeight="semibold">
+        Product
+      </s-text>
+    </s-box>
+  </s-table-header>
+
+
+  <s-table-header>
+    <s-box paddingBlock="small-200" paddingInline="small-300">
+      <s-text fontWeight="semibold">
+        Handle
+      </s-text>
+    </s-box>
+  </s-table-header>
+
+
+  <s-table-header>
+    <s-box paddingBlock="small-200" paddingInline="small-300">
+      <s-text fontWeight="semibold">
+        Price
+      </s-text>
+    </s-box>
+  </s-table-header>
+
+
+  <s-table-header>
+    <s-box paddingBlock="small-200" paddingInline="small-300">
+      <s-text fontWeight="semibold">
+        Inventory
+      </s-text>
+    </s-box>
+  </s-table-header>
+
+
+  <s-table-header>
+    <s-box paddingBlock="small-200" paddingInline="small-300">
+      <s-text fontWeight="semibold">
+        SKU
+      </s-text>
+    </s-box>
+  </s-table-header>
+
+
+  <s-table-header>
+    <s-box paddingBlock="small-200" paddingInline="small-300">
+      <s-text fontWeight="semibold">
+        Variants
+      </s-text>
+    </s-box>
+  </s-table-header>
+
+
+</s-table-header-row>
+
+
+      <!-- Body -->
+      <s-table-body>
+
+
+        <% @products.each do |product| %>
+
+          <% 
+            variants = product.product_variants
+            prices = variants.map(&:price).compact
+            min_price = prices.min
+            max_price = prices.max
+            total_inventory = variants.sum(&:inventory_quantity)
+            skus = variants.map(&:sku).compact.reject(&:empty?).uniq
+          %>
+
+
+          <s-table-row>
+
+
+            <!-- Product -->
+          <s-table-cell>
+
+  <s-grid
+    gridTemplateColumns="auto 1fr"
+    gap="small-300"
+    alignItems="center"
+  >
+
+    <% if product.image_url.present? %>
+
+      <s-thumbnail
+        src="<%= product.image_url %>"
+        alt="<%= product.title %>"
+        size="small"
+      ></s-thumbnail>
+
+    <% else %>
+
+      <s-thumbnail
+        size="small"
+      ></s-thumbnail>
+
+    <% end %>
+
+
+    <s-text fontWeight="medium">
+      <%= product.title %>
+    </s-text>
+
+
+  </s-grid>
+
+</s-table-cell>
+
+
+
+            <!-- Handle -->
+
+            <s-table-cell>
+
+              <s-text tone="subdued">
+                <%= product.handle %>
+              </s-text>
+
+            </s-table-cell>
+
+
+
+
+            <!-- Price -->
+
+            <s-table-cell>
+
+
+              <% if prices.any? %>
+
+
+                <% if min_price == max_price %>
+
+                  <s-text>
+                    $<%= number_with_precision(min_price, precision: 2) %>
+                  </s-text>
+
+                <% else %>
+
+                  <s-text>
+                    $<%= number_with_precision(min_price, precision: 2) %>
+                    -
+                    $<%= number_with_precision(max_price, precision: 2) %>
+                  </s-text>
+
+                <% end %>
+
+
+              <% else %>
+
+                <s-text tone="subdued">
+                  —
+                </s-text>
+
+              <% end %>
+
+
+            </s-table-cell>
+
+
+
+
+
+            <!-- Inventory -->
+
+            <s-table-cell>
+
+
+              <% if total_inventory > 10 %>
+
+                <s-badge tone="success">
+                  <%= total_inventory %> in stock
+                </s-badge>
+
+              <% else %>
+
+
+              <s-badge tone="neutral">
+                Out of stock
+              </s-badge>
+
+              <% end %>
+
+
+            </s-table-cell>
+
+
+
+
+
+
+            <!-- SKU -->
+
+            <s-table-cell>
+
+
+              <s-text tone="subdued">
+
+                <% if skus.any? %>
+
+                  <%= skus.first(2).join(", ") %>
+
+                  <% if skus.size > 2 %>
+                    +<%= skus.size - 2 %> more
+                  <% end %>
+
+
+                <% else %>
+
+                  —
+
+                <% end %>
+
+              </s-text>
+
+
+            </s-table-cell>
+
+
+
+
+
+            <!-- Variants -->
+
+           <%
+  actual_variants =
+    if variants.size == 1 &&
+       variants.first.title == "Default Title"
+
+      0
+
+    else
+
+      variants.size
+
+    end
+%>
+
+
+<s-table-cell>
+
+  <s-text tone="subdued">
+
+    <%= actual_variants %>
+    variant<%= actual_variants == 1 ? "" : "s" %>
+
+  </s-text>
+
+</s-table-cell>
+
+
+
+
+          </s-table-row>
+
+
+        <% end %>
+
+
+      </s-table-body>
+
+
+    </s-table>
+
+    <!-- Pagination -->
+
+    <% offset = (@current_page - 1) * App::ProductSyncsController::PER_PAGE %>
+
+
+  <s-box padding="small">
+
+  <s-inline-stack
+    inline-align="space-between"
+    block-align="center"
+    gap="base"
+  >
+
+    <!-- Previous -->
+    <s-button
+      variant="secondary"
+      icon="arrow-left"
+      <%= "disabled" unless @current_page > 1 %>
+      href="<%= @current_page > 1 ? app_product_sync_path(page: @current_page - 1) : '#' %>"
+    >
+      Previous
+    </s-button>
+
+
+    <!-- Count -->
+    <s-text tone="subdued">
+      Showing <%= offset + 1 %> -
+      <%= [offset + @products.length, @products_count].min %>
+      of <%= @products_count %> products
+    </s-text>
+
+
+    <!-- Next -->
+    <s-button
+      variant="secondary"
+      icon="arrow-right"
+      iconPosition="end"
+      <%= "disabled" unless @current_page < @total_pages %>
+      href="<%= @current_page < @total_pages ? app_product_sync_path(page: @current_page + 1) : '#' %>"
+    >
+      Next
+    </s-button>
+
+
+  </s-inline-stack>
+
+</s-box>
+
+
+  <% else %>
+
+
+
+    <!-- Empty state -->
+
+
+    <s-empty-state
+      heading="No products synced yet"
+      image=""
+    >
+
+      <s-text tone="subdued">
+        Sync your Shopify catalog to enable AI product support.
+      </s-text>
+
+
+      <s-button
+        variant="primary"
+        onclick="startSync()"
+      >
+        Sync products
+      </s-button>
+
+
+    </s-empty-state>
+
+
+
+
+  <% end %>
+
+
+</s-section>
+
+
+<% end%>
+
+
+  <script>
+    let pollInterval = null;
+
+    function setSyncing(syncing) {
+      const btn = document.getElementById("sync-btn");
+      const texts = [
+        document.getElementById("sync-btn-text"),
+        document.getElementById("sync-btn-text-empty")
+      ].filter(Boolean);
+
+      texts.forEach(el => {
+        el.innerHTML = syncing
+          ? `<span style="display:inline-flex;align-items:center;gap:8px;">
+               <span style="
+                 display:inline-block;width:14px;height:14px;
+                 border:2px solid rgba(77, 77, 77, 0.4);
+                 border-top-color:#fff;border-radius:50%;
+                 animation:spin 0.7s linear infinite;
+               "></span>
+               Syncing…
+             </span>`
+          : "Sync Products";
+      });
+
+      if (btn) btn.disabled = syncing;
+    }
+
+    function startPolling() {
+      if (pollInterval) return;
+      pollInterval = setInterval(async () => {
+        try {
+          const token = await window.shopify.idToken();
+          const res = await fetch("/app/product_sync/sync_status", {
+            headers: { "Authorization": "Bearer " + token }
+          });
+          const { status } = await res.json();
+          if (status !== "syncing") {
+            clearInterval(pollInterval);
+            pollInterval = null;
+            setSyncing(false);
+            window.location.reload();
+          }
+        } catch (_) {}
+      }, 2500);
+    }
+
+   async function startSync() {
+
+  console.log("1. function started");
+
+  try {
+
+    setSyncing(true);
+
+    console.log("2. before token");
+   const token = await window.shopify.idToken();
+ 
+
+    console.log("3. token received", token);
+
+    console.log("4. before fetch");
+
+    const res = await fetch("/app/product_sync", {
+      method: "POST",
+      headers: {
+        "Authorization": "Bearer " + token,
+        "Content-Type": "application/json"
+      }
+    });
+
+    console.log("5. fetch completed");
+    console.log(res.status);
+
+    startPolling();
+
+  } catch(error) {
+
+    console.error("SYNC ERROR", error);
+
+  }
+
+}
+
+    // Resume loader if a sync is already in progress when the page loads
+    (async () => {
+      try {
+        const token = await window.shopify.idToken();
+        const res = await fetch("/app/product_sync/sync_status", {
+          headers: { "Authorization": "Bearer " + token }
+        });
+        const { status } = await res.json();
+        if (status === "syncing") {
+          setSyncing(true);
+          startPolling();
+        }
+      } catch (_) {}
+    })();
+  </script>
+
+  <style>
+    @keyframes spin { to { transform: rotate(360deg); } }
+  </style>
+
+</s-page>

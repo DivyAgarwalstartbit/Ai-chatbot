@@ -7,7 +7,7 @@ class ChangeEmbeddingColumnDimensionAndAddHnswIndex < ActiveRecord::Migration[8.
     # Re-create the column with an explicit 1536-dimension type.
     # The original column was created without a dimension, so pgvector treated it
     # as an unconstrained vector. We change it to enforce the correct size.
-    change_column :document_chunks, :embedding, :vector, limit: 1536
+    change_column :document_chunks, :embedding, :vector, limit: 768
 
     # HNSW index using cosine distance — matches the cosine_similarity query we'll
     # use during retrieval.

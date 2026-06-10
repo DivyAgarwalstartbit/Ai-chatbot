@@ -19,7 +19,6 @@
      <script src="https://cdn.shopify.com/shopifycloud/polaris.js"></script>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/intl-tel-input@18.1.1/build/css/intlTelInput.css"/>
 <script src="https://cdn.jsdelivr.net/npm/intl-tel-input@18.1.1/build/js/intlTelInput.min.js"></script>
-<script src="//cdn.shopify.com/s/assets/external/app.js"></script>
 
   </head>
 
@@ -42,7 +41,6 @@
 
     <%= render 'layouts/flash_messages' %>
 
-    <script src="https://unpkg.com/@shopify/app-bridge@2"></script>
 
     <%= content_tag(:div, nil, id: 'shopify-app-init', data: {
       api_key: ShopifyApp.configuration.api_key,
