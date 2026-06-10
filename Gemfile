@@ -34,6 +34,14 @@ gem "dotenv-rails", groups: [ :development, :test ]
 gem "pgvector"
 gem "neighbor"
 
+gem "sidekiq"
+gem "redis"
+
+gem "ruby-openai", "~> 7.0"
+gem "faraday", "~> 2.0"
+gem "pdf-reader", "~> 2.0"
+gem "docx", "~> 0.8"
+
 #-------------------------------------------------------------------------------------------------
 
 # Reduces boot times through caching; required in config/boot.rb

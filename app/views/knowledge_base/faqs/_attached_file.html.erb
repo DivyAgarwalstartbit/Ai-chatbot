@@ -1,0 +1,38 @@
+<%# Locals: faq, frame_id, shop_origin, host %>
+<% if faq.file.attached? %>
+  <s-box border="base" borderRadius="base" padding="base" background="subdued">
+    <s-grid gridTemplateColumns="auto 1fr auto" alignItems="center" gap="base">
+      <s-icon source="file-pdf" tone="subdued"></s-icon>
+      <s-grid gap="small-100">
+        <s-text fontWeight="semibold"><%= faq.file.filename %></s-text>
+        <s-text color="subdued">
+          <%= number_to_human_size(faq.file.byte_size) %>
+          &middot; Uploaded <%= time_ago_in_words(faq.file.created_at) %> ago
+        </s-text>
+      </s-grid>
+      <s-stack direction="inline" gap="small-100">
+        <s-button
+          variant="tertiary"
+          icon="refresh"
+          accessibilityLabel="Replace file"
+          href="<%= attachment_new_knowledge_base_faq_path(faq, shop: shop_origin, host: host, embedded: 1) %>"
+          data-turbo-frame="<%= frame_id %>">Replace</s-button>
+        <%= button_to attachment_knowledge_base_faq_path(faq, shop: shop_origin, host: host, embedded: 1),
+              method: :delete,
+              data: {
+                turbo_frame: frame_id,
+                turbo_confirm: "Remove this file?"
+              },
+              form: { style: "display:inline" } do %>
+          <s-button variant="tertiary" tone="critical" icon="delete" accessibilityLabel="Delete file" type="submit"></s-button>
+        <% end %>
+      </s-stack>
+    </s-grid>
+  </s-box>
+<% else %>
+  <%= render "knowledge_base/faqs/upload_form",
+        faq: faq,
+        frame_id: frame_id,
+        shop_origin: shop_origin,
+        host: host %>
+<% end %>

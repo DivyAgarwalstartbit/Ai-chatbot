@@ -1,0 +1,33 @@
+<%# Locals: policy, policy_type
+    Shows: configured badge, source badges (Manual / Uploaded / Shopify Sync),
+    last updated text, and last synced timestamp when applicable. %>
+<% configured   = policy_configured?(policy) %>
+<% src_badges   = policy_source_badges(policy) %>
+<% synced_text  = policy_synced_text(policy) %>
+
+<div class="kb-policy-summary" id="<%= policy_type %>_summary">
+  <s-stack direction="block" gap="small-100">
+
+    <%# ── Status + source badges ── %>
+    <s-stack direction="inline" gap="small-100" alignItems="center" wrap="true">
+      <% if configured %>
+        <s-badge tone="success" icon="check-circle">Configured</s-badge>
+      <% else %>
+        <s-badge tone="warning">Missing</s-badge>
+      <% end %>
+
+      <% src_badges.each do |badge| %>
+        <s-badge tone="<%= badge[:tone] %>" icon="<%= badge[:icon] %>"><%= badge[:label] %></s-badge>
+      <% end %>
+    </s-stack>
+
+    <%# ── Timestamps ── %>
+    <s-stack direction="block" gap="extra-small">
+      <s-text color="subdued"><%= policy_updated_text(policy) %></s-text>
+      <% if synced_text %>
+        <s-text color="subdued">🔄 <%= synced_text %></s-text>
+      <% end %>
+    </s-stack>
+
+  </s-stack>
+</div>

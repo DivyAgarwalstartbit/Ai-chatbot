@@ -1,0 +1,10 @@
+<%# Locals: id (optional), title (optional), messages (Array) %>
+<% wrapper_id = local_assigns[:id] %>
+<% banner_title = local_assigns[:title] %>
+<div<%= wrapper_id.present? ? " id=\"#{wrapper_id}\"" : "" %>>
+  <s-banner tone="critical"<%= banner_title.present? ? " title=\"#{banner_title}\"" : "" %>>
+    <% messages.each do |msg| %>
+      <s-paragraph><%= msg %></s-paragraph>
+    <% end %>
+  </s-banner>
+</div>

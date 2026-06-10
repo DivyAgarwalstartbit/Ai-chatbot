@@ -1,0 +1,5 @@
+<%= turbo_frame_tag dom_id(@faq) do %>
+  <s-box padding="base" border="base" borderRadius="base" background="subdued">
+    <%= render "form", faq: @faq, shop_origin: @shop_origin, host: @host %>
+  </s-box>
+<% end %>

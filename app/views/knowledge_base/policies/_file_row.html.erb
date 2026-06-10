@@ -1,0 +1,33 @@
+<%# Locals: policy, policy_type, shop_origin, host %>
+<div class="kb-policy-file-card" id="<%= policy_type %>_file_row">
+  <div class="kb-policy-file-main">
+    <span class="kb-policy-file-icon" aria-hidden="true">
+      <svg viewBox="0 0 20 20"><path fill="currentColor" d="M4 18a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h8l4 4v10a2 2 0 0 1-2 2H4Zm7-13v3h3l-3-3Z"/></svg>
+    </span>
+    <div class="kb-policy-file-copy">
+      <div class="kb-policy-file-name"><%= policy.file.filename %></div>
+      <div class="kb-policy-file-meta">
+        <%= number_to_human_size(policy.file.byte_size) %> &middot; Uploaded <%= time_ago_in_words(policy.file.created_at) %> ago
+      </div>
+    </div>
+  </div>
+
+  <div class="kb-policy-file-actions">
+    <s-button variant="tertiary" icon="view"
+      href="<%= rails_blob_path(policy.file, disposition: "inline") %>"
+      target="_blank">
+      View
+    </s-button>
+    <s-button variant="tertiary" icon="refresh"
+      onclick="document.getElementById('<%= policy_type %>_file_input').click()">
+      Replace
+    </s-button>
+    <s-button variant="tertiary" tone="critical" icon="delete"
+      commandFor="policy-delete-modal"
+      data-policy-type="<%= policy_type %>"
+      data-policy-filename="<%= policy.file.filename %>"
+      data-delete-path="<%= send(:"attachment_knowledge_base_#{policy_type}_path", shop: shop_origin, host: host, embedded: 1) %>">
+      Delete
+    </s-button>
+  </div>
+</div>

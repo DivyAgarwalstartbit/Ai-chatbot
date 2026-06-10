@@ -1,0 +1,72 @@
+<%= form_with(
+  model: [:knowledge_base, faq],
+  url: faq.persisted? ? knowledge_base_faq_path(faq, shop: shop_origin, host: host, embedded: 1)
+                      : knowledge_base_faqs_path(shop: shop_origin, host: host, embedded: 1),
+  method: faq.persisted? ? :patch : :post,
+  id: "faq_form_#{faq.persisted? ? faq.id : 'new'}",
+  data: { turbo_frame: faq.persisted? ? dom_id(faq) : "faq_new_form" }
+) do |f| %>
+
+  <div style="border:1px solid #e1e3e5;border-radius:6px;padding:12px;background:#fff;margin-bottom:8px;">
+    <% if faq.errors.any? %>
+      <s-banner tone="critical" style="margin-bottom:8px;">
+        <% faq.errors.full_messages.each do |msg| %>
+          <s-paragraph><%= msg %></s-paragraph>
+        <% end %>
+      </s-banner>
+    <% end %>
+
+    <%= f.hidden_field :title,   id: "faq_title_hidden_#{faq.persisted? ? faq.id : 'new'}" %>
+    <%= f.hidden_field :content, id: "faq_content_hidden_#{faq.persisted? ? faq.id : 'new'}" %>
+
+    <s-grid gap="small-200">
+      <s-text-field
+        id="faq_title_field_<%= faq.persisted? ? faq.id : 'new' %>"
+        label="Question"
+        placeholder="e.g. What is your return window?"
+        autocomplete="off"
+        value="<%= ERB::Util.html_escape(faq.title.to_s) %>"
+      ></s-text-field>
+
+      <s-text-area
+        id="faq_content_field_<%= faq.persisted? ? faq.id : 'new' %>"
+        label="Answer"
+        placeholder="Provide a clear and helpful answer..."
+        rows="3"
+        autocomplete="off"
+        value="<%= ERB::Util.html_escape(faq.content.to_s) %>"
+      ></s-text-area>
+
+      <div class="kb-actions">
+        <s-button variant="primary" size="slim"
+          onclick="submitFaqForm('<%= faq.persisted? ? faq.id : 'new' %>')">
+          <%= faq.persisted? ? "Update FAQ" : "Add FAQ" %>
+        </s-button>
+        <% if faq.persisted? %>
+          <s-button variant="tertiary" tone="neutral" size="slim"
+            href="<%= knowledge_base_faq_path(faq, shop: shop_origin, host: host, embedded: 1) %>"
+            data-turbo-frame="<%= dom_id(faq) %>">Cancel</s-button>
+        <% else %>
+          <s-button variant="tertiary" tone="neutral" size="slim"
+            onclick="document.getElementById('faq_new_form').innerHTML = ''">Cancel</s-button>
+        <% end %>
+      </div>
+    </s-grid>
+  </div>
+
+<% end %>
+
+<script>
+  (function() {
+    window.submitFaqForm = window.submitFaqForm || function(k) {
+      var tf = document.getElementById('faq_title_field_'   + k);
+      var th = document.getElementById('faq_title_hidden_'  + k);
+      var cf = document.getElementById('faq_content_field_' + k);
+      var ch = document.getElementById('faq_content_hidden_'+ k);
+      if (tf && th) th.value = tf.value;
+      if (cf && ch) ch.value = cf.value;
+      var form = document.getElementById('faq_form_' + k);
+      if (form) form.requestSubmit();
+    };
+  })();
+</script>

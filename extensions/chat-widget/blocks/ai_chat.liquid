@@ -3,9 +3,11 @@
 <script>
 window.AI_WIDGET = {
   shop: "{{ shop.permanent_domain }}",
-  customer:{
-    id:"{{ customer.id }}",
-    email:"{{ customer.email }}"
+  app_url: "https://{{ shop.permanent_domain }}/apps/ai-chat",
+  customer: {
+    id: "{{ customer.id }}",
+    email: "{{ customer.email }}",
+    first_name: "{{ customer.first_name }}"
   }
 }
 </script>
@@ -16,8 +18,8 @@ window.AI_WIDGET = {
 
 {% schema %}
 {
-  "name":"AI Chat Assistant",
-  "target":"body",
-  "settings":[]
+  "name": "AI Chat Assistant",
+  "target": "body",
+  "settings": []
 }
 {% endschema %}

@@ -1,316 +1,252 @@
 (function () {
-    console.log("AI CHAT LOADED");
+  console.log("AI CHAT LOADED", window.AI_WIDGET);
 
-    const root =
-        document.getElementById("ai-support-widget");
+  const root = document.getElementById("ai-support-widget");
 
-
-    root.innerHTML = `
-
+  root.innerHTML = `
 
 <!-- FLOAT BUTTON -->
-
-<button class="ai-floating-btn">
+<button class="ai-floating-btn" aria-label="Open chat">
   💬
-
-  <span class="badge">
-  1
-  </span>
-
+  <span class="badge">1</span>
 </button>
-
-
-
 
 <!-- HOME SCREEN -->
-
-
 <div class="ai-widget">
 
+  <div class="orange-section">
+    <button class="close-btn" aria-label="Close">✕</button>
+    <h1>Hi there 👋</h1>
+    <p>Ask us anything — we're here to help.</p>
+    <div class="reply-box">
+      <div class="avatar">DA</div>
+      <span>We usually reply in a few minutes</span>
+      <span class="online-dot"></span>
+    </div>
+  </div>
 
-<div class="orange-section">
+  <div class="help-section">
+    <h2>Quick actions</h2>
 
+    <div class="card flex">
+      <div>
+        <b>Track your order</b>
+        <p>Get real-time order updates</p>
+      </div>
+      <span>→</span>
+    </div>
 
-<button class="close-btn">
-×
-</button>
+    <div class="card flex">
+      <div>
+        <b>Contact us</b>
+        <p>Talk to our support team</p>
+      </div>
+      <span class="whatsapp">☎</span>
+    </div>
 
+    <div class="faq-card">
+      <h3>Browse FAQs</h3>
+      <input placeholder="🔍 Search for an answer…" />
+      <ul>
+        <li>Payment methods →</li>
+        <li>How do I return an item? →</li>
+        <li>Exchange process →</li>
+      </ul>
+      <a>View all articles</a>
+    </div>
 
-<h1>
-Hi there, 👋
-</h1>
-
-
-<p>
-Welcome to divy test,<br>
-feel free to ask us anything
-</p>
-
-
-
-<div class="reply-box">
-
-<div class="avatar">
-DA
-</div>
-
-<span>
-We usually reply in 🕘 a few minutes
-</span>
-
-<span class="online-dot">
-</span>
-
-</div>
-
-
-</div>
-
-
-
-
-
-<div class="help-section">
-
-
-<h2>
-Get Instant Help
-</h2>
-
-
-
-<div class="card">
-
-<b>
-Contact us via
-</b>
-
-<span class="whatsapp">
-☎
-</span>
+    <button class="chat-start">💬 Chat with us</button>
+  </div>
 
 </div>
-
-
-
-
-<div class="card flex">
-
-<div>
-
-<b>
-Track your orders
-</b>
-
-<p>
-Instantly find your order
-</p>
-
-</div>
-
-<span>
-→
-</span>
-
-</div>
-
-
-
-
-
-<div class="faq-card">
-
-<h3>
-Browse FAQ
-</h3>
-
-
-<input
-placeholder="🔍 Find quick answer"
-/>
-
-
-<ul>
-
-<li>
-Payment →
-</li>
-
-<li>
-How do I return my items? →
-</li>
-
-<li>
-Exchange process →
-</li>
-
-
-</ul>
-
-
-<a>
-Browse all articles
-</a>
-
-</div>
-
-
-
-
-
-<button class="chat-start">
-
-💬 Chat with us
-
-</button>
-
-
-</div>
-
-
-</div>
-
-
-
-
 
 <!-- CHAT SCREEN -->
-
-
-
 <div class="chat-window">
 
+  <header>
+    <button class="back-btn" aria-label="Back">←</button>
+    <div class="avatar">DA</div>
+    <div class="header-info">
+      <h3>Divy Assistant</h3>
+      <p>Online now</p>
+    </div>
+  </header>
 
-<header>
+  <div class="messages"></div>
 
+  <div class="input-area">
+    <input id="chatInput" placeholder="Type a message…" autocomplete="off" />
+    <button class="send-btn" id="chatSend" aria-label="Send">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
+           stroke-linecap="round" stroke-linejoin="round">
+        <line x1="22" y1="2" x2="11" y2="13"></line>
+        <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+      </svg>
+    </button>
+  </div>
 
-<div class="avatar">
-DA
-</div>
-
-
-<div>
-
-<h3>
-Divy Assistant
-</h3>
-
-<p>
-● Online
-</p>
-
-</div>
-
-
-</header>
-
-
-
-<div class="messages">
-
-
-<div class="bot">
-
-Hi there! 👋 <br>
-How can I help you today?
-
-</div>
-
-
-<div class="user">
-
-I want to track my order
-
-</div>
-
-
-<div class="bot">
-
-Sure, I can help you with that.
-Please provide your order number.
-
-</div>
-
-
-</div>
-
-
-
-<div class="input-area">
-
-
-<input
-id="chatInput"
-placeholder="Type your message..."
-/>
-
-
-<button>
-➤
-</button>
-
-
-</div>
-
-
-<div class="powered">
-
-⚡ Powered by AI Assistant
-
-</div>
-
+  <div class="powered">⚡ Powered by AI Assistant</div>
 
 </div>
 
 `;
 
+  // ── state ────────────────────────────────────────────────────
+  const visitorId = getOrCreateVisitorId();
+  let sessionId   = sessionStorage.getItem("ai_session_id") || null;
 
+  // ── element refs ─────────────────────────────────────────────
+  const floatBtn  = root.querySelector(".ai-floating-btn");
+  const widget    = root.querySelector(".ai-widget");
+  const chat      = root.querySelector(".chat-window");
+  const messages  = root.querySelector(".messages");
+  const input     = root.querySelector("#chatInput");
+  const sendBtn   = root.querySelector("#chatSend");
 
-    const btn =
-        document.querySelector(".ai-floating-btn");
+  // ── initial greeting ─────────────────────────────────────────
+  appendBotMessage("Hi there! 👋 How can I help you today?");
 
+  // ── UI behaviour ─────────────────────────────────────────────
+  floatBtn.onclick = () => {
+    widget.classList.add("show");
+    floatBtn.style.display = "none";
+  };
 
-    const widget =
-        document.querySelector(".ai-widget");
+  root.querySelector(".close-btn").onclick = () => {
+    widget.classList.remove("show");
+    floatBtn.style.display = "flex";
+  };
 
+  root.querySelector(".chat-start").onclick = () => {
+    widget.classList.remove("show");
+    chat.classList.add("show");
+  };
 
-    const chat =
-        document.querySelector(".chat-window");
+  root.querySelector(".back-btn").onclick = () => {
+    chat.classList.remove("show");
+    widget.classList.add("show");
+  };
 
+  sendBtn.onclick = sendMessage;
+  input.addEventListener("keydown", (e) => {
+    if (e.key === "Enter" && !e.shiftKey) sendMessage();
+  });
 
+  // ── send message ─────────────────────────────────────────────
+  async function sendMessage() {
+    const text = input.value.trim();
+    if (!text) return;
 
-    btn.onclick = () => {
+    input.value = "";
+    appendUserMessage(text);
+    showTyping();
 
-        widget.classList.add("show");
+    const cfg        = window.AI_WIDGET || {};
+    const customerId = cfg.customer && cfg.customer.id;
+    const appUrl     = (cfg.app_url || "").replace(/\/$/, "");
 
-        btn.style.display = "none";
+    const body = {
+      shop:       cfg.shop,
+      message:    text,
+      visitor_id: visitorId,
+      session_id: sessionId || undefined,
+    };
 
+    if (customerId) {
+      body.customer_id = customerId;
+      body.email       = cfg.customer.email;
+      body.first_name  = cfg.customer.first_name;
     }
 
+    const endpoint = appUrl + "/api/chat";
+    console.log("[AI Chat] POST →", endpoint, body);
 
+    try {
+      const r = await fetch(endpoint, {
+        method:  "POST",
+        headers: { "Content-Type": "application/json" },
+        body:    JSON.stringify(body),
+      });
 
-    document
-        .querySelector(".close-btn")
-        .onclick = () => {
+      if (!r.ok) {
+        const t = await r.text();
+        throw new Error(r.status + ": " + t.slice(0, 120));
+      }
 
-            widget.classList.remove("show");
+      const data = await r.json();
+      removeTyping();
 
-            btn.style.display = "block";
+      if (data.session_id) {
+        sessionId = data.session_id;
+        sessionStorage.setItem("ai_session_id", sessionId);
+      }
 
-        }
+      appendBotMessage(data.response || "Sorry, something went wrong.");
+    } catch (err) {
+      console.error("[AI Chat] error:", err);
+      removeTyping();
+      appendBotMessage("Sorry, I couldn't connect. Please try again.");
+    }
+  }
 
+  // ── message rendering ─────────────────────────────────────────
+  function appendBotMessage(text) {
+    const row = document.createElement("div");
+    row.className = "bot-row";
+    row.innerHTML = `
+      <div class="bubble-avatar">DA</div>
+      <div class="bot">${escapeHtml(text)}</div>
+    `;
+    messages.appendChild(row);
+    scrollToBottom();
+  }
 
+  function appendUserMessage(text) {
+    const div = document.createElement("div");
+    div.className = "user";
+    div.textContent = text;
+    messages.appendChild(div);
+    scrollToBottom();
+  }
 
-    document
-        .querySelector(".chat-start")
-        .onclick = () => {
+  function showTyping() {
+    const row = document.createElement("div");
+    row.className = "bot-row";
+    row.id = "ai-typing";
+    row.innerHTML = `
+      <div class="bubble-avatar">DA</div>
+      <div class="bot typing-indicator">
+        <span></span><span></span><span></span>
+      </div>
+    `;
+    messages.appendChild(row);
+    scrollToBottom();
+  }
 
-            widget.style.display = "none";
+  function removeTyping() {
+    const t = document.getElementById("ai-typing");
+    if (t) t.remove();
+  }
 
-            chat.classList.add("show");
+  function scrollToBottom() {
+    messages.scrollTop = messages.scrollHeight;
+  }
 
-        }
+  // ── helpers ───────────────────────────────────────────────────
+  function escapeHtml(str) {
+    return str
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;");
+  }
 
-
-
+  function getOrCreateVisitorId() {
+    let id = localStorage.getItem("ai_visitor_id");
+    if (!id) {
+      id = "v_" + Math.random().toString(36).slice(2) + "_" + Date.now();
+      localStorage.setItem("ai_visitor_id", id);
+    }
+    return id;
+  }
 })();
