@@ -3,17 +3,16 @@ Rails.application.routes.draw do
 
   get "/home/check_app_embed_status", to: "home#check_app_embed_status"
 
-  get "/products", to: "products#index"
 
   resource  :bot_settings, only: %i[show update]
   resources :conversations, only: %i[index show]
   resources :tickets,       only: %i[index show update]
 
-  namespace :app do
+
     resource :product_sync, only: %i[show create] do
       get :sync_status
     end
-  end
+
 
   namespace :knowledge_base do
     get "/", to: "bases#index", as: :root
@@ -62,27 +61,27 @@ Rails.application.routes.draw do
  # Shopify App Proxy — storefront requests forwarded here by Shopify
  # Shopify App Proxy routes
  get "/configuration",
-    to: "api/conversations#configuration"
+    to: "output#configuration"
 
 match "/configuration",
-      to: "api/conversations#options",
+      to: "output#options",
       via: :options
 
 
 post "/chat",
-     to: "api/conversations#create"
+     to: "output#create"
 
 match "/chat",
-      to: "api/conversations#options",
+      to: "output#options",
       via: :options
 
 
 
-# Direct API routes
-namespace :api do
-  get  "conversations/config", to: "conversations#configuration"
-  post "conversations/chat",   to: "conversations#create"
-end
+  # Direct API routes
+
+  get  "conversations/config", to: "output#configuration"
+  post "conversations/chat",   to: "output#create"
+
   mount ShopifyApp::Engine, at: "/"
 
   get "up" => "rails/health#show", as: :rails_health_check

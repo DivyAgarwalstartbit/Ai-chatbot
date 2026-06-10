@@ -1,4 +1,4 @@
-class App::ProductSyncsController < AuthenticatedController
+class ProductSyncsController < AuthenticatedController
   skip_before_action :verify_authenticity_token, only: [ :create, :sync_status ]
 
   PER_PAGE = 20
