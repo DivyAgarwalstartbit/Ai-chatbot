@@ -38,10 +38,8 @@ class KnowledgeBase::FaqsController < AuthenticatedController
             ts_replace("faq_count_badge", "knowledge_base/shared/count_badge",
                        id: "faq_count_badge", count: @faqs.size, label: "FAQ"),
             ts_js(<<~JS)
-              (function() {
-                var modal = document.getElementById('faq-form-modal');
-                if (modal && typeof modal.hideOverlay === 'function') { modal.hideOverlay(); }
-              })();
+              var closeBtn = document.getElementById('faq-form-modal-close');
+              if (closeBtn) closeBtn.click();
             JS
           ]
         end
@@ -66,14 +64,12 @@ class KnowledgeBase::FaqsController < AuthenticatedController
       respond_to do |format|
         format.turbo_stream do
           render turbo_stream: [
-            ts_replace(dom_id(@faq), "knowledge_base/faqs/faq",
+            ts_replace("training_document_#{@faq.id}", "knowledge_base/faqs/faq",
                        faq: @faq, shop_origin: @shop_origin, host: @host),
             turbo_stream.replace("faq_form_error") { empty_div("faq_form_error", "data-modal-target": "error") },
             ts_js(<<~JS)
-              (function() {
-                var modal = document.getElementById('faq-form-modal');
-                if (modal && typeof modal.hideOverlay === 'function') { modal.hideOverlay(); }
-              })();
+              var closeBtn = document.getElementById('faq-form-modal-close');
+              if (closeBtn) closeBtn.click();
             JS
           ]
         end
@@ -96,7 +92,7 @@ class KnowledgeBase::FaqsController < AuthenticatedController
     @faqs = ordered_faqs
     respond_to do |format|
       format.turbo_stream do
-        streams = [ turbo_stream.remove(dom_id(@faq)) ]
+        streams = [ turbo_stream.remove("training_document_#{@faq.id}") ]
 
         if @faqs.empty?
           streams << turbo_stream.replace("faq_empty_state") {
@@ -489,10 +485,8 @@ class KnowledgeBase::FaqsController < AuthenticatedController
     end
 
     streams << ts_js(<<~JS)
-      (function() {
-        var modal = document.getElementById('#{modal_id}');
-        if (modal && typeof modal.hideOverlay === 'function') { modal.hideOverlay(); }
-      })();
+      var closeBtn = document.getElementById('#{modal_id}-close');
+      if (closeBtn) closeBtn.click();
     JS
 
     streams

@@ -43,10 +43,15 @@ class ProcessDocumentJob < ApplicationJob
     end
 
     # Saving content triggers the after_save → DocumentChunkJob automatically.
+    # Strip "manual_entry" from source_type — this content came from the uploaded
+    # file, not from the user typing in the policy editor.
+    clean_sources = document.source_type.to_s.split.reject { |s| s == "manual_entry" }.join(" ")
+
     document.update!(
       content:           text,
       processing_status: "processed",
-      processing_error:  nil
+      processing_error:  nil,
+      source_type:       clean_sources
     )
 
     Rails.logger.info(

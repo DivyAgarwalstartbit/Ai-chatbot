@@ -51,6 +51,8 @@ export default class extends Controller {
         this.modalTarget.style.display = "none"
         document.body.style.overflow   = ""
       }
+      // Discard unsaved policy changes — hide the save bar
+      if (typeof hideSaveBar === "function") hideSaveBar()
     }
   }
 
@@ -75,7 +77,8 @@ export default class extends Controller {
   // ── FAQ modal ───────────────────────────────────────────────────────────────
 
   openNew(event) {
-    event.preventDefault()
+    // The triggering button already has commandFor/command="--show", so the modal
+    // opens natively. We only need to prepare the form fields.
     this._prepareForm({
       heading:    "Add FAQ",
       action:     this.createUrlValue,
@@ -84,7 +87,6 @@ export default class extends Controller {
       answer:     "",
       submitText: "Save FAQ",
     })
-    this._showFaqModal()
   }
 
   openEdit(event) {
@@ -98,11 +100,25 @@ export default class extends Controller {
       answer:     trigger.dataset.faqContent || "",
       submitText: "Update FAQ",
     })
+    // Edit button has no commandFor, so open the modal programmatically.
     this._showFaqModal()
   }
 
-  submitEnd() {
+  submitEnd(event) {
     if (this.hasSubmitButtonTarget) this.submitButtonTarget.loading = false
+    if (event.detail && event.detail.success) {
+      const closeBtn = document.getElementById("faq-form-modal-close")
+      if (closeBtn) closeBtn.click()
+    }
+  }
+
+  policySubmitEnd(event) {
+    if (event.detail && event.detail.success) {
+      if (this.hasModalTarget) {
+        this.modalTarget.style.display = "none"
+        document.body.style.overflow   = ""
+      }
+    }
   }
 
   // ── Private helpers ─────────────────────────────────────────────────────────
@@ -149,9 +165,8 @@ export default class extends Controller {
   }
 
   _showFaqModal() {
-    if (this.hasModalTarget && typeof this.modalTarget.showOverlay === "function") {
-      this.modalTarget.showOverlay()
-    }
+    const showBtn = document.getElementById("faq-form-modal-show")
+    if (showBtn) showBtn.click()
     requestAnimationFrame(() => {
       if (this.hasQuestionFieldTarget) this.questionFieldTarget.focus()
     })

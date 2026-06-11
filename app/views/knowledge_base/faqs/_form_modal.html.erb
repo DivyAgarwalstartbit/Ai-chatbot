@@ -53,4 +53,8 @@
   >
     Save FAQ
   </s-button>
+
+  <%# Hidden buttons used by JS to open/close this modal programmatically %>
+  <s-button id="faq-form-modal-show"  commandFor="faq-form-modal" command="--show" style="display:none"></s-button>
+  <s-button id="faq-form-modal-close" commandFor="faq-form-modal" command="--hide" style="display:none"></s-button>
 </s-modal>
