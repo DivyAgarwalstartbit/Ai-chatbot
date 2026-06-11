@@ -5,8 +5,8 @@ class BillingController < ApplicationController
   include ShopifyApp::ShopAccessScopesVerification
 
   SUBSCRIPTION_MUTATION = <<~GRAPHQL.freeze
-    mutation AppSubscriptionCreate($name: String!, $lineItems: [AppSubscriptionLineItemInput!]!, $returnUrl: URL!, $test: Boolean!, $trialDays: Int) {
-      appSubscriptionCreate(name: $name, returnUrl: $returnUrl, lineItems: $lineItems, test: $test, trialDays: $trialDays) {
+    mutation AppSubscriptionCreate($name: String!, $lineItems: [AppSubscriptionLineItemInput!]!, $returnUrl: URL!, $test: Boolean!, $trialDays: Int, $replacementBehavior: AppSubscriptionReplacementBehavior) {
+      appSubscriptionCreate(name: $name, returnUrl: $returnUrl, lineItems: $lineItems, test: $test, trialDays: $trialDays, replacementBehavior: $replacementBehavior) {
         userErrors { field message }
         appSubscription { id }
         confirmationUrl
@@ -38,6 +38,8 @@ class BillingController < ApplicationController
 
     Rails.logger.error("[Billing#create] userErrors: #{errors}") if errors&.any?
     raise "Failed to get confirmation URL: #{errors&.map { |e| e['message'] }.join(', ')}" if confirmation_url.blank?
+
+    return redirect_to(confirmation_url, allow_other_host: true) if params[:embedded] == "0"
 
     render(
       "shopify_app/shared/redirect",
@@ -99,6 +101,7 @@ class BillingController < ApplicationController
       returnUrl: "#{ENV['HOST'] || ENV['current_host']}/billing/callback?#{query_string}",
       test:      test_mode,
       trialDays: plan_def[:trial_days],
+      replacementBehavior: "APPLY_IMMEDIATELY",
       lineItems: [ {
         plan: {
           appRecurringPricingDetails: {

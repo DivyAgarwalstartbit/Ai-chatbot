@@ -22,6 +22,10 @@
    when "starter" then "Upgrade"
    else                "Choose Plan"
    end %>
+<% app_base_url = (ENV["HOST"].presence || ENV["current_host"].presence || request.base_url).to_s.chomp("/") %>
+<% billing_query = ->(plan) { { plan: plan, shop: @shop_origin, host: @host, embedded: 0 }.to_query } %>
+<% starter_billing_url = "#{app_base_url}/billing/create?#{billing_query.call("starter")}" %>
+<% pro_billing_url = "#{app_base_url}/billing/create?#{billing_query.call("pro")}" %>
 
 <style>
   .pln-page-wrap { max-width: 1100px; margin: 0 auto; padding: 24px 16px 48px; }
@@ -53,7 +57,9 @@
               </s-stack>
             <% else %>
               <s-button variant="primary"
-                href="/billing/create?plan=starter&shop=<%= ERB::Util.url_encode(@shop_origin.to_s) %>&host=<%= ERB::Util.url_encode(@host.to_s) %>"
+                href="<%= starter_billing_url %>"
+                target="_top"
+                onclick="window.top.location.href='<%= j starter_billing_url %>'; return false;"
                 accessibilityLabel="<%= starter_label %> Starter plan"><%= starter_label %></s-button>
             <% end %>
           </div>
@@ -69,7 +75,9 @@
               </s-stack>
             <% else %>
               <s-button variant="primary"
-                href="/billing/create?plan=pro&shop=<%= ERB::Util.url_encode(@shop_origin.to_s) %>&host=<%= ERB::Util.url_encode(@host.to_s) %>"
+                href="<%= pro_billing_url %>"
+                target="_top"
+                onclick="window.top.location.href='<%= j pro_billing_url %>'; return false;"
                 accessibilityLabel="<%= pro_label %> Pro plan"><%= pro_label %></s-button>
             <% end %>
           </div>
