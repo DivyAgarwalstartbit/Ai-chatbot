@@ -14,13 +14,13 @@ class Shop < ActiveRecord::Base
   PLANS = {
     "starter" => {
       name:       "Starter",
-      price:      ENV.fetch("starter_plan_price", "9.99"),
-      trial_days: ENV.fetch("app_trial_days", "7").to_i
+      price:      ENV.fetch("starter_plan_price", "2.99"),
+      trial_days: ENV.fetch("app_trial_days", "15").to_i
     },
     "pro" => {
       name:       "Pro",
-      price:      ENV.fetch("pro_plan_price", "24.99"),
-      trial_days: ENV.fetch("app_trial_days", "7").to_i
+      price:      ENV.fetch("pro_plan_price", "5.99"),
+      trial_days: ENV.fetch("app_trial_days", "15").to_i
     }
   }.freeze
 

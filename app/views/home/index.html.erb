@@ -9,9 +9,6 @@
 
 <s-page heading="AI Shopper" inline-size="large">
 
-  <%# ── Primary action ── %>
-  <s-button slot="primary-action" href="<%= embed_url %>" target="_blank">Enable chat widget</s-button>
-
   <%# ── App embed warning banner (hidden when embed already enabled) ── %>
   <div id="embed-warning-section" style="<%= @app_embed_enabled ? 'display:none;' : '' %>">
     <s-banner heading="Chat widget is not active on your store" tone="warning">

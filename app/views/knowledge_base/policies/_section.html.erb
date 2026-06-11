@@ -72,7 +72,8 @@
               url: form_url,
               method: :patch,
               id: "#{policy_type}_form",
-              data: { policy_form: true, turbo_stream: true }
+              data: { policy_form: true, turbo_stream: true,
+                      action: "turbo:submit-end->modal#policySubmitEnd" }
             ) do |f| %>
           <%= f.hidden_field :content, id: "#{policy_type}_content_hidden",
                 data: { "modal-target": "hidden" } %>

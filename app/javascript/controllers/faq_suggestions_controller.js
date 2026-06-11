@@ -128,8 +128,8 @@ export default class extends Controller {
 
   close(e) {
     if (e) e.preventDefault()
-    const modal = document.getElementById("faq-suggestions-modal")
-    if (modal && typeof modal.hideOverlay === "function") modal.hideOverlay()
+    const closeBtn = document.getElementById("faq-suggestions-modal-close")
+    if (closeBtn) closeBtn.click()
   }
 
   // ── Helpers ──────────────────────────────────────────────────────────────
