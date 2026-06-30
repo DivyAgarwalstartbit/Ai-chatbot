@@ -1,0 +1,183 @@
+<% if @products.any? %>
+
+  <s-table variant="auto" id="products-table">
+
+    <!-- Headers -->
+    <s-table-header-row>
+
+      <s-table-header listSlot="primary">
+        <s-box paddingBlock="small-200" paddingInline="small-300">
+          <s-text fontWeight="semibold">Product</s-text>
+        </s-box>
+      </s-table-header>
+
+      <s-table-header>
+        <s-box paddingBlock="small-200" paddingInline="small-300">
+          <s-text fontWeight="semibold">Handle</s-text>
+        </s-box>
+      </s-table-header>
+
+      <s-table-header>
+        <s-box paddingBlock="small-200" paddingInline="small-300">
+          <s-text fontWeight="semibold">Price</s-text>
+        </s-box>
+      </s-table-header>
+
+      <s-table-header>
+        <s-box paddingBlock="small-200" paddingInline="small-300">
+          <s-text fontWeight="semibold">Inventory</s-text>
+        </s-box>
+      </s-table-header>
+
+      <s-table-header>
+        <s-box paddingBlock="small-200" paddingInline="small-300">
+          <s-text fontWeight="semibold">SKU</s-text>
+        </s-box>
+      </s-table-header>
+
+      <s-table-header>
+        <s-box paddingBlock="small-200" paddingInline="small-300">
+          <s-text fontWeight="semibold">Variants</s-text>
+        </s-box>
+      </s-table-header>
+
+    </s-table-header-row>
+
+    <!-- Body -->
+    <s-table-body>
+
+      <% @products.each do |product| %>
+        <%
+          variants        = product.product_variants
+          prices          = variants.map(&:price).compact
+          min_price       = prices.min
+          max_price       = prices.max
+          total_inventory = variants.sum(&:inventory_quantity)
+          skus            = variants.map(&:sku).compact.reject(&:empty?).uniq
+          actual_variants = (variants.size == 1 && variants.first.title == "Default Title") ? 0 : variants.size
+        %>
+
+        <s-table-row>
+
+          <!-- Product -->
+          <s-table-cell>
+            <s-grid gridTemplateColumns="auto 1fr" gap="small-300" alignItems="center">
+              <% if product.image_url.present? %>
+                <s-thumbnail src="<%= product.image_url %>" alt="<%= product.title %>" size="small"></s-thumbnail>
+              <% else %>
+                <s-thumbnail size="small"></s-thumbnail>
+              <% end %>
+              <s-text fontWeight="medium"><%= product.title %></s-text>
+            </s-grid>
+          </s-table-cell>
+
+          <!-- Handle -->
+          <s-table-cell>
+            <s-text tone="subdued"><%= product.handle %></s-text>
+          </s-table-cell>
+
+          <!-- Price -->
+          <s-table-cell>
+            <% if prices.any? %>
+              <% if min_price == max_price %>
+                <s-text>$<%= number_with_precision(min_price, precision: 2) %></s-text>
+              <% else %>
+                <s-text>$<%= number_with_precision(min_price, precision: 2) %> - $<%= number_with_precision(max_price, precision: 2) %></s-text>
+              <% end %>
+            <% else %>
+              <s-text tone="subdued">—</s-text>
+            <% end %>
+          </s-table-cell>
+
+          <!-- Inventory -->
+          <s-table-cell>
+            <% if total_inventory > 10 %>
+              <s-badge tone="success"><%= total_inventory %> in stock</s-badge>
+            <% else %>
+              <s-badge tone="neutral">Out of stock</s-badge>
+            <% end %>
+          </s-table-cell>
+
+          <!-- SKU -->
+          <s-table-cell>
+            <s-text tone="subdued">
+              <% if skus.any? %>
+                <%= skus.first(2).join(", ") %><% if skus.size > 2 %> +<%= skus.size - 2 %> more<% end %>
+              <% else %>
+                —
+              <% end %>
+            </s-text>
+          </s-table-cell>
+
+          <!-- Variants -->
+          <s-table-cell>
+            <s-text tone="subdued"><%= actual_variants %> variant<%= actual_variants == 1 ? "" : "s" %></s-text>
+          </s-table-cell>
+
+        </s-table-row>
+
+      <% end %>
+
+    </s-table-body>
+
+  </s-table>
+
+  <!-- Pagination -->
+  <% offset = (@current_page - 1) * App::ProductSyncsController::PER_PAGE %>
+
+  <s-box padding="small">
+    <s-inline-stack inline-align="space-between" block-align="center" gap="base">
+
+      <!-- Left: navigation buttons -->
+      <s-inline-stack gap="small" block-align="center">
+        <s-button
+          variant="secondary"
+          icon="arrow-left"
+          <%= "disabled" unless @current_page > 1 %>
+          <% if @current_page > 1 %>onclick="fetchPage(<%= @current_page - 1 %>)"<% end %>
+        >
+          Previous
+        </s-button>
+
+        <s-button
+          variant="secondary"
+          icon="arrow-right"
+          iconPosition="end"
+          <%= "disabled" unless @current_page < @total_pages %>
+          <% if @current_page < @total_pages %>onclick="fetchPage(<%= @current_page + 1 %>)"<% end %>
+        >
+          Next
+        </s-button>
+      </s-inline-stack>
+
+      <!-- Right: count -->
+      <s-text tone="subdued">
+        Showing <%= offset + 1 %>&ndash;<%= [offset + @products.length, @filtered_count].min %>
+        of <%= @filtered_count %> product<%= @filtered_count == 1 ? "" : "s" %>
+        <% if @search.present? %>
+          &nbsp;(filtered from <%= @products_count %> total)
+        <% end %>
+      </s-text>
+
+    </s-inline-stack>
+  </s-box>
+
+<% else %>
+
+  <!-- No results -->
+  <% if @search.present? %>
+    <s-box padding="large">
+      <s-grid justifyItems="center" gap="base">
+        <s-text variant="headingMd">No products found</s-text>
+        <s-text tone="subdued">No products match &ldquo;<%= @search %>&rdquo;. Try a different search term.</s-text>
+        <s-button variant="secondary" onclick="clearSearch()">Clear search</s-button>
+      </s-grid>
+    </s-box>
+  <% else %>
+    <s-empty-state heading="No products synced yet" image="">
+      <s-text tone="subdued">Sync your Shopify catalog to enable AI product support.</s-text>
+      <s-button variant="primary" onclick="startSync()">Sync products</s-button>
+    </s-empty-state>
+  <% end %>
+
+<% end %>

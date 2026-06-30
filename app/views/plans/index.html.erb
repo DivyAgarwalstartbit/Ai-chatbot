@@ -1,0 +1,119 @@
+<% trial_days_label = "#{Shop::PLANS["starter"][:trial_days]} days" %>
+<% rows = [
+  { label: "Free trial",                         starter: trial_days_label, pro: trial_days_label },
+  { label: "AI-powered chat widget",             starter: true,             pro: true },
+  { label: "Knowledge base (FAQs + docs)",       starter: true,             pro: true },
+  { label: "Conversation history",               starter: true,             pro: true },
+  { label: "Human escalation tickets",           starter: true,             pro: true },
+  { label: "Monthly conversations",              starter: "500",            pro: "Unlimited" },
+  { label: "AI model",                           starter: "Standard",       pro: "Advanced" },
+  { label: "Custom bot personality",             starter: false,            pro: true,  badge: "Pro only" },
+  { label: "Priority email support",             starter: false,            pro: true,  badge: "Pro only" },
+  { label: "Analytics & reporting",              starter: false,            pro: true,  badge: "Pro only" }
+] %>
+
+<% starter_label = case @current_plan
+   when "starter" then nil
+   when "pro"     then "Downgrade"
+   else                "Choose Plan"
+   end %>
+<% pro_label = case @current_plan
+   when "pro"     then nil
+   when "starter" then "Upgrade"
+   else                "Choose Plan"
+   end %>
+<% app_base_url = (ENV["HOST"].presence || ENV["current_host"].presence || request.base_url).to_s.chomp("/") %>
+<% billing_query = ->(plan) { { plan: plan, shop: @shop_origin, host: @host, embedded: 0 }.to_query } %>
+<% starter_billing_url = "#{app_base_url}/billing/create?#{billing_query.call("starter")}" %>
+<% pro_billing_url = "#{app_base_url}/billing/create?#{billing_query.call("pro")}" %>
+
+<style>
+  .pln-page-wrap { max-width: 1100px; margin: 0 auto; padding: 24px 16px 48px; }
+  .pln-title { font-size: 22px; font-weight: 700; color: #1a1a1a; margin: 0 0 6px; text-align: center; }
+  .pln-subtitle { font-size: 14px; color: #6d7175; text-align: center; margin: 0 0 28px; }
+  .pln-plan-head { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; padding: 4px 0; }
+  .pln-plan-name { font-size: 18px; font-weight: 700; color: #1a1a1a; }
+  .pln-plan-price { font-size: 13px; color: #6d7175; }
+  .pln-cell-icon-yes { color: #008060; font-size: 16px; font-weight: 700; }
+  .pln-cell-icon-no  { color: #d72c0d; font-size: 16px; font-weight: 700; }
+</style>
+
+<s-page>
+  <div class="pln-page-wrap">
+    <h1 class="pln-title">Choose a plan</h1>
+    <p class="pln-subtitle">All plans include a <%= trial_days_label %> free trial. No credit card required to start.</p>
+
+    <s-table variant="table">
+      <s-table-header-row>
+        <s-table-header>Features</s-table-header>
+        <s-table-header>
+          <div class="pln-plan-head">
+            <span class="pln-plan-name">Starter</span>
+            <span class="pln-plan-price">$<%= Shop::PLANS["starter"][:price] %> / month</span>
+            <% if starter_label.nil? %>
+              <s-stack direction="inline" gap="small-200" alignItems="center">
+                <s-button variant="secondary" disabled accessibilityLabel="Current plan">Current plan</s-button>
+                <s-tag tone="success">Active</s-tag>
+              </s-stack>
+            <% else %>
+              <s-button variant="primary"
+                href="<%= starter_billing_url %>"
+                target="_top"
+                onclick="window.top.location.href='<%= j starter_billing_url %>'; return false;"
+                accessibilityLabel="<%= starter_label %> Starter plan"><%= starter_label %></s-button>
+            <% end %>
+          </div>
+        </s-table-header>
+        <s-table-header>
+          <div class="pln-plan-head">
+            <span class="pln-plan-name">Pro</span>
+            <span class="pln-plan-price">$<%= Shop::PLANS["pro"][:price] %> / month</span>
+            <% if pro_label.nil? %>
+              <s-stack direction="inline" gap="small-200" alignItems="center">
+                <s-button variant="secondary" disabled accessibilityLabel="Current plan">Current plan</s-button>
+                <s-tag tone="success">Active</s-tag>
+              </s-stack>
+            <% else %>
+              <s-button variant="primary"
+                href="<%= pro_billing_url %>"
+                target="_top"
+                onclick="window.top.location.href='<%= j pro_billing_url %>'; return false;"
+                accessibilityLabel="<%= pro_label %> Pro plan"><%= pro_label %></s-button>
+            <% end %>
+          </div>
+        </s-table-header>
+      </s-table-header-row>
+
+      <s-table-body>
+        <% rows.each do |row| %>
+          <s-table-row>
+            <s-table-cell>
+              <s-stack direction="inline" gap="small-200" alignItems="center">
+                <s-text><%= row[:label] %></s-text>
+                <% if row[:badge] %><s-tag tone="attention"><%= row[:badge] %></s-tag><% end %>
+              </s-stack>
+            </s-table-cell>
+            <s-table-cell>
+              <% if row[:starter] == true %>
+                <span class="pln-cell-icon-yes">✓</span>
+              <% elsif row[:starter] == false %>
+                <span class="pln-cell-icon-no">✗</span>
+              <% else %>
+                <s-text><%= row[:starter] %></s-text>
+              <% end %>
+            </s-table-cell>
+            <s-table-cell>
+              <% if row[:pro] == true %>
+                <span class="pln-cell-icon-yes">✓</span>
+              <% elsif row[:pro] == false %>
+                <span class="pln-cell-icon-no">✗</span>
+              <% else %>
+                <s-text><%= row[:pro] %></s-text>
+              <% end %>
+            </s-table-cell>
+          </s-table-row>
+        <% end %>
+      </s-table-body>
+    </s-table>
+  </div>
+</s-page>

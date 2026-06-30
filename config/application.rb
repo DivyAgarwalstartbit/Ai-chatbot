@@ -16,6 +16,11 @@ module AiShopifySupportBot
     # Common ones are `templates`, `generators`, or `middleware`, for example.
     config.autoload_lib(ignore: %w[assets tasks])
 
+    # Allow WebSocket connections from any origin so the storefront chat widget
+    # (embedded on merchant Shopify domains) can subscribe to Action Cable.
+    config.action_cable.allowed_request_origins = [/.*/]
+    config.action_cable.disable_request_forgery_protection = true
+
     # Configuration for the application, engines, and railties goes here.
     #
     # These settings can be overridden in specific environments using the files

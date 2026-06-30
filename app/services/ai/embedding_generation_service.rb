@@ -7,7 +7,7 @@ module Ai
   # Responsibilities:
   #   - Load every DocumentChunk for the document (ordered by chunk_index)
   #   - Embed them in batches via Ai::EmbeddingService
-  #   - Bulk-upsert the embedding vectors + embedded_at timestamp
+  #   - Update the existing chunks with embedding vectors + embedded_at timestamp
   #   - Update training_documents.embedding_status throughout the run
   #
   # Called by GenerateEmbeddingsJob. Never call directly from a web request.
@@ -56,23 +56,31 @@ module Ai
         vectors = service.embed_batch(texts)
 
         now = Time.current
-        rows = batch.zip(vectors).map do |chunk, vector|
-          {
-            id:          chunk.id,
-            embedding:   vector,
-            embedded_at: now
-          }
+
+        # Guard against a race where a later DocumentChunkJob deleted and
+        # recreated these chunks between our initial fetch and this upsert.
+        # upsert_all falls back to INSERT when the id is missing, which fails
+        # the NOT NULL constraint on shop_id. Only update rows that still exist.
+        existing_ids = DocumentChunk.where(id: batch.map(&:id)).pluck(:id).to_set
+
+        rows = batch.zip(vectors).filter_map do |chunk, vector|
+          next unless existing_ids.include?(chunk.id)
+          { id: chunk.id, embedding: vector, embedded_at: now }
         end
 
-        # update_only must NOT include updated_at — Rails adds it automatically
-        # via the record_timestamps mechanism. Including it explicitly causes
-        # PG::SyntaxError "multiple assignments to same column".
-        DocumentChunk.upsert_all(
-          rows,
-          update_only: %i[embedding embedded_at],
-          unique_by:   :id
-        )
+        next if rows.empty?
 
+            # update_only must NOT include updated_at — Rails adds it automatically
+            # via the record_timestamps mechanism. Including it explicitly causes
+            # PG::SyntaxError "multiple assignments to same column".
+            rows.each do |row|
+      DocumentChunk
+        .where(id: row[:id])
+        .update_all(
+          embedding: row[:embedding],
+          embedded_at: row[:embedded_at]
+        )
+    end
         embedded_count += batch.size
 
         Rails.logger.info(

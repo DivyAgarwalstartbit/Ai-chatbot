@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_06_09_000001) do
+ActiveRecord::Schema[8.1].define(version: 2026_06_25_102501) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "vector"
@@ -48,11 +48,10 @@ ActiveRecord::Schema[8.1].define(version: 2026_06_09_000001) do
     t.string "assistant_name"
     t.string "brand_tone"
     t.datetime "created_at", null: false
-    t.jsonb "default_queries"
     t.text "greeting"
-    t.string "language"
     t.bigint "shop_id", null: false
     t.jsonb "starter_prompts"
+    t.jsonb "store_details", default: {}, null: false
     t.jsonb "sync_state"
     t.datetime "updated_at", null: false
     t.jsonb "visibility_rules"
@@ -63,13 +62,17 @@ ActiveRecord::Schema[8.1].define(version: 2026_06_09_000001) do
 
   create_table "conversations", force: :cascade do |t|
     t.datetime "created_at", null: false
-    t.bigint "customer_id", null: false
+    t.bigint "customer_id"
     t.datetime "ended_at"
-    t.integer "message"
-    t.string "role"
+    t.datetime "escalated_at"
+    t.boolean "handoff_mode", default: false, null: false
+    t.datetime "last_message_at"
+    t.string "page_url"
+    t.datetime "reviewed_at"
     t.string "session_id"
     t.bigint "shop_id", null: false
     t.datetime "started_at"
+    t.string "status", default: "open"
     t.datetime "updated_at", null: false
     t.index ["customer_id"], name: "index_conversations_on_customer_id"
     t.index ["shop_id"], name: "index_conversations_on_shop_id"
@@ -110,6 +113,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_06_09_000001) do
     t.text "content"
     t.bigint "conversation_id", null: false
     t.datetime "created_at", null: false
+    t.jsonb "metadata"
     t.string "role"
     t.datetime "updated_at", null: false
     t.index ["conversation_id"], name: "index_messages_on_conversation_id"
@@ -134,12 +138,16 @@ ActiveRecord::Schema[8.1].define(version: 2026_06_09_000001) do
   end
 
   create_table "products", force: :cascade do |t|
+    t.text "ai_info"
+    t.jsonb "collections_data", default: []
     t.datetime "created_at", null: false
     t.text "description"
     t.string "handle"
     t.string "image_url"
+    t.string "product_type"
     t.bigint "shop_id", null: false
     t.bigint "shopify_product_id", null: false
+    t.jsonb "tags", default: []
     t.string "title"
     t.datetime "updated_at", null: false
     t.index ["shop_id", "shopify_product_id"], name: "index_products_on_shop_and_shopify_id", unique: true
@@ -148,8 +156,11 @@ ActiveRecord::Schema[8.1].define(version: 2026_06_09_000001) do
 
   create_table "shops", force: :cascade do |t|
     t.string "access_scopes", default: "", null: false
+    t.string "charge_id"
     t.datetime "created_at", null: false
     t.datetime "expires_at"
+    t.boolean "paid", default: false, null: false
+    t.string "plan"
     t.string "refresh_token"
     t.datetime "refresh_token_expires_at"
     t.string "shopify_domain", null: false
@@ -160,12 +171,19 @@ ActiveRecord::Schema[8.1].define(version: 2026_06_09_000001) do
   end
 
   create_table "tickets", force: :cascade do |t|
+    t.bigint "conversation_id"
     t.datetime "created_at", null: false
+    t.bigint "customer_id"
     t.string "issue"
+    t.string "priority", default: "normal"
     t.bigint "shop_id", null: false
-    t.string "status"
+    t.string "source"
+    t.string "status", default: "open"
     t.string "subject"
     t.datetime "updated_at", null: false
+    t.index ["conversation_id"], name: "index_tickets_on_conversation_id"
+    t.index ["customer_id"], name: "index_tickets_on_customer_id"
+    t.index ["shop_id", "status"], name: "index_tickets_on_shop_id_and_status"
     t.index ["shop_id"], name: "index_tickets_on_shop_id"
   end
 
@@ -183,6 +201,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_06_09_000001) do
     t.datetime "synced_at"
     t.string "title"
     t.datetime "updated_at", null: false
+    t.text "uploaded_content"
     t.index ["embedding_status"], name: "index_training_documents_on_embedding_status"
     t.index ["processing_status"], name: "index_training_documents_on_processing_status"
     t.index ["shop_id"], name: "index_training_documents_on_shop_id"
@@ -201,6 +220,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_06_09_000001) do
   add_foreign_key "product_variants", "products"
   add_foreign_key "product_variants", "shops"
   add_foreign_key "products", "shops"
+  add_foreign_key "tickets", "conversations"
+  add_foreign_key "tickets", "customers"
   add_foreign_key "tickets", "shops"
   add_foreign_key "training_documents", "shops"
 end

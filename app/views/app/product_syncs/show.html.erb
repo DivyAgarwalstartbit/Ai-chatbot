@@ -1,4 +1,10 @@
 <s-page heading="Product Sync">
+  <s-banner heading="Improve AI Support Accuracy" tone="info" >
+    <s-stack gap="base">
+  To help the AI provide more accurate and relevant responses, please complete the Ai product information metafield on the Admin Product page with detailed and up-to-date information, including product specifications, features, and other relevant details.
+    </s-stack>
+</s-banner>
+
 
  <s-section title="Product sync status section">
   <s-section-header title="Product Sync" />
@@ -12,20 +18,19 @@
       background="base"
     >
 
-      <s-stack 
-        direction="inline" 
+      <s-stack
+        direction="inline"
         justify-content="space-between"
         align-items="center"
         gap="base"
       >
 
         <!-- Left side -->
-        <s-stack 
-          direction="inline" 
+        <s-stack
+          direction="inline"
           gap="base"
           align-items="start"
         >
-
 
           <s-stack gap="small">
 
@@ -35,9 +40,9 @@
 
   <s-box max-inline-size="600px">
     <s-text tone="subdued">
-      Import your Shopify products to enable AI-powered support.
-      This allows your assistant to access product details and provide
-      accurate answers to customers.
+      Import your Shopify products to enable AI-powered support. This allows your assistant to access product details and provide accurate answers to customers.
+
+      Only active products can be synced.
     </s-text>
   </s-box>
 
@@ -70,7 +75,6 @@
           <span id="sync-btn-text">Sync Products</span>
         </s-button>
 
-
       </s-stack>
 
     </s-box>
@@ -79,9 +83,9 @@
 </s-section>
 
 
- <% if @products.blank? %>
+<% if @products_count == 0 %>
 
-  <!-- ===== EMPTY STATE ===== -->
+  <!-- ===== EMPTY STATE (no products synced at all) ===== -->
   <s-section accessibilityLabel="Empty state section">
     <s-grid gap="base" justifyItems="center" paddingBlock="large-400">
 
@@ -98,28 +102,15 @@
       <s-grid justifyItems="center" maxInlineSize="450px" gap="base">
 
         <s-stack alignItems="center">
-          <s-heading>No customers yet</s-heading>
-
+          <s-heading>No Sync Products yet</s-heading>
           <s-paragraph>
-           No products found. Sync your products to enable AI-powered support.
+            No products found. Sync your products to enable AI-powered support.
           </s-paragraph>
         </s-stack>
 
-        <s-button-group>
-          <s-button variant="secondary">
-            Learn more
-          </s-button>
-
-          <s-button
-            variant="primary"
-            onclick="startSync()"
-          >
-            <span id="sync-btn-text-empty">Sync Products</span>
-          </s-button>
-
-
-        
-        </s-button-group>
+        <s-button variant="primary" onclick="startSync()">
+          <span id="sync-btn-text-empty">Sync Products</span>
+        </s-button>
 
       </s-grid>
 
@@ -128,370 +119,49 @@
 
 <% else %>
 
-
   <s-section padding="none" accessibilityLabel="Products table section">
 
-  <% if @products.any? %>
-
-    <s-table variant="auto" id="products-table">
-
-
-      <!-- Headers -->
-     <s-table-header-row>
-
-  <s-table-header listSlot="primary">
-    <s-box paddingBlock="small-200" paddingInline="small-300">
-      <s-text fontWeight="semibold">
-        Product
-      </s-text>
+    <!-- Search bar — stays fixed, never swapped by AJAX -->
+    <s-box padding="base">
+      <div style="position:relative;">
+        <input
+          type="search"
+          id="product-search-input"
+          value="<%= @search %>"
+          placeholder="Search by title or handle…"
+          autocomplete="off"
+          style="
+            width:100%;box-sizing:border-box;
+            padding:8px 36px 8px 12px;
+            border:1px solid var(--p-color-border,#ccc);
+            border-radius:8px;font-size:14px;
+            background:var(--p-color-bg-surface,#fff);
+            color:var(--p-color-text,#202223);
+            outline:none;
+          "
+          oninput="scheduleSearch(this.value)"
+        />
+        <span
+          id="search-clear-btn"
+          onclick="clearSearch()"
+          style="
+            display:<%= @search.present? ? 'flex' : 'none' %>;
+            position:absolute;right:10px;top:50%;transform:translateY(-50%);
+            cursor:pointer;align-items:center;justify-content:center;
+            color:var(--p-color-text-subdued,#6d7175);font-size:16px;
+          "
+        >&#x2715;</span>
+      </div>
     </s-box>
-  </s-table-header>
 
+    <!-- Only this div is swapped on search / pagination -->
+    <div id="products-table-container">
+      <%= render 'table_content' %>
+    </div>
 
-  <s-table-header>
-    <s-box paddingBlock="small-200" paddingInline="small-300">
-      <s-text fontWeight="semibold">
-        Handle
-      </s-text>
-    </s-box>
-  </s-table-header>
+  </s-section>
 
-
-  <s-table-header>
-    <s-box paddingBlock="small-200" paddingInline="small-300">
-      <s-text fontWeight="semibold">
-        Price
-      </s-text>
-    </s-box>
-  </s-table-header>
-
-
-  <s-table-header>
-    <s-box paddingBlock="small-200" paddingInline="small-300">
-      <s-text fontWeight="semibold">
-        Inventory
-      </s-text>
-    </s-box>
-  </s-table-header>
-
-
-  <s-table-header>
-    <s-box paddingBlock="small-200" paddingInline="small-300">
-      <s-text fontWeight="semibold">
-        SKU
-      </s-text>
-    </s-box>
-  </s-table-header>
-
-
-  <s-table-header>
-    <s-box paddingBlock="small-200" paddingInline="small-300">
-      <s-text fontWeight="semibold">
-        Variants
-      </s-text>
-    </s-box>
-  </s-table-header>
-
-
-</s-table-header-row>
-
-
-      <!-- Body -->
-      <s-table-body>
-
-
-        <% @products.each do |product| %>
-
-          <% 
-            variants = product.product_variants
-            prices = variants.map(&:price).compact
-            min_price = prices.min
-            max_price = prices.max
-            total_inventory = variants.sum(&:inventory_quantity)
-            skus = variants.map(&:sku).compact.reject(&:empty?).uniq
-          %>
-
-
-          <s-table-row>
-
-
-            <!-- Product -->
-          <s-table-cell>
-
-  <s-grid
-    gridTemplateColumns="auto 1fr"
-    gap="small-300"
-    alignItems="center"
-  >
-
-    <% if product.image_url.present? %>
-
-      <s-thumbnail
-        src="<%= product.image_url %>"
-        alt="<%= product.title %>"
-        size="small"
-      ></s-thumbnail>
-
-    <% else %>
-
-      <s-thumbnail
-        size="small"
-      ></s-thumbnail>
-
-    <% end %>
-
-
-    <s-text fontWeight="medium">
-      <%= product.title %>
-    </s-text>
-
-
-  </s-grid>
-
-</s-table-cell>
-
-
-
-            <!-- Handle -->
-
-            <s-table-cell>
-
-              <s-text tone="subdued">
-                <%= product.handle %>
-              </s-text>
-
-            </s-table-cell>
-
-
-
-
-            <!-- Price -->
-
-            <s-table-cell>
-
-
-              <% if prices.any? %>
-
-
-                <% if min_price == max_price %>
-
-                  <s-text>
-                    $<%= number_with_precision(min_price, precision: 2) %>
-                  </s-text>
-
-                <% else %>
-
-                  <s-text>
-                    $<%= number_with_precision(min_price, precision: 2) %>
-                    -
-                    $<%= number_with_precision(max_price, precision: 2) %>
-                  </s-text>
-
-                <% end %>
-
-
-              <% else %>
-
-                <s-text tone="subdued">
-                  —
-                </s-text>
-
-              <% end %>
-
-
-            </s-table-cell>
-
-
-
-
-
-            <!-- Inventory -->
-
-            <s-table-cell>
-
-
-              <% if total_inventory > 10 %>
-
-                <s-badge tone="success">
-                  <%= total_inventory %> in stock
-                </s-badge>
-
-              <% else %>
-
-
-              <s-badge tone="neutral">
-                Out of stock
-              </s-badge>
-
-              <% end %>
-
-
-            </s-table-cell>
-
-
-
-
-
-
-            <!-- SKU -->
-
-            <s-table-cell>
-
-
-              <s-text tone="subdued">
-
-                <% if skus.any? %>
-
-                  <%= skus.first(2).join(", ") %>
-
-                  <% if skus.size > 2 %>
-                    +<%= skus.size - 2 %> more
-                  <% end %>
-
-
-                <% else %>
-
-                  —
-
-                <% end %>
-
-              </s-text>
-
-
-            </s-table-cell>
-
-
-
-
-
-            <!-- Variants -->
-
-           <%
-  actual_variants =
-    if variants.size == 1 &&
-       variants.first.title == "Default Title"
-
-      0
-
-    else
-
-      variants.size
-
-    end
-%>
-
-
-<s-table-cell>
-
-  <s-text tone="subdued">
-
-    <%= actual_variants %>
-    variant<%= actual_variants == 1 ? "" : "s" %>
-
-  </s-text>
-
-</s-table-cell>
-
-
-
-
-          </s-table-row>
-
-
-        <% end %>
-
-
-      </s-table-body>
-
-
-    </s-table>
-
-    <!-- Pagination -->
-
-    <% offset = (@current_page - 1) * App::ProductSyncsController::PER_PAGE %>
-
-
-  <s-box padding="small">
-
-  <s-inline-stack
-    inline-align="space-between"
-    block-align="center"
-    gap="base"
-  >
-
-    <!-- Previous -->
-    <s-button
-      variant="secondary"
-      icon="arrow-left"
-      <%= "disabled" unless @current_page > 1 %>
-      href="<%= @current_page > 1 ? app_product_sync_path(page: @current_page - 1) : '#' %>"
-    >
-      Previous
-    </s-button>
-
-
-    <!-- Count -->
-    <s-text tone="subdued">
-      Showing <%= offset + 1 %> -
-      <%= [offset + @products.length, @products_count].min %>
-      of <%= @products_count %> products
-    </s-text>
-
-
-    <!-- Next -->
-    <s-button
-      variant="secondary"
-      icon="arrow-right"
-      iconPosition="end"
-      <%= "disabled" unless @current_page < @total_pages %>
-      href="<%= @current_page < @total_pages ? app_product_sync_path(page: @current_page + 1) : '#' %>"
-    >
-      Next
-    </s-button>
-
-
-  </s-inline-stack>
-
-</s-box>
-
-
-  <% else %>
-
-
-
-    <!-- Empty state -->
-
-
-    <s-empty-state
-      heading="No products synced yet"
-      image=""
-    >
-
-      <s-text tone="subdued">
-        Sync your Shopify catalog to enable AI product support.
-      </s-text>
-
-
-      <s-button
-        variant="primary"
-        onclick="startSync()"
-      >
-        Sync products
-      </s-button>
-
-
-    </s-empty-state>
-
-
-
-
-  <% end %>
-
-
-</s-section>
-
-
-<% end%>
+<% end %>
 
 
   <script>
@@ -541,21 +211,9 @@
     }
 
    async function startSync() {
-
-  console.log("1. function started");
-
   try {
-
     setSyncing(true);
-
-    console.log("2. before token");
-   const token = await window.shopify.idToken();
- 
-
-    console.log("3. token received", token);
-
-    console.log("4. before fetch");
-
+    const token = await window.shopify.idToken();
     const res = await fetch("/app/product_sync", {
       method: "POST",
       headers: {
@@ -563,18 +221,10 @@
         "Content-Type": "application/json"
       }
     });
-
-    console.log("5. fetch completed");
-    console.log(res.status);
-
     startPolling();
-
   } catch(error) {
-
     console.error("SYNC ERROR", error);
-
   }
-
 }
 
     // Resume loader if a sync is already in progress when the page loads
@@ -591,6 +241,50 @@
         }
       } catch (_) {}
     })();
+
+    // ── Search & pagination (AJAX — only swaps #products-table-container) ──
+
+    let searchTimer  = null;
+    let currentQuery = "<%= j @search %>";
+
+    async function fetchTableContent(query, page) {
+      const url = new URL("<%= app_product_sync_path %>", window.location.origin);
+      if (query) url.searchParams.set("search", query);
+      if (page && page > 1) url.searchParams.set("page", page);
+
+      const res = await fetch(url.toString(), {
+        headers: { "X-Requested-With": "XMLHttpRequest" }
+      });
+      const html = await res.text();
+      const container = document.getElementById("products-table-container");
+      if (container) container.innerHTML = html;
+    }
+
+    function scheduleSearch(value) {
+      const clearBtn = document.getElementById("search-clear-btn");
+      if (clearBtn) clearBtn.style.display = value ? "flex" : "none";
+      clearTimeout(searchTimer);
+      searchTimer = setTimeout(() => {
+        currentQuery = value;
+        fetchTableContent(value, 1);
+      }, 400);
+    }
+
+    function clearSearch() {
+      const input = document.getElementById("product-search-input");
+      if (input) {
+        input.value = "";
+        input.focus();
+      }
+      const clearBtn = document.getElementById("search-clear-btn");
+      if (clearBtn) clearBtn.style.display = "none";
+      currentQuery = "";
+      fetchTableContent("", 1);
+    }
+
+    function fetchPage(page) {
+      fetchTableContent(currentQuery, page);
+    }
   </script>
 
   <style>

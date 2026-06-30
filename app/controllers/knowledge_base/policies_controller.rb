@@ -15,7 +15,8 @@ class KnowledgeBase::PoliciesController < AuthenticatedController
 
   def update
     @policy.assign_attributes(policy_params)
-    @policy.title ||= @policy_type.humanize
+    @policy.title       ||= @policy_type.humanize
+    @policy.source_type   = add_source(@policy.source_type, "manual_entry")
 
     if @policy.save
       respond_to do |format|
@@ -118,9 +119,17 @@ class KnowledgeBase::PoliciesController < AuthenticatedController
     end
 
     @policy.file.attach(attachment_params[:file])
+    @policy.assign_attributes(
+      processing_status: "pending",
+      processing_error:  nil,
+      embedding_status:  "pending",
+      embedding_error:   nil,
+      source_type:       add_source(@policy.source_type, "uploaded_document")
+    )
 
     if @policy.save
-      @policy.touch
+      ProcessDocumentJob.perform_later(@policy.id)
+
       respond_to do |format|
         format.turbo_stream { render turbo_stream: policy_attachment_refresh_streams }
         format.html { redirect_to knowledge_base_root_path(shop: @shop_origin, host: @host, embedded: 1) }
@@ -133,7 +142,12 @@ class KnowledgeBase::PoliciesController < AuthenticatedController
   def destroy_attachment
     @policy.file.purge
     @policy.reload
-    @policy.touch
+    # Clear the extracted text — it came from the file, not manual entry.
+    # Also remove uploaded_document from source_type.
+    was_only_document = !@policy.source_type.to_s.include?("manual_entry")
+    @policy.source_type = remove_source(@policy.source_type, "uploaded_document")
+    @policy.content     = nil if was_only_document
+    @policy.save(validate: false)
 
     respond_to do |format|
       format.turbo_stream do
@@ -192,6 +206,10 @@ class KnowledgeBase::PoliciesController < AuthenticatedController
     sources = current.to_s.split
     sources << new_source unless sources.include?(new_source)
     sources.join(" ")
+  end
+
+  def remove_source(current, source)
+    current.to_s.split.reject { |s| s == source }.join(" ")
   end
 
   def policy_params

@@ -1,0 +1,30 @@
+{
+  "name": "ai_shopify_support_bot",
+  "version": "1.0.0",
+  "description": "This README would normally document whatever steps are necessary to get the application up and running.",
+  "main": "index.js",
+  "directories": {
+    "lib": "lib",
+    "test": "test"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/DivyAgarwalstartbit/Ai-chatbot.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/DivyAgarwalstartbit/Ai-chatbot/issues"
+  },
+  "homepage": "https://github.com/DivyAgarwalstartbit/Ai-chatbot#readme",
+  "dependencies": {
+    "@preact/signals": "^2.9.1",
+    "@shopify/ui-extensions": "2025.10.15",
+    "preact": "^10.29.2"
+  }
+}

@@ -1,0 +1,396 @@
+<style>
+/* ── Detail panel layout ── */
+.conv-detail-panel {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+}
+.conv-detail-header-wrap {
+  flex-shrink: 0;
+  background: #fff;
+  border-bottom: 1px solid #e1e3e5;
+  padding: 12px 16px;
+}
+.conv-detail-header-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+.conv-detail-meta-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  margin-top: 6px;
+  padding-left: 42px; /* align under name, past avatar */
+}
+.conv-detail-meta-item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  color: #6d7175;
+}
+.conv-detail-meta-icon { font-size: 13px; }
+.conv-detail-name-block {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+}
+.conv-detail-name-text {
+  font-size: 15px;
+  font-weight: 700;
+  color: #202223;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ── Detail body: messages + drawer side by side ── */
+.conv-detail-body {
+  display: flex;
+  flex-direction: row;
+  flex: 1;
+  overflow: hidden;
+  min-width: 0;
+}
+
+/* ── Chat messages ── */
+.conv-messages {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 20px 20px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  background: #f6f6f7;
+  min-width: 0;
+}
+
+/* ── Bubbles ── */
+.bubble-wrap {
+  display: flex;
+  flex-direction: column;
+  max-width: 68%;
+  min-width: 0;
+}
+/* Customer = LEFT */
+.bubble-wrap.customer {
+  align-self: flex-start;
+  align-items: flex-start;
+}
+
+/* AI Assistant = RIGHT */
+.bubble-wrap.assistant {
+  align-self: flex-end;
+  align-items: flex-end;
+}
+
+/* System stays centered */
+.bubble-wrap.system {
+  align-self: center;
+  align-items: center;
+  max-width: 85%;
+}
+.bubble-wrap.system    { align-self: center; align-items: center; max-width: 85%; }
+.bubble-sender {
+  font-size: 11px;
+  font-weight: 600;
+  color: #8c9196;
+  margin-bottom: 3px;
+  padding: 0 4px;
+}
+.bubble {
+  padding: 9px 14px;
+  border-radius: 16px;
+  font-size: 13.5px;
+  line-height: 1.5;
+  word-break: break-word;
+}
+.bubble.user {
+  background: #C6A8DC;
+  color: #fff;
+  border-bottom-right-radius: 4px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.10);
+}
+.bubble.assistant {
+  background: #fff;
+  color: #1A202C;
+  border: 1px solid #e1e3e5;
+  border-bottom-left-radius: 4px;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.06);
+}
+.bubble.system {
+  background: #f1f2f3;
+  color: #6d7175;
+  font-size: 11.5px;
+  font-style: italic;
+  border-radius: 20px;
+  padding: 3px 12px;
+}
+.bubble-time { font-size: 11px; color: #8c9196; margin-top: 3px; padding: 0 4px; }
+
+/* ── Customer drawer ── */
+.conv-drawer {
+  display: none;
+  width: 320px;
+  flex-shrink: 0;
+  border-left: 1px solid #e1e3e5;
+  background: #fff;
+  overflow-y: auto;
+  flex-direction: column;
+}
+.conv-drawer.is-open { display: flex; }
+.conv-drawer-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 14px;
+  border-bottom: 1px solid #f1f2f3;
+  font-size: 12px;
+  font-weight: 600;
+  color: #202223;
+  background: #f9fafb;
+}
+.conv-drawer-close {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 16px;
+  color: #8c9196;
+  line-height: 1;
+  padding: 0 2px;
+}
+.conv-drawer-close:hover { color: #202223; }
+.conv-drawer-fields {
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.conv-drawer-field { display: flex; flex-direction: column; gap: 2px; }
+.conv-drawer-label {
+  font-size: 10.5px;
+  color: #8c9196;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  font-weight: 500;
+}
+.conv-drawer-value {
+  font-size: 13px;
+  color: #202223;
+  font-weight: 500;
+  word-break: break-word;
+}
+.conv-drawer-value.muted { color: #8c9196; font-weight: 400; font-style: italic; }
+.conv-drawer-value.mono  { font-family: monospace; font-size: 11px; word-break: break-all; color: #6d7175; }
+</style>
+
+<%
+  customer     = conversation.customer
+  display_name = if customer
+                   [customer.first_name, customer.last_name].compact.join(" ").presence ||
+                   customer.email.presence ||
+                   "Visitor ##{customer.visitor_id}"
+                 else
+                   "Anonymous"
+                 end
+  initials =
+  if customer
+    source =
+      if customer.first_name.present? || customer.last_name.present?
+        "#{customer.first_name} #{customer.last_name}".strip
+      else
+        customer.email
+      end
+
+    source
+      .split
+      .reject(&:blank?)
+      .map { |p| p[0].upcase }
+      .first(2)
+      .join
+      .presence || "?"
+  else
+    "?"
+  end
+  status     = conversation.status.presence || "open"
+  badge_tone = { "open" => "success", "closed" => "neutral", "resolved" => "info" }.fetch(status, "neutral")
+  full_name  = [customer&.first_name, customer&.last_name].compact.join(" ").presence
+  messages   = conversation.messages.order(:created_at)
+%>
+
+<div class="conv-detail-panel">
+
+  <!-- ── Header ── -->
+  <div class="conv-detail-header-wrap">
+    <div class="conv-detail-header-row">
+      <s-avatar initials="<%= initials %>" size="medium" style="flex-shrink:0;"></s-avatar>
+      <div class="conv-detail-name-block">
+        <div class="conv-detail-name-text"><%= display_name %></div>
+      </div>
+      <s-badge id="conv-status-badge-<%= conversation.id %>" tone="<%= badge_tone %>" style="flex-shrink:0;"><%= status.capitalize %></s-badge>
+      <div style="flex-shrink:0;min-width:140px;">
+        <s-select
+          id="conv-status-select-<%= conversation.id %>"
+          label=""
+          value="<%= status %>"
+        >
+          <s-option value="open"     <%= "selected" if status == "open"     %>>Open</s-option>
+          <s-option value="closed"   <%= "selected" if status == "closed"   %>>Closed</s-option>
+        </s-select>
+      </div>
+      <s-button
+        variant="tertiary"
+        icon="profile"
+        style="flex-shrink:0;"
+        onclick="document.getElementById('conv-drawer-<%= conversation.id %>').classList.toggle('is-open')"
+      >Details</s-button>
+    </div>
+
+    <% if customer&.email.present? || customer&.phone.present? || conversation.started_at.present? || conversation.page_url.present? %>
+      <div class="conv-detail-meta-row">
+        <% if customer&.email.present? %>
+          <span class="conv-detail-meta-item"><span class="conv-detail-meta-icon">✉</span><%= customer.email %></span>
+        <% end %>
+        <% if customer&.phone.present? %>
+          <span class="conv-detail-meta-item"><span class="conv-detail-meta-icon">📞</span><%= customer.phone %></span>
+        <% end %>
+        <% if conversation.started_at.present? %>
+          <span class="conv-detail-meta-item"><span class="conv-detail-meta-icon">🕐</span><%= conversation.started_at.strftime("%b %-d, %Y · %-I:%M %p") %></span>
+        <% end %>
+        <% if conversation.page_url.present? %>
+          <span class="conv-detail-meta-item"><span class="conv-detail-meta-icon">📄</span><%= conversation.page_url %></span>
+        <% end %>
+      </div>
+    <% end %>
+  </div>
+
+  <!-- ── Body: messages + drawer ── -->
+  <div class="conv-detail-body">
+
+    <!-- Chat messages -->
+    <div class="conv-messages" id="conv-messages-scroll">
+      <% if messages.empty? %>
+        <div style="flex:1;display:flex;align-items:center;justify-content:center;">
+          <s-text tone="subdued">No messages yet in this conversation.</s-text>
+        </div>
+      <% else %>
+        <% messages.each do |msg| %>
+          <div class="bubble-wrap <%= msg.role %>">
+            <% if msg.role == "assistant" %>
+              <div class="bubble-sender">AI Assistant</div>
+            <% end %>
+            <div class="bubble <%= msg.role %>"><%= msg.content %></div>
+            <span class="bubble-time"><%= msg.created_at.strftime("%-I:%M %p") %></span>
+          </div>
+        <% end %>
+      <% end %>
+    </div>
+
+    <!-- Customer details drawer -->
+    <div class="conv-drawer is-open" id="conv-drawer-<%= conversation.id %>">
+      <div class="conv-drawer-title">
+        Customer details
+        <button
+          class="conv-drawer-close"
+          onclick="document.getElementById('conv-drawer-<%= conversation.id %>').classList.remove('is-open')"
+          aria-label="Close details"
+        >✕</button>
+      </div>
+      <div class="conv-drawer-fields">
+
+        <div class="conv-drawer-field">
+          <span class="conv-drawer-label">Name</span>
+          <span class="conv-drawer-value <%= full_name ? '' : 'muted' %>"><%= full_name || "Unknown" %></span>
+        </div>
+
+        <div class="conv-drawer-field">
+          <span class="conv-drawer-label">Email</span>
+          <span class="conv-drawer-value <%= customer&.email.present? ? '' : 'muted' %>"><%= customer&.email.presence || "—" %></span>
+        </div>
+
+        <div class="conv-drawer-field">
+          <span class="conv-drawer-label">Phone</span>
+          <span class="conv-drawer-value <%= customer&.phone.present? ? '' : 'muted' %>"><%= customer&.phone.presence || "—" %></span>
+        </div>
+
+        <div class="conv-drawer-field">
+          <span class="conv-drawer-label">Shopify Customer ID</span>
+          <span class="conv-drawer-value <%= customer&.shopify_customer_id.present? ? '' : 'muted' %>"><%= customer&.shopify_customer_id.presence || "—" %></span>
+        </div>
+
+        <div class="conv-drawer-field">
+          <span class="conv-drawer-label">Visitor ID</span>
+          <span class="conv-drawer-value <%= customer&.visitor_id.present? ? '' : 'muted' %>"><%= customer&.visitor_id.presence || "—" %></span>
+        </div>
+
+        <% if conversation.session_id.present? %>
+          <div class="conv-drawer-field">
+            <span class="conv-drawer-label">Session ID</span>
+            <span class="conv-drawer-value mono"><%= conversation.session_id %></span>
+          </div>
+        <% end %>
+
+        <% if conversation.ended_at.present? %>
+          <div class="conv-drawer-field">
+            <span class="conv-drawer-label">Ended at</span>
+            <span class="conv-drawer-value"><%= conversation.ended_at.strftime("%b %-d, %Y · %-I:%M %p") %></span>
+          </div>
+        <% end %>
+
+        <div class="conv-drawer-field">
+          <span class="conv-drawer-label">Messages</span>
+          <span class="conv-drawer-value"><%= messages.size %></span>
+        </div>
+
+      </div>
+    </div>
+
+  </div><!-- /.conv-detail-body -->
+
+</div><!-- /.conv-detail-panel -->
+
+<script>
+  (function() {
+    var el = document.getElementById("conv-messages-scroll");
+    if (el) el.scrollTop = el.scrollHeight;
+
+    var sel   = document.getElementById("conv-status-select-<%= conversation.id %>");
+    var badge = document.getElementById("conv-status-badge-<%= conversation.id %>");
+    var badgeTones = { open: "success", closed: "neutral", resolved: "info" };
+
+    if (!sel) return;
+
+    function onConvStatusChange() {
+      setTimeout(function() {
+        var newStatus = sel.value !== undefined ? sel.value : sel.getAttribute("value");
+        if (!newStatus) return;
+
+        fetch("<%= conversation_path(conversation, format: :json) %>", {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+            "X-CSRF-Token": document.querySelector('meta[name="csrf-token"]')?.content || ""
+          },
+          body: JSON.stringify({ status: newStatus })
+        })
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+          if (!data.success) return;
+          if (badge) {
+            badge.setAttribute("tone", badgeTones[newStatus] || "neutral");
+            badge.textContent = newStatus.charAt(0).toUpperCase() + newStatus.slice(1);
+          }
+          if (window.Turbo) Turbo.visit(window.location.href, { frame: "conv-list" });
+        });
+      }, 0);
+    }
+
+    ["change", "s-change", "input"].forEach(function(evtName) {
+      sel.addEventListener(evtName, onConvStatusChange);
+    });
+  })();
+</script>

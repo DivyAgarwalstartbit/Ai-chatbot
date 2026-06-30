@@ -63,7 +63,7 @@ class KnowledgeBase::DocumentsController < AuthenticatedController
     respond_to do |format|
       format.turbo_stream do
         streams = [
-          turbo_stream.remove(dom_id(@document)),
+          turbo_stream.remove("training_document_#{@document.id}"),
           ts_replace("document_actions", "knowledge_base/documents/actions", documents: @documents),
           ts_replace("document_count_badge", "knowledge_base/shared/count_badge",
                      id: "document_count_badge", count: @documents.size, label: "file")

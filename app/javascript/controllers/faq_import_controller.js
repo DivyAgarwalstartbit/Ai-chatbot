@@ -261,8 +261,8 @@ export default class extends Controller {
 
   close(e) {
     e.preventDefault()
-    const modal = document.getElementById("faq-import-modal")
-    if (modal && typeof modal.hideOverlay === "function") modal.hideOverlay()
+    const closeBtn = document.getElementById("faq-import-modal-close")
+    if (closeBtn) closeBtn.click()
 
     const frame = document.getElementById("faq_import_panel")
     if (frame && this.hasResetUrlValue) frame.src = this.resetUrlValue

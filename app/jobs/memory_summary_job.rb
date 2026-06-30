@@ -1,4 +1,4 @@
-module Ai
+
 class MemorySummaryJob < ApplicationJob
 queue_as :default
 
@@ -90,6 +90,5 @@ end
 
 def redis_key(id)
 "ai:summary:conversation:#{id}"
-end
 end
 end

@@ -15,8 +15,9 @@ Rails.application.configure do
 
   # Show full error reports.
   config.consider_all_requests_local = true
-  config.hosts << "selectively-spikiest-alfredo.ngrok-free.dev"
-    config.hosts << "selectively-spikiest-alfredo.ngrok-free.dev"
+   config.hosts << "yearling-line-espresso.ngrok-free.dev"
+    config.hosts << "yearling-line-espresso.ngrok-free.dev"
+
 
 config.active_job.queue_adapter = :sidekiq
   # Enable server timing.

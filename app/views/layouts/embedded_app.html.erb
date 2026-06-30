@@ -2,6 +2,7 @@
 <html lang="en">
   <head>
     <meta charset="utf-8" />
+    <meta name="shopify-api-key" content="<%= ShopifyApp.configuration.api_key %>" />
      <script src="https://cdn.shopify.com/shopifycloud/app-bridge.js"></script>
     <% application_name = ShopifyApp.configuration.application_name %>
     <title><%= application_name %></title>
@@ -14,6 +15,8 @@
       <%= javascript_include_tag 'application', "data-turbolinks-track" => true %>
     <% end %>
     <%= csrf_meta_tags %>
+    <%= action_cable_meta_tag %>
+    <script src="/action_cable.js"></script>
 
      <script src="https://cdn.shopify.com/shopifycloud/polaris.js"></script>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/intl-tel-input@18.1.1/build/css/intlTelInput.css"/>
@@ -32,14 +35,12 @@
 
       <s-app-nav>
         <s-link href="/"rel="home">Dashboard</s-link>
-        <s-link href="/products">Training data</s-link>
+        <s-link href="/app/product_sync?shop=<%= ERB::Util.url_encode((@shop_origin || (@current_shopify_session.shop if @current_shopify_session)).to_s) %>&host=<%= ERB::Util.url_encode(@host.to_s) %>&embedded=1">Product sync</s-link>
         <s-link href="/knowledge_base?shop=<%= ERB::Util.url_encode((@shop_origin || (@current_shopify_session.shop if @current_shopify_session)).to_s) %>&host=<%= ERB::Util.url_encode(@host.to_s) %>&embedded=1">Knowledge base</s-link>
-        <s-link href="/collections">Inbox</s-link>
-        <s-link href="/customers">Widget settings</s-link>
-        <s-link href="/orders">Chatbot settings</s-link>
+        <s-link href="/conversations?shop=<%= ERB::Util.url_encode((@shop_origin || (@current_shopify_session.shop if @current_shopify_session)).to_s) %>&host=<%= ERB::Util.url_encode(@host.to_s) %>&embedded=1">Conversations</s-link>
+        <s-link href="/bot_settings?shop=<%= ERB::Util.url_encode((@shop_origin || (@current_shopify_session.shop if @current_shopify_session)).to_s) %>&host=<%= ERB::Util.url_encode(@host.to_s) %>&embedded=1">Chatbot settings</s-link>
+        <s-link href="/plans?shop=<%= ERB::Util.url_encode((@shop_origin || (@current_shopify_session.shop if @current_shopify_session)).to_s) %>&host=<%= ERB::Util.url_encode(@host.to_s) %>&embedded=1">Pricing</s-link>
       </s-app-nav>
-
-
 
     <%= render 'layouts/flash_messages' %>
 

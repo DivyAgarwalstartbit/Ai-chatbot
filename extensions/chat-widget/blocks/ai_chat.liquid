@@ -3,7 +3,11 @@
 <script>
 window.AI_WIDGET = {
   shop: "{{ shop.permanent_domain }}",
-  app_url: "https://{{ shop.permanent_domain }}/apps/ai-chat",
+  app_url: "https://yearling-line-espresso.ngrok-free.dev/",
+  currency: "{{ shop.currency }}",
+  assets: {
+    no_product: "{{ 'no-product.jpeg' | asset_url }}"
+  },
   customer: {
     id: "{{ customer.id }}",
     email: "{{ customer.email }}",
@@ -13,8 +17,7 @@ window.AI_WIDGET = {
 </script>
 
 {{ 'chat-widget.css' | asset_url | stylesheet_tag }}
-{{ 'chat-widget.js' | asset_url | script_tag }}
-
+<script src="{{ 'chat-widget.js' | asset_url }}?v={{ 'now' | date: '%s' }}"></script>
 
 {% schema %}
 {

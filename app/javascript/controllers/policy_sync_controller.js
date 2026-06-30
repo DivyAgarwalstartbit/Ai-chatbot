@@ -55,10 +55,11 @@ export default class extends Controller {
       body
     })
     .then(res => res.text())
-    .then(html => {
+    .then(async html => {
       if (window.Turbo && typeof window.Turbo.renderStreamMessage === 'function') {
-        window.Turbo.renderStreamMessage(html)
+        await window.Turbo.renderStreamMessage(html)
       }
+      this.stopLoading(policyType)
     })
     .catch(() => {
       this.stopLoading(policyType)

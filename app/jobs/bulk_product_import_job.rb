@@ -2,18 +2,21 @@ class BulkProductImportJob < ApplicationJob
   queue_as :default
 
 
-  def perform(shop_id)
+  def perform(shop_id, url)
     shop = Shop.find(shop_id)
 
     Rails.logger.info "======================"
     Rails.logger.info "IMPORT JOB STARTED"
-    Rails.logger.info shop_id
+    Rails.logger.info "shop_id=#{shop_id} url=#{url}"
     Rails.logger.info "======================"
 
     Shopify::BulkProductImportService
-      .new(shop)
+      .new(shop, url)
       .call
 
-    shop.update!(sync_status: "idle")
+  rescue => e
+    Rails.logger.error "BulkProductImportJob failed: #{e.class}: #{e.message}"
+  ensure
+    shop&.update!(sync_status: "idle")
   end
 end

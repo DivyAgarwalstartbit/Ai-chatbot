@@ -1,6 +1,12 @@
+<%# App Bridge save-bar – shown after any successful mutation on this page %>
+<ui-save-bar id="kb-save-bar">
+  <button variant="primary" id="kb-save-bar-discard" onclick="discardKbChanges()">Discard</button>
+</ui-save-bar>
+
 <s-page
   data-controller="modal"
   data-modal-type-value="faq"
+  heading="Kowledge base"
   data-modal-create-url-value="<%= knowledge_base_faqs_path(shop: @shop_origin, host: @host, embedded: 1) %>"
 >
 
@@ -275,6 +281,9 @@
 }
 </style>
 
+
+
+
   <!-- ── Page header ── -->
   <s-section>
     <s-grid gap="extra-small">
@@ -328,14 +337,18 @@
       <div class="kb-acc-body">
         <div class="kb-actions" style="margin-bottom:10px;">
           <s-button variant="primary" icon="plus"
+            commandFor="faq-form-modal"
+            command="--show"
             data-action="click->modal#openNew">Add FAQ</s-button>
           <s-button variant="secondary" icon="import"
             commandFor="faq-import-modal"
+            command="--show"
             onclick="document.getElementById('faq_import_panel').src = '<%= import_panel_knowledge_base_faqs_path(shop: @shop_origin, host: @host, embedded: 1) %>'">
             Import FAQs
           </s-button>
           <s-button variant="tertiary" tone="neutral" icon="magic"
             commandFor="faq-suggestions-modal"
+            command="--show"
             data-action="click->faq-suggestions#openModal">
             Generate Suggestions
           </s-button>
@@ -397,6 +410,24 @@
 
   </s-section>
 
+  <s-section>
+    <s-grid gap="small">
+      <s-heading element="h1">How policy content is selected</s-heading>
+     <s-paragraph color="subdued" style="margin-top: 8px;">
+      If the same policy is available from multiple sources, the chatbot will automatically use the highest-priority source.
+    </s-paragraph>
+
+    <s-paragraph style="margin: 12px 0;">
+      <strong>Shopify Sync → Uploaded Document → Manual Entry</strong>
+    </s-paragraph>
+
+    <s-paragraph color="subdued">
+      For example, if a policy is synced from Shopify, it will be used even if an uploaded document or manually entered policy is also available.
+    </s-paragraph>
+    </s-grid>
+  </s-section>
+
+
   <%# ── FAQ Add/Edit Modal ── %>
   <%= render "knowledge_base/faqs/form_modal",
         shop_origin: @shop_origin,
@@ -409,6 +440,8 @@
             shop_origin: @shop_origin,
             host: @host %>
     <% end %>
+    <%# Hidden button used by JS/Turbo Stream to close this modal programmatically %>
+    <s-button id="faq-import-modal-close" commandFor="faq-import-modal" command="--hide" style="display:none"></s-button>
   </s-modal>
 
   <%# ── FAQ Suggestions Modal ── %>
@@ -421,6 +454,8 @@
             shop_origin: @shop_origin,
             host: @host %>
     <% end %>
+    <%# Hidden button used by JS/Turbo Stream to close this modal programmatically %>
+    <s-button id="faq-suggestions-modal-close" commandFor="faq-suggestions-modal" command="--hide" style="display:none"></s-button>
   </s-modal>
 
   <%# ── FAQ Delete Modal ── %>
@@ -446,6 +481,7 @@
     >
       Delete
     </s-button>
+    <s-button id="faq-delete-modal-close" commandFor="faq-delete-modal" command="--hide" style="display:none"></s-button>
   </s-modal>
 
   <%# ── Document Delete Modal ── %>
@@ -471,6 +507,7 @@
     >
       Delete
     </s-button>
+    <s-button id="document-delete-modal-close" commandFor="document-delete-modal" command="--hide" style="display:none"></s-button>
   </s-modal>
 
   <%# ── Policy Attachment Delete Modal ── %>
@@ -496,6 +533,7 @@
     >
       Delete
     </s-button>
+    <s-button id="policy-delete-modal-close" commandFor="policy-delete-modal" command="--hide" style="display:none"></s-button>
   </s-modal>
 
   <%# Hidden delete forms ── %>
@@ -513,6 +551,96 @@
   </form>
 
   <script>
+    // ── Save bar ─────────────────────────────────────────────────────────────
+    const kbSaveBar = document.getElementById('kb-save-bar');
+
+    function showSaveBar() {
+      if (!kbSaveBar) return;
+      kbSaveBar.show();
+    }
+
+    function hideSaveBar() {
+      if (!kbSaveBar) return;
+      kbSaveBar.hide();
+    }
+
+    // Called by the save-bar Discard button.
+    // Reverts any open policy textarea to its original (unedited) value,
+    // closes the policy modal, then hides the save bar.
+    function discardKbChanges() {
+      ['shipping_policy', 'return_policy'].forEach(function(pt) {
+        var original = _policyOriginals[pt];
+        if (original === undefined) return; // modal was never opened
+
+        var ta = document.getElementById(pt + '_content_textarea');
+        if (ta) {
+          ta.value = original;
+          ta.setAttribute('value', original);
+          // Dispatch an input event so any listeners re-evaluate dirty state
+          ta.dispatchEvent(new Event('input'));
+        }
+
+        // Close the modal if it's open
+        var overlay = document.getElementById(pt + '_modal');
+        if (overlay && overlay.style.display !== 'none') {
+          overlay.style.display = 'none';
+          document.body.style.overflow = '';
+        }
+      });
+
+      hideSaveBar();
+    }
+
+    // ── Policy textarea change tracking ──────────────────────────────────────
+    // Each policy modal has an s-text-area. We snapshot its value when the
+    // modal opens and compare on every input event. If it returns to the
+    // original value, hide the save bar.
+    var _policyOriginals = {};
+
+    function trackPolicyTextarea(textarea, policyType) {
+      if (!textarea) return;
+      // Snapshot original value when modal opens
+      _policyOriginals[policyType] = textarea.value || '';
+
+      textarea.addEventListener('input', function() {
+        var isDirty = textarea.value !== _policyOriginals[policyType];
+        if (isDirty) {
+          showSaveBar();
+        } else {
+          hideSaveBar();
+        }
+      });
+    }
+
+    // Hook into the modal open buttons for both policies
+    document.addEventListener('click', function(e) {
+      var btn = e.target.closest('[data-action*="modal#open"]');
+      if (!btn) return;
+      // Wait a frame for the modal to display and the textarea to be populated
+      requestAnimationFrame(function() {
+        ['shipping_policy', 'return_policy'].forEach(function(pt) {
+          var ta = document.getElementById(pt + '_content_textarea');
+          if (ta) trackPolicyTextarea(ta, pt);
+        });
+      });
+    });
+
+    // After a successful policy save, reset the snapshot so bar hides on next undo
+    document.addEventListener('turbo:submit-end', function(e) {
+      if (!e.detail || !e.detail.success) return;
+      var form = e.detail.formSubmission && e.detail.formSubmission.formElement;
+      if (form && form.dataset.policyForm) {
+        // Find which policy this form belongs to and update the snapshot
+        ['shipping_policy', 'return_policy'].forEach(function(pt) {
+          var ta = document.getElementById(pt + '_content_textarea');
+          if (ta && form.id === pt + '_form') {
+            _policyOriginals[pt] = ta.value;
+          }
+        });
+      }
+      showSaveBar();
+    });
+
     // Helper to reset file inputs
     function resetFileInput(inputId) {
       const input = document.getElementById(inputId);
@@ -568,7 +696,8 @@
               }
             }
 
-            faqDeleteModal.hideOverlay();
+            document.getElementById('faq-delete-modal-close').click();
+            showSaveBar();
           }
         } catch (error) {
           console.error('Error deleting FAQ:', error);
@@ -614,7 +743,8 @@
               }
             }
 
-            documentDeleteModal.hideOverlay();
+            document.getElementById('document-delete-modal-close').click();
+            showSaveBar();
           }
         } catch (error) {
           console.error('Error deleting document:', error);
@@ -677,7 +807,8 @@
             }
 
             resetFileInput(policyType + '_file_input');
-            policyDeleteModal.hideOverlay();
+            document.getElementById('policy-delete-modal-close').click();
+            showSaveBar();
           }
         } catch (error) {
           console.error('Error deleting policy attachment:', error);
