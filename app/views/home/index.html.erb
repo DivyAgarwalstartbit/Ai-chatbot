@@ -7,37 +7,89 @@
   has_plan    = @current_plan.present?
 %>
 
-<s-page heading="AI Shopper" inline-size="large">
+<s-page heading="Dashboard" inline-size="large">
 
-  <%# ── App embed warning banner (hidden when embed already enabled) ── %>
-  <div id="embed-warning-section" style="<%= @app_embed_enabled ? 'display:none;' : '' %>">
-    <s-banner heading="Chat widget is not active on your store" tone="warning">
-      Enable the app embed in your theme so the chat bubble appears for customers.
-      <s-button slot="secondary-actions" variant="secondary" href="<%= embed_url %>" target="_blank">
-        Enable app embed
-      </s-button>
+  <%# ── Setup guide ── %>
+  <s-section id="setup-guide-section">
+    <s-grid gap="small">
+      <s-grid gap="small-200">
+        <s-grid gridTemplateColumns="1fr auto auto" gap="small-300" alignItems="center">
+          <s-heading>Setup guide</s-heading>
+        </s-grid>
+        <s-paragraph>Complete these steps to go live with your AI chat widget.</s-paragraph>
+      </s-grid>
 
-      <s-button slot="secondary-actions" variant="secondary" id="verify-embed-btn">
-        Verify
-      </s-button>
-    </s-banner>
-  </div>
+      <s-box borderRadius="base" border="base" background="base">
+        <%# Step 1 — done %>
+        <s-box>
+          <s-grid gridTemplateColumns="auto 1fr" gap="base" padding="small" alignItems="center">
+           <s-icon type="check-circle" tone="success"></s-icon>
+            <s-text type="strong">Install AI Shopper</s-text>
+          </s-grid>
+        </s-box>
 
-  <div id="embed-success-section" style="display:none;">
-    <s-banner
-      heading="App embed enabled successfully"
-      tone="success"
-      dismissible
-      onDismiss="document.getElementById('embed-success-section').style.display='none'"
-    >
-      Your chat widget is now live on your store.
-    </s-banner>
-  </div>
+        <s-divider></s-divider>
 
-  <%# ── Metrics ── %>
-  <s-section padding="base">
+        <%# Step 2 — enable embed %>
+        <s-box>
+          <s-grid gridTemplateColumns="auto 1fr auto" gap="base" padding="small" alignItems="center">
+            <% if @app_embed_enabled %>
+              <s-icon type="check-circle" tone="success"></s-icon>
+            <% else %>
+              <s-badge>2</s-badge>
+            <% end %>
+            <s-stack gap="small-200">
+              <s-text type="strong">Enable the chat widget</s-text>
+              <s-paragraph>Activate the app embed in your theme so the chat widget appears for customers.</s-paragraph>
+              <% unless @app_embed_enabled %>
+                <s-stack direction="inline" gap="small-200">
+                  <s-button variant="primary" href="<%= embed_url %>" target="_blank">Open theme editor</s-button>
+                </s-stack>
+              <% end %>
+            </s-stack>
+          </s-grid>
+        </s-box>
+
+        <s-divider></s-divider>
+
+        <%# Step 3 — configure bot %>
+        <s-box>
+          <s-grid gridTemplateColumns="auto 1fr auto" gap="base" padding="small" alignItems="center">
+            <s-badge>3</s-badge>
+            <s-stack gap="small-200">
+              <s-text type="strong">Configure your bot</s-text>
+              <s-paragraph>Set your bot's name, personality, and greeting message.</s-paragraph>
+              <s-stack direction="inline" gap="small-200">
+                <s-button variant="primary" href="/bot_settings?shop=<%= ERB::Util.url_encode(q) %>&host=<%= ERB::Util.url_encode(h) %>&embedded=1">Bot settings</s-button>
+              </s-stack>
+            </s-stack>
+          </s-grid>
+        </s-box>
+
+        <s-divider></s-divider>
+
+
+
+        <%# Step 4 — knowledge base %>
+        <s-box>
+          <s-grid gridTemplateColumns="auto 1fr auto" gap="base" padding="small" alignItems="center">
+            <s-badge>4</s-badge>
+            <s-stack gap="small-200">
+              <s-text type="strong">Build your knowledge base</s-text>
+              <s-paragraph>Add FAQs, policies, and documents so your AI can answer questions accurately.</s-paragraph>
+              <s-stack direction="inline" gap="small-200">
+                <s-button variant="primary" href="/knowledge_base?shop=<%= ERB::Util.url_encode(q) %>&host=<%= ERB::Util.url_encode(h) %>&embedded=1">Add knowledge</s-button>
+              </s-stack>
+            </s-stack>
+          </s-grid>
+        </s-box>
+      </s-box>
+    </s-grid>
+  </s-section>
+
+ <s-section padding="base">
     <s-grid
-      gridTemplateColumns="@container (inline-size <= 400px) 1fr, 1fr auto 1fr auto 1fr auto 1fr"
+      gridTemplateColumns="@container (inline-size <= 400px) 1fr, 1fr auto 1fr auto 1fr auto 1fr "
       gap="small"
     >
       <s-clickable
@@ -52,7 +104,11 @@
         </s-grid>
       </s-clickable>
 
+     
+
       <s-divider direction="block"></s-divider>
+
+  
 
       <s-clickable
         href="/tickets?shop=<%= ERB::Util.url_encode(q) %>&host=<%= ERB::Util.url_encode(h) %>&embedded=1"
@@ -78,9 +134,7 @@
           <s-heading>Open Tickets</s-heading>
           <s-stack direction="inline" gap="small-200">
             <s-text><%= @open_tickets_count %></s-text>
-            <% if @open_tickets_count > 0 %>
-              <s-badge tone="critical"><%= @open_tickets_count %> open</s-badge>
-            <% end %>
+            
           </s-stack>
         </s-grid>
       </s-clickable>
@@ -102,112 +156,10 @@
     </s-grid>
   </s-section>
 
-  <%# ── Setup guide ── %>
-  <s-section id="setup-guide-section">
-    <s-grid gap="small">
-      <s-grid gap="small-200">
-        <s-grid gridTemplateColumns="1fr auto auto" gap="small-300" alignItems="center">
-          <s-heading>Setup guide</s-heading>
-          <s-button
-            accessibilityLabel="Dismiss guide"
-            onclick="document.getElementById('setup-guide-section').style.display='none'"
-            variant="tertiary"
-            tone="neutral"
-            icon="x"
-          ></s-button>
-        </s-grid>
-        <s-paragraph>Complete these steps to go live with your AI chat widget.</s-paragraph>
-      </s-grid>
 
-      <s-box borderRadius="base" border="base" background="base">
-        <%# Step 1 — done %>
-        <s-box>
-          <s-grid gridTemplateColumns="auto 1fr" gap="base" padding="small" alignItems="center">
-            <s-badge tone="success" icon="check-circle"></s-badge>
-            <s-text type="strong">Install AI Shopper</s-text>
-          </s-grid>
-        </s-box>
-
-        <s-divider></s-divider>
-
-        <%# Step 2 — enable embed %>
-        <s-box>
-          <s-grid gridTemplateColumns="auto 1fr auto" gap="base" padding="small" alignItems="center">
-            <s-badge>2</s-badge>
-            <s-stack gap="small-200">
-              <s-text type="strong">Enable the chat widget</s-text>
-              <s-paragraph>Activate the app embed in your theme so the chat widget appears for customers.</s-paragraph>
-              <s-stack direction="inline" gap="small-200">
-                <s-button variant="primary" href="<%= embed_url %>" target="_blank">Open theme editor</s-button>
-              </s-stack>
-            </s-stack>
-          </s-grid>
-        </s-box>
-
-        <s-divider></s-divider>
-
-        <%# Step 3 — configure bot %>
-        <s-box>
-          <s-grid gridTemplateColumns="auto 1fr auto" gap="base" padding="small" alignItems="center">
-            <s-badge>3</s-badge>
-            <s-stack gap="small-200">
-              <s-text type="strong">Configure your bot</s-text>
-              <s-paragraph>Set your bot's name, personality, and greeting message.</s-paragraph>
-              <s-stack direction="inline" gap="small-200">
-                <s-button variant="primary" href="/bot_settings?shop=<%= ERB::Util.url_encode(q) %>&host=<%= ERB::Util.url_encode(h) %>&embedded=1">Bot settings</s-button>
-              </s-stack>
-            </s-stack>
-          </s-grid>
-        </s-box>
-
-        <s-divider></s-divider>
-
-        <%# Step 4 — knowledge base %>
-        <s-box>
-          <s-grid gridTemplateColumns="auto 1fr auto" gap="base" padding="small" alignItems="center">
-            <s-badge>4</s-badge>
-            <s-stack gap="small-200">
-              <s-text type="strong">Build your knowledge base</s-text>
-              <s-paragraph>Add FAQs, policies, and documents so your AI can answer questions accurately.</s-paragraph>
-              <s-stack direction="inline" gap="small-200">
-                <s-button variant="primary" href="/knowledge_base?shop=<%= ERB::Util.url_encode(q) %>&host=<%= ERB::Util.url_encode(h) %>&embedded=1">Add knowledge</s-button>
-              </s-stack>
-            </s-stack>
-          </s-grid>
-        </s-box>
-      </s-box>
-    </s-grid>
-  </s-section>
 
   <%# ── Callout: plan upsell (dismissible) ── %>
-  <% unless has_plan %>
-    <s-section id="plan-callout-section">
-      <s-grid gridTemplateColumns="1fr auto" gap="small-400" alignItems="start">
-        <s-grid
-          gridTemplateColumns="@container (inline-size <= 480px) 1fr, auto auto"
-          gap="base"
-          alignItems="center"
-        >
-          <s-grid gap="small-200">
-            <s-heading>Unlock the full power of AI Shopper</s-heading>
-            <s-paragraph>Get unlimited conversations, advanced AI responses, and priority support. Try any plan free for 7 days.</s-paragraph>
-            <s-stack direction="inline" gap="small-200">
-              <s-button href="/plans?shop=<%= ERB::Util.url_encode(q) %>&host=<%= ERB::Util.url_encode(h) %>&embedded=1">View plans</s-button>
-              <s-button tone="neutral" variant="tertiary">Learn more</s-button>
-            </s-stack>
-          </s-grid>
-        </s-grid>
-        <s-button
-          onclick="document.getElementById('plan-callout-section').style.display='none'"
-          icon="x"
-          tone="neutral"
-          variant="tertiary"
-          accessibilityLabel="Dismiss"
-        ></s-button>
-      </s-grid>
-    </s-section>
-  <% end %>
-
+  
   <%# ── Recent conversations ── %>
   <s-section heading="Recent conversations">
     <s-grid gridTemplateColumns="1fr auto" alignItems="center" paddingBlockEnd="small-400">
@@ -273,6 +225,35 @@
     <% end %>
   </s-section>
 
+  <% unless has_plan %>
+    <s-section id="plan-callout-section">
+      <s-grid gridTemplateColumns="1fr auto" gap="small-400" alignItems="start">
+        <s-grid
+          gridTemplateColumns="@container (inline-size <= 480px) 1fr, auto auto"
+          gap="base"
+          alignItems="center"
+        >
+          <s-grid gap="small-200">
+            <s-heading>Unlock the full power of AI Shopper</s-heading>
+            <s-paragraph>Get unlimited conversations, advanced AI responses, and priority support. Try any plan free for 7 days.</s-paragraph>
+            <s-stack direction="inline" gap="small-200">
+              <s-button href="/plans?shop=<%= ERB::Util.url_encode(q) %>&host=<%= ERB::Util.url_encode(h) %>&embedded=1">View plans</s-button>
+              <s-button tone="neutral" variant="tertiary">Learn more</s-button>
+            </s-stack>
+          </s-grid>
+        </s-grid>
+        <s-button
+          onclick="document.getElementById('plan-callout-section').style.display='none'"
+          icon="x"
+          tone="neutral"
+          variant="tertiary"
+          accessibilityLabel="Dismiss"
+        ></s-button>
+      </s-grid>
+    </s-section>
+  <% end %>
+
+
   <%# ── Featured apps (dismissible) ── %>
   <s-section id="featured-apps-section">
     <s-grid gridTemplateColumns="1fr auto" alignItems="center" paddingBlockEnd="small-400">
@@ -295,10 +276,12 @@
         inlineSize="100%"
         accessibilityLabel="View Smart Countdown Timer Bar"
       >
+
+  
         <s-grid gridTemplateColumns="auto 1fr auto" alignItems="stretch" gap="base">
           <s-thumbnail
             size="small"
-            src="https://cdn.shopify.com/app-store/listing_images/a07bfd2c0de9e89c9cf0e41551d07e25/icon/COv_6r2mh4ADEAE=.png"
+            src="https://cdn.shopify.com/app-store/listing_images/dc6282d4d74b099793f3d3250539bfb7/icon/CP_dhtmKzJIDEAE=.jpeg"
             alt="Smart Countdown Timer Bar icon"
           ></s-thumbnail>
           <s-box>
@@ -323,7 +306,7 @@
         <s-grid gridTemplateColumns="auto 1fr auto" alignItems="stretch" gap="base">
           <s-thumbnail
             size="small"
-            src="https://cdn.shopify.com/app-store/listing_images/da2a1feef9abf14f88e94e2c41dfc65b/icon/CLy0_rKmh4ADEAE=.png"
+            src="https://cdn.shopify.com/app-store/listing_images/168fbfef086c67a6143f07ae20f946c2/icon/CN3zlvXJspIDEAE=.jpeg"
             alt="SB Product Options icon"
           ></s-thumbnail>
           <s-box>

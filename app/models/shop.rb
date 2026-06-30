@@ -30,14 +30,15 @@ class Shop < ActiveRecord::Base
   def pro?     = plan == "pro"
   def plan_label = PLANS.dig(plan, :name)
 
-    after_create_commit :sync_products
+    after_create_commit :setup_shop
 
 
   def api_version
     ShopifyApp.configuration.api_version
   end
 
-  def sync_products
+   def setup_shop
     BulkProductSyncJob.perform_later(id)
+    CreateAiMetafieldJob.perform_later(id)
   end
 end

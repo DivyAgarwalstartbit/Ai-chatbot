@@ -1,10 +1,12 @@
 <style>
 /* ── Tab bar ── */
 .inbox-tab-bar {
-  display: flex;
-  border-bottom: 1px solid #e1e3e5;
-  background: #fff;
-  flex-shrink: 0;
+    display: grid;
+    border-bottom: 1px solid #e1e3e5;
+    background: #fff;
+    flex-shrink: 0;
+    grid-template-columns: 1fr 1fr;
+    text-align: center;
 }
 .inbox-tab {
   padding: 10px 18px;
@@ -83,7 +85,7 @@ s-page { --p-space-0: 0; }
   color: inherit;
   cursor: pointer;
   transition: background 0.12s ease;
-  overflow: hidden;
+ 
 }
 .conv-row:hover { background: #f9fafb; }
 .conv-row.is-selected {
@@ -109,6 +111,26 @@ s-page { --p-space-0: 0; }
   gap: 6px;
   margin-bottom: 2px;
   min-width: 0;
+}
+
+/* Hide scrollbar but keep scrolling */
+.conv-list,
+#ticket-list,
+.conv-right,
+#ticket-detail,
+.ticket-detail {
+  scrollbar-width: none;      /* Firefox */
+  -ms-overflow-style: none;   /* IE & old Edge */
+}
+
+.conv-list::-webkit-scrollbar,
+#ticket-list::-webkit-scrollbar,
+.conv-right::-webkit-scrollbar,
+#ticket-detail::-webkit-scrollbar,
+.ticket-details::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+  display: none;
 }
 .conv-row-name {
   font-size: 13px;
@@ -180,7 +202,7 @@ turbo-frame#ticket-detail {
 }
 </style>
 
-<s-page>
+<s-page  inlinesize="large">
   <div class="conv-layout">
 
     <!-- ═══════════ LEFT PANEL ═══════════ -->
@@ -188,20 +210,18 @@ turbo-frame#ticket-detail {
 
       <!-- Tab bar -->
       <div class="inbox-tab-bar">
-        <%= link_to conversations_path(shop: @shop_origin, host: @host, embedded: 1), class: "inbox-tab" do %>
-          Conversations <span class="inbox-tab-count"><%= @conversations_count %></span>
-        <% end %>
         <%= link_to tickets_path(shop: @shop_origin, host: @host, embedded: 1), class: "inbox-tab is-active" do %>
           Tickets <span class="inbox-tab-count"><%= @tickets_count %></span>
         <% end %>
+        <%= link_to conversations_path(shop: @shop_origin, host: @host, embedded: 1), class: "inbox-tab" do %>
+          Conversations <span class="inbox-tab-count"><%= @conversations_count %></span>
+        <% end %>
+        
       </div>
 
       <!-- Panel header -->
       <div class="conv-left-header">
-        <div>
-          <div style="font-size:14px;font-weight:700;color:#202223;">Tickets</div>
-          <div style="font-size:12px;color:#8c9196;margin-top:1px;"><%= @tickets.size %> total</div>
-        </div>
+        <div style="font-size:14px;font-weight:700;color:#202223;">Tickets</div>
       </div>
 
       <!-- Filters -->
@@ -230,7 +250,7 @@ turbo-frame#ticket-detail {
                 <s-option value=""            <%= params[:status].blank?               ? "selected" : "" %>>All</s-option>
                 <s-option value="open"        <%= params[:status] == "open"        ? "selected" : "" %>>Open</s-option>
                 <s-option value="in_progress" <%= params[:status] == "in_progress" ? "selected" : "" %>>In Progress</s-option>
-                <s-option value="resolved"    <%= params[:status] == "resolved"    ? "selected" : "" %>>Resolved</s-option>
+                <s-option value="reopen"    <%= params[:status] == "reopen"    ? "selected" : "" %>>Reopen</s-option>
                 <s-option value="closed"      <%= params[:status] == "closed"      ? "selected" : "" %>>Closed</s-option>
               </s-select>
             </div>
@@ -299,12 +319,35 @@ turbo-frame#ticket-detail {
             <% end %>
           <% end %>
         <% end %>
+
+        <% if @total_pages > 1 %>
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px;border-top:1px solid #e1e3e5;flex-shrink:0;background:#fff;">
+            <s-button
+              variant="secondary"
+              icon="arrow-left"
+              size="slim"
+              <%= "disabled" if @current_page <= 1 %>
+              onclick="ticketGoToPage(<%= @current_page - 1 %>)">
+              Previous
+            </s-button>
+            <span style="font-size:12px;color:#8c9196;"><%= @current_page %> / <%= @total_pages %></span>
+            <s-button
+              variant="secondary"
+              icon="arrow-right"
+              icon-position="end"
+              size="slim"
+              <%= "disabled" if @current_page >= @total_pages %>
+              onclick="ticketGoToPage(<%= @current_page + 1 %>)">
+              Next
+            </s-button>
+          </div>
+        <% end %>
       </turbo-frame>
     </div>
 
     <!-- ═══════════ RIGHT PANEL ═══════════ -->
     <div class="conv-right">
-      <turbo-frame id="ticket-detail">
+      <turbo-frame id="ticket-detail" class="ticket-details">
         <% if @ticket %>
           <%= render "detail", ticket: @ticket %>
         <% else %>
@@ -330,5 +373,32 @@ turbo-frame#ticket-detail {
     _ticketSearchTimer = setTimeout(function() {
       el.closest('form').requestSubmit();
     }, 350);
+  }
+
+  document.addEventListener('click', function(e) {
+    var row = e.target.closest('.conv-row');
+    if (!row) return;
+    var frame = row.closest('#ticket-list');
+    if (!frame) return;
+    frame.querySelectorAll('.conv-row').forEach(function(r) { r.classList.remove('is-selected'); });
+    row.classList.add('is-selected');
+  });
+
+  function ticketGoToPage(page) {
+    const form   = document.getElementById("ticket-filter-form");
+    const url    = new URL(form ? form.action : window.location.href, window.location.origin);
+    const q      = form && form.querySelector("[name='q']");
+    const status = form && form.querySelector("[name='status']");
+    if (q && q.value)           url.searchParams.set("q", q.value);
+    if (status && status.value) url.searchParams.set("status", status.value);
+    url.searchParams.set("page", page);
+    url.searchParams.set("shop",     "<%= @shop_origin %>");
+    url.searchParams.set("host",     "<%= @host %>");
+    url.searchParams.set("embedded", "1");
+    if (window.Turbo) {
+      Turbo.visit(url.toString(), { frame: "ticket-list" });
+    } else {
+      window.location.href = url.toString();
+    }
   }
 </script>

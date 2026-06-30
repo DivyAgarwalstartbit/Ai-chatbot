@@ -25,7 +25,7 @@ module Ai
 
     # Returns a single embedding vector (Array of 768 floats).
     def embed(text)
-      embed_batch([text]).first
+      embed_batch([ text ]).first
     end
 
     # Returns an Array of embedding vectors for the given texts.

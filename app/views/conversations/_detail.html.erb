@@ -76,8 +76,24 @@
   max-width: 68%;
   min-width: 0;
 }
-.bubble-wrap.customer  { align-self: flex-end;  align-items: flex-end; }
-.bubble-wrap.assistant { align-self: flex-start; align-items: flex-start; }
+/* Customer = LEFT */
+.bubble-wrap.customer {
+  align-self: flex-start;
+  align-items: flex-start;
+}
+
+/* AI Assistant = RIGHT */
+.bubble-wrap.assistant {
+  align-self: flex-end;
+  align-items: flex-end;
+}
+
+/* System stays centered */
+.bubble-wrap.system {
+  align-self: center;
+  align-items: center;
+  max-width: 85%;
+}
 .bubble-wrap.system    { align-self: center; align-items: center; max-width: 85%; }
 .bubble-sender {
   font-size: 11px;
@@ -93,7 +109,7 @@
   line-height: 1.5;
   word-break: break-word;
 }
-.bubble.customer {
+.bubble.user {
   background: #C6A8DC;
   color: #fff;
   border-bottom-right-radius: 4px;
@@ -119,7 +135,7 @@
 /* ── Customer drawer ── */
 .conv-drawer {
   display: none;
-  width: 260px;
+  width: 320px;
   flex-shrink: 0;
   border-left: 1px solid #e1e3e5;
   background: #fff;
@@ -181,12 +197,25 @@
                  else
                    "Anonymous"
                  end
-  initials = if customer
-               parts = [customer.first_name, customer.last_name].compact
-               parts.map { |p| p[0].upcase }.join.first(2).presence || "?"
-             else
-               "?"
-             end
+  initials =
+  if customer
+    source =
+      if customer.first_name.present? || customer.last_name.present?
+        "#{customer.first_name} #{customer.last_name}".strip
+      else
+        customer.email
+      end
+
+    source
+      .split
+      .reject(&:blank?)
+      .map { |p| p[0].upcase }
+      .first(2)
+      .join
+      .presence || "?"
+  else
+    "?"
+  end
   status     = conversation.status.presence || "open"
   badge_tone = { "open" => "success", "closed" => "neutral", "resolved" => "info" }.fetch(status, "neutral")
   full_name  = [customer&.first_name, customer&.last_name].compact.join(" ").presence
@@ -202,7 +231,17 @@
       <div class="conv-detail-name-block">
         <div class="conv-detail-name-text"><%= display_name %></div>
       </div>
-      <s-badge tone="<%= badge_tone %>" style="flex-shrink:0;"><%= status.capitalize %></s-badge>
+      <s-badge id="conv-status-badge-<%= conversation.id %>" tone="<%= badge_tone %>" style="flex-shrink:0;"><%= status.capitalize %></s-badge>
+      <div style="flex-shrink:0;min-width:140px;">
+        <s-select
+          id="conv-status-select-<%= conversation.id %>"
+          label=""
+          value="<%= status %>"
+        >
+          <s-option value="open"     <%= "selected" if status == "open"     %>>Open</s-option>
+          <s-option value="closed"   <%= "selected" if status == "closed"   %>>Closed</s-option>
+        </s-select>
+      </div>
       <s-button
         variant="tertiary"
         icon="profile"
@@ -252,7 +291,7 @@
     </div>
 
     <!-- Customer details drawer -->
-    <div class="conv-drawer" id="conv-drawer-<%= conversation.id %>">
+    <div class="conv-drawer is-open" id="conv-drawer-<%= conversation.id %>">
       <div class="conv-drawer-title">
         Customer details
         <button
@@ -318,5 +357,40 @@
   (function() {
     var el = document.getElementById("conv-messages-scroll");
     if (el) el.scrollTop = el.scrollHeight;
+
+    var sel   = document.getElementById("conv-status-select-<%= conversation.id %>");
+    var badge = document.getElementById("conv-status-badge-<%= conversation.id %>");
+    var badgeTones = { open: "success", closed: "neutral", resolved: "info" };
+
+    if (!sel) return;
+
+    function onConvStatusChange() {
+      setTimeout(function() {
+        var newStatus = sel.value !== undefined ? sel.value : sel.getAttribute("value");
+        if (!newStatus) return;
+
+        fetch("<%= conversation_path(conversation, format: :json) %>", {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+            "X-CSRF-Token": document.querySelector('meta[name="csrf-token"]')?.content || ""
+          },
+          body: JSON.stringify({ status: newStatus })
+        })
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+          if (!data.success) return;
+          if (badge) {
+            badge.setAttribute("tone", badgeTones[newStatus] || "neutral");
+            badge.textContent = newStatus.charAt(0).toUpperCase() + newStatus.slice(1);
+          }
+          if (window.Turbo) Turbo.visit(window.location.href, { frame: "conv-list" });
+        });
+      }, 0);
+    }
+
+    ["change", "s-change", "input"].forEach(function(evtName) {
+      sel.addEventListener(evtName, onConvStatusChange);
+    });
   })();
 </script>

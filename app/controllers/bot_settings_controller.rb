@@ -41,13 +41,13 @@ class BotSettingsController < AuthenticatedController
       :assistant_name,
       :assistant_avatar_url,
       :greeting,
-      :language,
       :brand_tone,
       :widget_enabled,
       widget_settings: {},
       starter_prompts: [],
       default_queries: [],
       visibility_rules: {},
+      store_details: {},
       sync_state: {}
     )
 

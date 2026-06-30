@@ -1,0 +1,13 @@
+Hi <%= @customer.first_name.presence || "there" %>,
+
+Our support team has replied to your ticket (#<%= @ticket.id %> — <%= @ticket.subject %>):
+
+---
+<%= @message.content %>
+---
+
+Ticket status: <%= @ticket.status&.titleize %>
+
+---
+This email was sent because you previously contacted support.
+Please do not reply directly to this email.

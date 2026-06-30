@@ -2,28 +2,23 @@
 
 client_id = "831b7214e883c29d3b7d1a299372e705"
 name = "Aibot"
-application_url = "https://selectively-spikiest-alfredo.ngrok-free.dev"
+application_url = "https://yearling-line-espresso.ngrok-free.dev"
 embedded = true
 
 [build]
 automatically_update_urls_on_dev = true
-
-[app_proxy]
-url = "https://selectively-spikiest-alfredo.ngrok-free.dev/apps/ai-chat"
-subpath = "ai-chat"
-prefix = "apps"
 
 [webhooks]
 api_version = "2026-04"
 
 [access_scopes]
 # Learn more at https://shopify.dev/docs/apps/tools/cli/configuration#access_scopes
-scopes = "read_products"
+scopes = "read_products,read_orders,write_products,read_returns,read_legal_policies"
 optional_scopes = [ ]
 use_legacy_install_flow = false
 
 [auth]
-redirect_urls = [ "https://selectively-spikiest-alfredo.ngrok-free.dev" ]
+redirect_urls = [ "https://yearling-line-espresso.ngrok-free.dev" ]
 
 [app_preferences]
-url = "https://selectively-spikiest-alfredo.ngrok-free.dev"
+url = "https://yearling-line-espresso.ngrok-free.dev"

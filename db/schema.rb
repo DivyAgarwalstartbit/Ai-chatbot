@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_06_09_130000) do
+ActiveRecord::Schema[8.1].define(version: 2026_06_25_102501) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "vector"
@@ -48,11 +48,10 @@ ActiveRecord::Schema[8.1].define(version: 2026_06_09_130000) do
     t.string "assistant_name"
     t.string "brand_tone"
     t.datetime "created_at", null: false
-    t.jsonb "default_queries"
     t.text "greeting"
-    t.string "language"
     t.bigint "shop_id", null: false
     t.jsonb "starter_prompts"
+    t.jsonb "store_details", default: {}, null: false
     t.jsonb "sync_state"
     t.datetime "updated_at", null: false
     t.jsonb "visibility_rules"
@@ -65,6 +64,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_06_09_130000) do
     t.datetime "created_at", null: false
     t.bigint "customer_id"
     t.datetime "ended_at"
+    t.datetime "escalated_at"
+    t.boolean "handoff_mode", default: false, null: false
     t.datetime "last_message_at"
     t.string "page_url"
     t.datetime "reviewed_at"
@@ -137,12 +138,16 @@ ActiveRecord::Schema[8.1].define(version: 2026_06_09_130000) do
   end
 
   create_table "products", force: :cascade do |t|
+    t.text "ai_info"
+    t.jsonb "collections_data", default: []
     t.datetime "created_at", null: false
     t.text "description"
     t.string "handle"
     t.string "image_url"
+    t.string "product_type"
     t.bigint "shop_id", null: false
     t.bigint "shopify_product_id", null: false
+    t.jsonb "tags", default: []
     t.string "title"
     t.datetime "updated_at", null: false
     t.index ["shop_id", "shopify_product_id"], name: "index_products_on_shop_and_shopify_id", unique: true
@@ -196,6 +201,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_06_09_130000) do
     t.datetime "synced_at"
     t.string "title"
     t.datetime "updated_at", null: false
+    t.text "uploaded_content"
     t.index ["embedding_status"], name: "index_training_documents_on_embedding_status"
     t.index ["processing_status"], name: "index_training_documents_on_processing_status"
     t.index ["shop_id"], name: "index_training_documents_on_shop_id"

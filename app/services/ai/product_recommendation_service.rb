@@ -1,130 +1,141 @@
 module Ai
-class ProductRecommendationService
-LIMIT = 3
+  class ProductRecommendationService
+    LIMIT = 5
 
+    def initialize(shop:, analyzed_query:)
+      @shop = shop
+      @analyzed_query = analyzed_query || {}
+    end
 
+    def call
+      scope =
+        Product
+          .includes(:product_variants)
+          .where(shop_id: @shop.id)
 
-def initialize(
- shop:,
- query: nil,
- product: nil
-)
- @shop = shop
- @query = query
- @product = product
-end
+      scope = apply_price_filter(scope)
+      scope = apply_attribute_filter(scope)
 
+      return [] unless scope.exists?
 
-def call
-if @product.present?
+      embedding =
+        Ai::OllamaEmbeddingService.new(
+          build_query
+        ).call
 
- similar_products
+      ids =
+        DocumentChunk
+          .where(
+            shop_id: @shop.id,
+            source_type: "Product"
+          )
+          .where(
+            source_id: scope.select(:id)
+          )
+          .nearest_neighbors(
+            :embedding,
+            embedding,
+            distance: "cosine"
+          )
+          .limit(LIMIT)
+          .pluck(:source_id)
 
-else
+      Product
+        .includes(:product_variants)
+        .where(id: ids)
+    rescue StandardError => e
+      Rails.logger.error(
+        "ProductRecommendationService Error: #{e.class} #{e.message}"
+      )
 
- query_based_products
+      []
+    end
 
-end
-end
+    private
 
-private
+    # =====================================
+    # ATTRIBUTE FILTER
+    # =====================================
 
-# =========================
-# Similar products
-# =========================
+    def apply_attribute_filter(scope)
+      attributes = @analyzed_query[:attributes]
 
+      return scope if attributes.blank?
 
-def similar_products
-chunk =
- DocumentChunk
- .find_by(
-  shop_id: @shop.id,
-  source_type: "Product",
-  source_id: @product.id
- )
+      attributes.each_value do |value|
+        next if value.blank?
 
+        scope =
+          scope
+            .joins(:product_variants)
+            .where(
+              "product_variants.title ILIKE ?",
+              "%#{value}%"
+            )
+      end
 
-return fallback_products unless chunk
+      scope.distinct
+    end
 
-ids =
- DocumentChunk
- .where(
-  shop_id: @shop.id,
-  source_type: "Product"
- )
- .where
- .not(
-  source_id: @product.id
- )
- .nearest_neighbors(
-  :embedding,
-  chunk.embedding,
-  distance: "cosine"
- )
- .limit(LIMIT)
- .pluck(
-  :source_id
- )
+    # =====================================
+    # PRICE FILTER
+    # =====================================
 
-Product
-.includes(
- :product_variants
-)
-.where(
- id: ids
-)
-end
+    def apply_price_filter(scope)
+      price = @analyzed_query[:price_range]
 
+      return scope if price.blank?
 
-# =========================
-# Requirement / gift search
-# =========================
+      min = price[:min]
+      max = price[:max]
 
+      return scope unless min || max
 
-def query_based_products
-embedding =
- Ai::OllamaEmbeddingService
- .new(@query)
- .call
+      scope = scope.joins(:product_variants)
 
+      if min && max
+        scope.where(
+          product_variants: {
+            price: min..max
+          }
+        )
+      elsif min
+        scope.where(
+          "product_variants.price >= ?",
+          min
+        )
+      elsif max
+        scope.where(
+          "product_variants.price <= ?",
+          max
+        )
+      else
+        scope
+      end
+    end
 
+    # =====================================
+    # EMBEDDING QUERY
+    # =====================================
 
+    def build_query
+      parts = []
 
-ids =
- DocumentChunk
- .where(
-  shop_id: @shop.id,
-  source_type: "Product"
- )
- .nearest_neighbors(
-  :embedding,
-  embedding,
-  distance: "cosine"
- )
- .limit(LIMIT)
- .pluck(
-  :source_id
- )
+      parts << @analyzed_query[:product_name]
+      parts << @analyzed_query[:keywords]
+      parts << @analyzed_query[:variant_name]
+      parts << @analyzed_query[:product_type]
+      parts << @analyzed_query[:vendor]
+      parts << @analyzed_query[:gender]
+      parts << @analyzed_query[:occasion]
 
-Product
-.includes(
- :product_variants
-)
-.where(
- id: ids
-)
-end
+      if @analyzed_query[:attributes].is_a?(Hash)
+        parts += @analyzed_query[:attributes].values
+      end
 
+      parts << "gift for #{@analyzed_query[:gift_for]}" if @analyzed_query[:gift_for].present?
 
-def fallback_products
-Product
-.includes(
- :product_variants
-)
-.where(
- shop_id: @shop.id
-)
-.limit(LIMIT)
-end
-end
+      parts.compact.reject(&:blank?).join(" ")
+    end
+  end
 end

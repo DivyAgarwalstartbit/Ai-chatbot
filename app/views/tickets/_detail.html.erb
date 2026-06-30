@@ -77,7 +77,7 @@
   margin-bottom: 8px;
 }
 .tl-bubble-wrap.customer  { align-self: flex-end;  align-items: flex-end; }
-.tl-bubble-wrap.assistant { align-self: flex-start; align-items: flex-start; }
+.tl-bubble-wrap.assistant { align-self: flex-end; align-items: flex-start; }
 .tl-sender {
   font-size: 10.5px;
   font-weight: 600;
@@ -92,10 +92,11 @@
   line-height: 1.5;
   word-break: break-word;
 }
-.tl-bubble.customer {
+.tl-bubble.user {
   background: #C6A8DC;
   color: #fff;
   border-bottom-right-radius: 4px;
+  border-bottom-left-radius: 4px;
   box-shadow: 0 1px 3px rgba(0,0,0,0.10);
 }
 .tl-bubble.assistant {
@@ -103,6 +104,7 @@
   color: #1A202C;
   border: 1px solid #e1e3e5;
   border-bottom-left-radius: 4px;
+  border-bottom-right-radius: 4px;
   box-shadow: 0 1px 2px rgba(0,0,0,0.06);
 }
 .tl-time { font-size: 10px; color: #8c9196; margin-top: 2px; padding: 0 4px; }
@@ -132,9 +134,66 @@
 .tl-event-dot.status   { background: #f5a623; }
 .tl-event-dot.ticket   { background: #50b83c; }
 
+/* ── Agent (human agent reply) bubble ── */
+.tl-bubble-wrap.agent { align-self: flex-start; align-items: flex-start; }
+.tl-bubble.agent {
+  background: #e8f5e9;
+  color: #1a3c1b;
+  border: 1px solid #a5d6a7;
+  border-bottom-left-radius: 4px;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.06);
+}
+.tl-sender.agent-label { color: #2e7d32; }
+
+/* ── Reply box ── */
+.td-reply-box {
+  flex-shrink: 0;
+  padding: 10px 12px;
+  background: #fff;
+  border-top: 1px solid #e1e3e5;
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+}
+.td-reply-input {
+  flex: 1;
+  border: 1.5px solid #c9cccf;
+  border-radius: 10px;
+  padding: 8px 12px;
+  font-size: 13px;
+  font-family: inherit;
+  resize: none;
+  line-height: 1.5;
+  max-height: 100px;
+  outline: none;
+  transition: border-color 0.15s;
+}
+.td-reply-input:focus { border-color: #C6A8DC; }
+.td-reply-submit {
+  flex-shrink: 0;
+  background: #C6A8DC;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 8px 14px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s, opacity 0.15s;
+}
+.td-reply-submit:hover:not(:disabled) { background: #b490cc; }
+.td-reply-submit:disabled { opacity: 0.5; cursor: not-allowed; }
+.td-reply-hint {
+  font-size: 10.5px;
+  color: #8c9196;
+  padding: 0 12px 6px;
+  flex-shrink: 0;
+  background: #fff;
+}
+
 /* ── Sidebar ── */
 .td-sidebar {
-  width: 220px;
+  width: 280px;
   flex-shrink: 0;
   border-left: 1px solid #e1e3e5;
   background: #fff;
@@ -200,24 +259,11 @@
   timeline.sort_by! { |e| e[:time] }
 %>
 
-<!-- Hidden status forms — one per possible status -->
-<% Ticket::STATUSES.each do |s| %>
-  <% next if s == status %>
-  <form id="td-form-<%= ticket.id %>-<%= s %>"
-        class="td-status-form"
-        action="<%= ticket_action_path %>"
-        method="post"
-        data-turbo="false">
-    <input type="hidden" name="_method"            value="patch">
-    <input type="hidden" name="authenticity_token" value="<%= form_authenticity_token %>">
-    <input type="hidden" name="status"             value="<%= s %>">
-    <input type="hidden" name="q"                  value="<%= params[:q] %>">
-    <input type="hidden" name="status_filter"      value="<%= params[:status] %>">
-    <button id="td-btn-<%= ticket.id %>-<%= s %>" type="submit"></button>
-  </form>
-<% end %>
 
-<div class="td-panel">
+<div class="td-panel"
+     data-controller="ticket-chat"
+     data-ticket-chat-conversation-id-value="<%= ticket.conversation&.id.to_i %>"
+     data-ticket-chat-reply-url-value="<%= ticket.conversation ? reply_ticket_path(ticket) : "" %>">
 
   <!-- ── Header ── -->
   <div class="td-header">
@@ -235,15 +281,13 @@
     <!-- Status dropdown -->
     <div style="flex-shrink:0;">
       <s-select
+        id="ticket-status-select-<%= ticket.id %>"
         label=""
-        value=""
+        value="<%= status %>"
         style="min-width:140px;"
-        onchange="(function(sel){ var s=sel.value; if(s) document.getElementById('td-btn-<%= ticket.id %>-'+s).click(); })(this)"
       >
-        <s-option value="">Change status…</s-option>
         <% Ticket::STATUSES.each do |s| %>
-          <% next if s == status %>
-          <s-option value="<%= s %>"><%= s.tr("_"," ").capitalize %></s-option>
+          <s-option value="<%= s %>" <%= "selected" if s == status %>><%= s.tr("_"," ").capitalize %></s-option>
         <% end %>
       </s-select>
     </div>
@@ -253,7 +297,7 @@
   <div class="td-body">
 
     <!-- Timeline -->
-    <div class="td-timeline-col">
+    <div class="td-timeline-col" data-ticket-chat-target="messages">
 
       <!-- Ticket opened event -->
       <div class="tl-event">
@@ -283,6 +327,8 @@
             <div class="tl-bubble-wrap <%= role %>">
               <% if role == "assistant" %>
                 <span class="tl-sender">AI Assistant</span>
+              <% elsif role == "agent" %>
+                <span class="tl-sender agent-label">Support Agent</span>
               <% end %>
               <div class="tl-bubble <%= role %>"><%= entry[:content] %></div>
               <span class="tl-time"><%= entry[:time].strftime("%-I:%M %p") %></span>
@@ -365,4 +411,63 @@
 
   </div><!-- /.td-body -->
 
+  <% if ticket.conversation %>
+    <div class="td-reply-hint">Ctrl+Enter to send</div>
+    <div class="td-reply-box">
+      <textarea
+        class="td-reply-input"
+        rows="2"
+        placeholder="Reply to customer…"
+        data-ticket-chat-target="input"
+        data-action="keydown->ticket-chat#inputKeydown"
+      ></textarea>
+      <button
+        class="td-reply-submit"
+        data-ticket-chat-target="submit"
+        data-action="click->ticket-chat#submit"
+      >Send</button>
+    </div>
+  <% end %>
+
 </div><!-- /.td-panel -->
+
+<script>
+(function() {
+  var sel = document.getElementById("ticket-status-select-<%= ticket.id %>");
+  if (!sel) return;
+
+  var badgeTones = { open: "critical", in_progress: "warning", reopen: "attention", closed: "neutral" };
+
+  function onStatusChange() {
+    setTimeout(function() {
+      var newStatus = sel.value !== undefined ? sel.value : sel.getAttribute("value");
+      if (!newStatus) return;
+
+      fetch("<%= ticket_path(ticket, format: :json) %>", {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          "X-CSRF-Token": document.querySelector('meta[name="csrf-token"]')?.content || ""
+        },
+        body: JSON.stringify({ status: newStatus })
+      })
+      .then(function(r) { return r.json(); })
+      .then(function(data) {
+        if (!data.success) return;
+        var badge = document.querySelector("#ticket-status-select-<%= ticket.id %>")
+                            .closest(".td-header")
+                            .querySelector("s-badge");
+        if (badge) {
+          badge.setAttribute("tone", badgeTones[newStatus] || "neutral");
+          badge.textContent = newStatus.replace(/_/g, " ").replace(/\b\w/g, function(c) { return c.toUpperCase(); });
+        }
+        if (window.Turbo) Turbo.visit(window.location.href, { frame: "ticket-list" });
+      });
+    }, 0);
+  }
+
+  ["change", "s-change", "input"].forEach(function(evtName) {
+    sel.addEventListener(evtName, onStatusChange);
+  });
+})();
+</script>

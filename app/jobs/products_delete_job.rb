@@ -1,19 +1,28 @@
 class ProductsDeleteJob < ApplicationJob
-  extend ShopifyAPI::Webhooks::WebhookHandler
+extend ShopifyAPI::Webhooks::WebhookHandler
 
-  def self.handle(topic:, shop:, body:, webhook_id:, api_version:)
-    perform_later(topic: topic, shop_domain: shop, webhook: body)
-  end
+queue_as :default
 
-  def perform(topic:, shop_domain:, webhook:)
-    shop = Shop.find_by(shopify_domain: shop_domain)
-    
-    if shop.nil?
-      logger.error("#{self.class} failed: cannot find shop with domain '#{shop_domain}'")
-      raise ActiveRecord::RecordNotFound, "Shop Not Found"
-    end
+class << self
+def handle(data:)
+perform_later(
+topic: data.topic,
+shop_domain: data.shop,
+webhook: data.body
+)
+end
+end
 
-    logger.info("#{self.class} started for shop '#{shop_domain}'")
-    # Handle product deletion
-  end
+def perform(topic:, shop_domain:, webhook:)
+shop = Shop.find_by!(shopify_domain: shop_domain)
+
+
+product = shop.products.find_by(
+  shopify_product_id: webhook["id"].to_s
+)
+
+return unless product
+
+product.destroy!
+end
 end

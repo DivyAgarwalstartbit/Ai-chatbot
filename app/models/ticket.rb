@@ -4,7 +4,7 @@ class Ticket < ApplicationRecord
   belongs_to :conversation, optional: true
 
   SOURCES = %w[customer_requested_human ai_escalation merchant_created].freeze
-  STATUSES = %w[open in_progress resolved closed].freeze
+  STATUSES = %w[open in_progress reopen closed].freeze
   PRIORITIES = %w[low normal high urgent].freeze
 
   validates :subject, presence: true

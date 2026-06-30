@@ -1,19 +1,28 @@
 class ProductsUpdateJob < ApplicationJob
-  extend ShopifyAPI::Webhooks::WebhookHandler
+extend ShopifyAPI::Webhooks::WebhookHandler
+Rails.logger.info("🔥 UPDATE WEBHOOK HIT")
+queue_as :default
 
-  def self.handle(topic:, shop:, body:, webhook_id:, api_version:)
-    perform_later(topic: topic, shop_domain: shop, webhook: body)
-  end
+class << self
+def handle(data:)
+perform_later(
+topic: data.topic,
+shop_domain: data.shop,
+webhook: data.body
+)
+end
+end
 
-  def perform(topic:, shop_domain:, webhook:)
-    shop = Shop.find_by(shopify_domain: shop_domain)
-    
-    if shop.nil?
-      logger.error("#{self.class} failed: cannot find shop with domain '#{shop_domain}'")
-      raise ActiveRecord::RecordNotFound, "Shop Not Found"
-    end
+def perform(topic:, shop_domain:, webhook:)
+shop = Shop.find_by!(shopify_domain: shop_domain)
 
-    logger.info("#{self.class} started for shop '#{shop_domain}'")
-    # Handle product update
-  end
+payload =
+    webhook.is_a?(String) ? JSON.parse(webhook) : webhook
+
+
+Shopify::ProductSyncService.new(
+  shop: shop,
+  product_id: payload["id"]
+).call
+end
 end

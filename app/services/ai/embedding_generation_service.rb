@@ -57,14 +57,30 @@ module Ai
 
         now = Time.current
 
-        batch.zip(vectors).each do |chunk, vector|
-          chunk.update_columns(
-            embedding:   vector,
-            embedded_at: now,
-            updated_at:  now
-          )
+        # Guard against a race where a later DocumentChunkJob deleted and
+        # recreated these chunks between our initial fetch and this upsert.
+        # upsert_all falls back to INSERT when the id is missing, which fails
+        # the NOT NULL constraint on shop_id. Only update rows that still exist.
+        existing_ids = DocumentChunk.where(id: batch.map(&:id)).pluck(:id).to_set
+
+        rows = batch.zip(vectors).filter_map do |chunk, vector|
+          next unless existing_ids.include?(chunk.id)
+          { id: chunk.id, embedding: vector, embedded_at: now }
         end
 
+        next if rows.empty?
+
+            # update_only must NOT include updated_at — Rails adds it automatically
+            # via the record_timestamps mechanism. Including it explicitly causes
+            # PG::SyntaxError "multiple assignments to same column".
+            rows.each do |row|
+      DocumentChunk
+        .where(id: row[:id])
+        .update_all(
+          embedding: row[:embedding],
+          embedded_at: row[:embedded_at]
+        )
+    end
         embedded_count += batch.size
 
         Rails.logger.info(

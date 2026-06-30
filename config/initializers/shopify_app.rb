@@ -1,7 +1,7 @@
 ShopifyApp.configure do |config|
   config.application_name = "My Shopify App"
   config.old_secret = ""
-  config.scope = "read_products" # Consult this page for more scope options: https://shopify.dev/docs/api/usage/access-scopes
+  config.scope = "read_products,read_orders,write_products,read_returns,read_legal_policies" # Consult this page for more scope options: https://shopify.dev/docs/api/usage/access-scopes
   config.embedded_app = true
   config.new_embedded_auth_strategy = true
   config.check_session_expiry_date = true

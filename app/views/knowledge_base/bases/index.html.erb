@@ -6,6 +6,7 @@
 <s-page
   data-controller="modal"
   data-modal-type-value="faq"
+  heading="Kowledge base"
   data-modal-create-url-value="<%= knowledge_base_faqs_path(shop: @shop_origin, host: @host, embedded: 1) %>"
 >
 
@@ -280,6 +281,9 @@
 }
 </style>
 
+
+
+
   <!-- ── Page header ── -->
   <s-section>
     <s-grid gap="extra-small">
@@ -405,6 +409,24 @@
     </details>
 
   </s-section>
+
+  <s-section>
+    <s-grid gap="small">
+      <s-heading element="h1">How policy content is selected</s-heading>
+     <s-paragraph color="subdued" style="margin-top: 8px;">
+      If the same policy is available from multiple sources, the chatbot will automatically use the highest-priority source.
+    </s-paragraph>
+
+    <s-paragraph style="margin: 12px 0;">
+      <strong>Shopify Sync → Uploaded Document → Manual Entry</strong>
+    </s-paragraph>
+
+    <s-paragraph color="subdued">
+      For example, if a policy is synced from Shopify, it will be used even if an uploaded document or manually entered policy is also available.
+    </s-paragraph>
+    </s-grid>
+  </s-section>
+
 
   <%# ── FAQ Add/Edit Modal ── %>
   <%= render "knowledge_base/faqs/form_modal",

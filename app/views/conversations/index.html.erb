@@ -1,10 +1,12 @@
 <style>
 /* ── Tab bar ── */
 .inbox-tab-bar {
-  display: flex;
-  border-bottom: 1px solid #e1e3e5;
-  background: #fff;
-  flex-shrink: 0;
+    display: grid;
+    border-bottom: 1px solid #e1e3e5;
+    background: #fff;
+    flex-shrink: 0;
+    grid-template-columns: 1fr 1fr;
+    text-align: center;
 }
 .inbox-tab {
   padding: 10px 18px;
@@ -178,6 +180,25 @@ turbo-frame#conv-detail {
   background: #f6f6f7;
 }
 
+.conv-list,
+#ticket-list,
+.conv-right,
+#ticket-detail,
+.ticket-detail {
+  scrollbar-width: none;      /* Firefox */
+  -ms-overflow-style: none;   /* IE & old Edge */
+}
+
+.conv-list::-webkit-scrollbar,
+#ticket-list::-webkit-scrollbar,
+.conv-right::-webkit-scrollbar,
+#ticket-detail::-webkit-scrollbar,
+.ticket-details::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+  display: none;
+}
+
 /* ── Chat bubbles ── */
 .conv-messages {
   flex: 1;
@@ -196,8 +217,30 @@ turbo-frame#conv-detail {
   max-width: 68%;
   min-width: 0;
 }
-.bubble-wrap.customer  { align-self: flex-end;  align-items: flex-end; }
-.bubble-wrap.assistant { align-self: flex-start; align-items: flex-start; }
+/* Customer = LEFT */
+.bubble-wrap.customer {
+  align-self: flex-start;
+  align-items: flex-start;
+}
+
+.bubble {
+  padding: 10px 14px;
+  border-radius: 16px;
+  font-size: 13.5px;
+  line-height: 1.45;
+  max-width: 100%;
+  word-break: break-word;
+}
+
+/* AI Assistant = RIGHT */
+
+
+/* System stays centered */
+.bubble-wrap.system {
+  align-self: center;
+  align-items: center;
+  max-width: 85%;
+}
 .bubble-wrap.system    { align-self: center; align-items: center; max-width: 85%; }
 .bubble {
   padding: 9px 14px;
@@ -206,18 +249,17 @@ turbo-frame#conv-detail {
   line-height: 1.5;
   word-break: break-word;
 }
-.bubble.customer {
+.bubble.user {
+  background: #ffffff;
+  border: 1px solid #e1e3e5;
+  color: #1A202C;
+  border-bottom-left-radius: 4px;
+}
+.bubble.assistant {
   background: #C6A8DC;
   color: #fff;
   border-bottom-right-radius: 4px;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.10);
-}
-.bubble.assistant {
-  background: #fff;
-  color: #1A202C;
-  border: 1px solid #e1e3e5;
-  border-bottom-left-radius: 4px;
-  box-shadow: 0 1px 2px rgba(0,0,0,0.06);
+  box-shadow: 0 1px 3px rgba(0,0,0,0.08);
 }
 .bubble.system {
   background: #f1f2f3;
@@ -232,7 +274,7 @@ turbo-frame#conv-detail {
 /* ── Customer details drawer ── */
 .conv-drawer {
   display: none;
-  width: 264px;
+  width: 320px;
   border-left: 1px solid #e1e3e5;
   overflow-y: auto;
   background: #fff;
@@ -260,7 +302,7 @@ turbo-frame#conv-detail {
 .conv-drawer-value.mono  { font-family: monospace; font-size: 11px; }
 </style>
 
-<s-page>
+<s-page heading="Conversations" inlinesize="large">
   <div class="conv-layout">
 
     <!-- ═══════════ LEFT PANEL ═══════════ -->
@@ -268,20 +310,18 @@ turbo-frame#conv-detail {
 
       <!-- Tab bar -->
       <div class="inbox-tab-bar">
+         <%= link_to tickets_path(shop: @shop_origin, host: @host, embedded: 1), class: "inbox-tab" do %>
+          Tickets <span class="inbox-tab-count"><%= @tickets_count %></span>
+        <% end %>
         <%= link_to conversations_path(shop: @shop_origin, host: @host, embedded: 1), class: "inbox-tab is-active" do %>
           Conversations <span class="inbox-tab-count"><%= @conversations_count %></span>
         <% end %>
-        <%= link_to tickets_path(shop: @shop_origin, host: @host, embedded: 1), class: "inbox-tab" do %>
-          Tickets <span class="inbox-tab-count"><%= @tickets_count %></span>
-        <% end %>
+       
       </div>
 
       <!-- Panel header -->
       <div class="conv-left-header">
-        <div>
-          <div style="font-size:14px;font-weight:700;color:#202223;">Conversations</div>
-          <div style="font-size:12px;color:#8c9196;margin-top:1px;"><%= @conversations.size %> total</div>
-        </div>
+        <div style="font-size:14px;font-weight:700;color:#202223;">Conversations</div>
       </div>
 
       <!-- Filters -->
@@ -300,16 +340,17 @@ turbo-frame#conv-detail {
                 value="<%= params[:q] %>"
                 placeholder="Search…"
                 clearButton
-                onInput="convSearchDebounce(this)"
-                onChange="convSearchDebounce(this)"
+                onInput="convSearchDebounce(this.value, this)"
+                onChange="convSearchDebounce(this.value, this)"
               ></s-text-field>
             </div>
             <div style="width:120px;flex-shrink:0;">
               <s-select name="status" label="" onchange="this.closest('form').requestSubmit()">
                 <s-option value=""         <%= params[:status].blank?           ? "selected" : "" %>>All</s-option>
+                
                 <s-option value="open"     <%= params[:status] == "open"     ? "selected" : "" %>>Open</s-option>
                 <s-option value="closed"   <%= params[:status] == "closed"   ? "selected" : "" %>>Closed</s-option>
-                <s-option value="resolved" <%= params[:status] == "resolved" ? "selected" : "" %>>Resolved</s-option>
+                <s-option value="escalated" <%= params[:status] == "escalated" ? "selected" : "" %>>Escalated</s-option>
               </s-select>
             </div>
           </div>
@@ -322,6 +363,7 @@ turbo-frame#conv-detail {
           <div style="padding:32px 16px;">
             <s-empty-state heading="No conversations yet">
               <s-text>Chat conversations will appear here once your widget goes live.</s-text>
+             
             </s-empty-state>
           </div>
         <% else %>
@@ -335,12 +377,25 @@ turbo-frame#conv-detail {
                              else
                                "Anonymous"
                              end
-              initials = if customer
-                           parts = [customer.first_name, customer.last_name].compact
-                           parts.map { |p| p[0].upcase }.join.first(2).presence || "?"
-                         else
-                           "?"
-                         end
+                        initials =
+              if customer
+                source =
+                  if customer.first_name.present? || customer.last_name.present?
+                    "#{customer.first_name} #{customer.last_name}".strip
+                  else
+                    customer.email
+                  end
+
+                source
+                  .split
+                  .reject(&:blank?)
+                  .map { |p| p[0].upcase }
+                  .first(2)
+                  .join
+                  .presence || "?"
+              else
+                "?"
+              end
               last_msg   = conv.messages.max_by(&:created_at)
               preview    = last_msg&.content.to_s.strip.truncate(60)
               ts         = conv.last_message_at || conv.created_at
@@ -356,9 +411,14 @@ turbo-frame#conv-detail {
               is_selected = @conversation&.id == conv.id
               av_class    = "av-#{idx % 6}"
             %>
-            <%= link_to conversation_path(conv, shop: @shop_origin, host: @host, embedded: 1, q: params[:q], status: params[:status]),
-                        data: { turbo_frame: "conv-detail" },
-                        class: "conv-row #{is_selected ? 'is-selected' : ''} #{av_class}" do %>
+            <%= link_to conversation_path(conv,
+  shop: @shop_origin,
+  host: @host,
+  embedded: 1,
+  conversation_id: conv.id
+),
+data: { turbo_frame: "conv-detail" },
+class: "conv-row #{is_selected ? 'is-selected' : ''} #{av_class}" do %>
               <div class="conv-row-inner">
                 <s-avatar initials="<%= initials %>" size="medium" style="flex-shrink:0;margin-top:1px;"></s-avatar>
                 <div class="conv-row-content">
@@ -374,6 +434,29 @@ turbo-frame#conv-detail {
               </div>
             <% end %>
           <% end %>
+        <% end %>
+
+        <% if @total_pages > 1 %>
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px;border-top:1px solid #e1e3e5;flex-shrink:0;background:#fff;">
+            <s-button
+              variant="secondary"
+              icon="arrow-left"
+              size="slim"
+              <%= "disabled" if @current_page <= 1 %>
+              onclick="convGoToPage(<%= @current_page - 1 %>)">
+              Previous
+            </s-button>
+            <span style="font-size:12px;color:#8c9196;"><%= @current_page %> / <%= @total_pages %></span>
+            <s-button
+              variant="secondary"
+              icon="arrow-right"
+              icon-position="end"
+              size="slim"
+              <%= "disabled" if @current_page >= @total_pages %>
+              onclick="convGoToPage(<%= @current_page + 1 %>)">
+              Next
+            </s-button>
+          </div>
         <% end %>
       </turbo-frame>
     </div>
@@ -401,10 +484,40 @@ turbo-frame#conv-detail {
 
 <script>
   var _convSearchTimer;
-  function convSearchDebounce(el) {
+
+  function convSearchDebounce(value, el) {
     clearTimeout(_convSearchTimer);
-    _convSearchTimer = setTimeout(function() {
-      el.closest('form').requestSubmit();
+    _convSearchTimer = setTimeout(function () {
+      const form = el.closest('form');
+      if (form) form.requestSubmit();
     }, 350);
+  }
+
+  document.addEventListener('click', function(e) {
+    var row = e.target.closest('.conv-row');
+    if (!row) return;
+    var frame = row.closest('#conv-list');
+    if (!frame) return;
+    frame.querySelectorAll('.conv-row').forEach(function(r) { r.classList.remove('is-selected'); });
+    row.classList.add('is-selected');
+  });
+
+  function convGoToPage(page) {
+    const form = document.getElementById("conv-filter-form");
+    const url  = new URL(form ? form.action : window.location.href, window.location.origin);
+    // carry current filter params
+    const q      = form && form.querySelector("[name='q']");
+    const status = form && form.querySelector("[name='status']");
+    if (q && q.value)      url.searchParams.set("q", q.value);
+    if (status && status.value) url.searchParams.set("status", status.value);
+    url.searchParams.set("page", page);
+    url.searchParams.set("shop",     "<%= @shop_origin %>");
+    url.searchParams.set("host",     "<%= @host %>");
+    url.searchParams.set("embedded", "1");
+    if (window.Turbo) {
+      Turbo.visit(url.toString(), { frame: "conv-list" });
+    } else {
+      window.location.href = url.toString();
+    }
   }
 </script>

@@ -7,7 +7,7 @@ class Product < ApplicationRecord
               scope: :shop_id
             }
 
-      has_many :product_variants
+      has_many :product_variants, dependent: :destroy
 
        has_many :document_chunks,
         as: :source,

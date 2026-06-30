@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+    body { margin: 0; padding: 0; background: #f4f6f8; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; color: #1a202c; }
+    .wrapper { max-width: 580px; margin: 32px auto; background: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 2px 12px rgba(0,0,0,.08); }
+    .header { background: #ff6500; padding: 24px 32px; }
+    .header h1 { margin: 0; color: #fff; font-size: 18px; font-weight: 600; }
+    .header p { margin: 4px 0 0; color: rgba(255,255,255,.8); font-size: 13px; }
+    .body { padding: 28px 32px; }
+    .greeting { font-size: 15px; margin-bottom: 20px; }
+    .reply-box { background: #f8f9fa; border-left: 4px solid #ff6500; border-radius: 0 8px 8px 0; padding: 16px 20px; margin-bottom: 24px; font-size: 14px; line-height: 1.6; white-space: pre-wrap; }
+    .ticket-meta { font-size: 12px; color: #6b7280; border-top: 1px solid #e5e7eb; padding-top: 16px; margin-top: 8px; }
+    .ticket-meta strong { color: #374151; }
+    .history-heading { font-size: 13px; font-weight: 600; color: #374151; margin: 24px 0 12px; }
+    .msg-row { margin-bottom: 12px; }
+    .msg-role { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .5px; margin-bottom: 3px; }
+    .msg-role.user { color: #3b82f6; }
+    .msg-role.assistant { color: #10b981; }
+    .msg-role.agent { color: #ff6500; }
+    .msg-content { font-size: 13px; line-height: 1.55; color: #374151; }
+    .footer { background: #f8f9fa; padding: 16px 32px; text-align: center; font-size: 12px; color: #9ca3af; border-top: 1px solid #e5e7eb; }
+  </style>
+</head>
+<body>
+  <div class="wrapper">
+    <div class="header">
+      <h1><%= @shop.shopify_domain.split(".").first.titleize %> Support</h1>
+      <p>Ticket #<%= @ticket.id %> — <%= @ticket.subject %></p>
+    </div>
+
+    <div class="body">
+      <p class="greeting">
+        Hi <%= @customer.first_name.presence || "there" %>,
+      </p>
+      <p style="font-size:14px;margin-bottom:16px;">
+        Our support team has replied to your ticket:
+      </p>
+
+      <div class="reply-box"><%= @message.content %></div>
+
+      <div class="ticket-meta">
+        <strong>Ticket:</strong> #<%= @ticket.id %> &nbsp;·&nbsp;
+        <strong>Subject:</strong> <%= @ticket.subject %> &nbsp;·&nbsp;
+        <strong>Status:</strong> <%= @ticket.status&.titleize %>
+      </div>
+
+      <% messages = @ticket.conversation.messages.order(created_at: :asc) %>
+      <% if messages.count > 1 %>
+        <p class="history-heading">Conversation history</p>
+        <% messages.each do |msg| %>
+          <% next if msg.id == @message.id %>
+          <div class="msg-row">
+            <div class="msg-role <%= msg.role %>">
+              <%= msg.role == "assistant" ? "Support Bot" : msg.role.titleize %>
+            </div>
+            <div class="msg-content"><%= msg.content %></div>
+          </div>
+        <% end %>
+      <% end %>
+    </div>
+
+    <div class="footer">
+      This email was sent because you previously contacted support.<br>
+      Please do not reply directly to this email.
+    </div>
+  </div>
+</body>
+</html>
