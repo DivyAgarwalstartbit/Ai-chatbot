@@ -60,7 +60,8 @@ class TicketsController < AuthenticatedController
           message: message,
           shop:    current_shop
         ).deliver_later
-        render json: { success: true, message_id: message.id, delivery: "email" }
+        ticket.update!(status: "closed")
+        render json: { success: true, message_id: message.id, delivery: "email", ticket_status: "closed" }
       else
         render json: { success: true, message_id: message.id, delivery: "none",
                        warning: "Customer has no registered email — message saved but not delivered" }

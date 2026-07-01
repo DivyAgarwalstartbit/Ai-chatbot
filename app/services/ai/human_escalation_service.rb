@@ -21,6 +21,8 @@ module Ai
         source:       source_type
       )
 
+      notify_support_team(ticket)
+
       conversation.update!(
         handoff_mode: true,
         escalated_at: Time.current,
@@ -72,6 +74,18 @@ module Ai
 
     def payment_issue?
       @message.match?(/\b(payment|charge|bill|invoice|dispute|credit)\b/i)
+    end
+
+    def notify_support_team(ticket)
+      vr = (@shop.ai_shopper_configuration&.visibility_rules || {}).with_indifferent_access
+      return unless vr[:ticket_email_notification].to_s == "true"
+
+      support_email = vr[:support_email].presence
+      return if support_email.blank?
+
+      TicketNotificationMailer.new_ticket(ticket: ticket, shop: @shop).deliver_later
+    rescue => e
+      Rails.logger.error("TicketNotificationMailer failed: #{e.class} #{e.message}")
     end
   end
 end

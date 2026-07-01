@@ -1,68 +1,171 @@
-require "net/http"
-require "json"
-
-
 module Ai
-class GroqService
-def initialize(messages)
- @messages = messages
-end
+  class GroqService
+    MODEL = "llama-3.1-8b-instant".freeze
 
+    INPUT_PRICE_PER_MILLION  = 0.05
+    OUTPUT_PRICE_PER_MILLION = 0.08
 
+    def initialize(messages, name: "groq", user_id: nil, session_id: nil)
+      @messages   = messages
+      @name       = name
+      @user_id    = user_id    || Ai::LangfuseContext.user_id
+      @session_id = session_id || Ai::LangfuseContext.session_id
+    end
 
-  def call
-    uri = URI("https://api.groq.com/openai/v1/chat/completions")
+    # ── Blocking call ────────────────────────────────────────────────
+    def call
+      trace      = build_trace
+      started_at = Time.current
 
-    response = Net::HTTP.post(
-      uri,
-      { model: "llama-3.1-8b-instant", messages: @messages, temperature: 0.1 }.to_json,
-      { "Authorization" => "Bearer #{ENV['GROQ_API_KEY']}", "Content-Type" => "application/json" }
-    )
+      response = Net::HTTP.post(
+        URI("https://api.groq.com/openai/v1/chat/completions"),
+        { model: MODEL, messages: @messages, temperature: 0.1 }.to_json,
+        "Authorization" => "Bearer #{ENV["GROQ_API_KEY"]}",
+        "Content-Type"  => "application/json"
+      )
 
-    data = JSON.parse(response.body)
-    data.dig("choices", 0, "message", "content")
-  end
+      latency = elapsed_ms(started_at)
+      data    = JSON.parse(response.body)
+      output  = data.dig("choices", 0, "message", "content")
+      usage   = data["usage"] || {}
 
-  # Streams tokens by yielding each chunk as it arrives from Groq.
-  # Returns the full accumulated text when done.
-  def stream
-    uri = URI("https://api.groq.com/openai/v1/chat/completions")
-    full_text = ""
-    line_buf  = ""
+      # Single generation-create event with all data — no update needed
+      Langfuse.generation(
+        trace_id:   trace.id,
+        name:       "#{@name}/call",
+        model:      MODEL,
+        input:      @messages,
+        output:     output,
+        end_time:   Time.now.utc,
+        usage:      build_usage(usage),
+        metadata:   { latency_ms: latency }
+      )
 
-    Net::HTTP.start(uri.host, uri.port, use_ssl: true, read_timeout: 120) do |http|
-      req = Net::HTTP::Post.new(uri)
-      req["Authorization"] = "Bearer #{ENV['GROQ_API_KEY']}"
-      req["Content-Type"]  = "application/json"
-      req.body = {
-        model: "llama-3.1-8b-instant", messages: @messages, temperature: 0.1, stream: true
-      }.to_json
+      output
+    rescue => e
+      log_error(trace, "#{@name}/call", e)
+      raise
+    ensure
+      Langfuse.flush
+    end
 
-      http.request(req) do |response|
-        response.read_body do |chunk|
-          line_buf += chunk
-          while (newline_idx = line_buf.index("\n"))
-            line     = line_buf.slice!(0..newline_idx).strip
-            next unless line.start_with?("data: ")
+    # ── Streaming call ───────────────────────────────────────────────
+    def stream
+      trace      = build_trace
+      started_at = Time.current
 
-            payload = line.delete_prefix("data: ")
-            next if payload == "[DONE]"
+      full_text    = ""
+      line_buf     = ""
+      stream_usage = {}
 
-            begin
-              token = JSON.parse(payload).dig("choices", 0, "delta", "content")
-              if token.present?
-                full_text += token
+      Net::HTTP.start("api.groq.com", 443, use_ssl: true, read_timeout: 120) do |http|
+        req = Net::HTTP::Post.new("/openai/v1/chat/completions")
+        req["Authorization"] = "Bearer #{ENV["GROQ_API_KEY"]}"
+        req["Content-Type"]  = "application/json"
+        req.body = {
+          model:          MODEL,
+          messages:       @messages,
+          temperature:    0.1,
+          stream:         true,
+          stream_options: { include_usage: true }
+        }.to_json
+
+        http.request(req) do |response|
+          response.read_body do |chunk|
+            line_buf += chunk
+
+            while (idx = line_buf.index("\n"))
+              line = line_buf.slice!(0..idx).strip
+              next unless line.start_with?("data: ")
+
+              payload = line.delete_prefix("data: ")
+              next if payload == "[DONE]"
+
+              begin
+                parsed = JSON.parse(payload)
+
+                # Final usage-only chunk from Groq (stream_options.include_usage)
+                if parsed["usage"]
+                  stream_usage = parsed["usage"]
+                  next
+                end
+
+                token = parsed.dig("choices", 0, "delta", "content")
+                next unless token
+
+                full_text << token
                 yield token
+              rescue JSON::ParserError
               end
-            rescue JSON::ParserError
-              next
             end
           end
         end
       end
+
+      # Single generation-create event with all data — no update needed
+      Langfuse.generation(
+        trace_id:   trace.id,
+        name:       "#{@name}/stream",
+        model:      MODEL,
+        input:      @messages,
+        output:     full_text,
+        end_time:   Time.now.utc,
+        usage:      build_usage(stream_usage),
+        metadata:   { latency_ms: elapsed_ms(started_at) }
+      )
+
+      full_text
+    rescue => e
+      log_error(trace, "#{@name}/stream", e)
+      raise
+    ensure
+      Langfuse.flush
     end
 
-    full_text
+    private
+
+    def build_trace
+      Langfuse.trace(
+        name:       @name,
+        user_id:    @user_id,
+        session_id: @session_id,
+        metadata:   { shop: Ai::LangfuseContext.shop }.compact
+      )
+    end
+
+    def build_usage(raw)
+      input_tokens  = raw["prompt_tokens"].to_i
+      output_tokens = raw["completion_tokens"].to_i
+
+      Langfuse::Models::Usage.new(
+        input:       input_tokens,
+        output:      output_tokens,
+        total:       raw["total_tokens"].to_i,
+        unit:        "TOKENS",
+        input_cost:  (input_tokens  / 1_000_000.0) * INPUT_PRICE_PER_MILLION,
+        output_cost: (output_tokens / 1_000_000.0) * OUTPUT_PRICE_PER_MILLION,
+        total_cost:  (input_tokens  / 1_000_000.0) * INPUT_PRICE_PER_MILLION +
+                     (output_tokens / 1_000_000.0) * OUTPUT_PRICE_PER_MILLION
+      )
+    end
+
+    def log_error(trace, name, error)
+      return unless trace
+      Langfuse.generation(
+        trace_id:       trace.id,
+        name:           name,
+        model:          MODEL,
+        input:          @messages,
+        end_time:       Time.now.utc,
+        level:          "ERROR",
+        status_message: error.message
+      )
+    rescue StandardError
+      nil
+    end
+
+    def elapsed_ms(started_at)
+      ((Time.current - started_at) * 1000).round
+    end
   end
-end
 end

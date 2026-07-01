@@ -169,6 +169,16 @@
   transition: border-color 0.15s;
 }
 .td-reply-input:focus { border-color: #C6A8DC; }
+.td-reply-input:disabled { background: #f6f6f7; color: #8c9196; cursor: not-allowed; }
+.td-closed-notice {
+  flex-shrink: 0;
+  text-align: center;
+  font-size: 12px;
+  color: #8c9196;
+  padding: 10px 16px;
+  background: #f6f6f7;
+  border-top: 1px solid #e1e3e5;
+}
 .td-reply-submit {
   flex-shrink: 0;
   background: #C6A8DC;
@@ -412,19 +422,28 @@
   </div><!-- /.td-body -->
 
   <% if ticket.conversation %>
-    <div class="td-reply-hint">Ctrl+Enter to send</div>
+    <% is_closed = (status == "closed") %>
+    <% if is_closed %>
+      <div class="td-closed-notice" data-ticket-chat-target="closedNotice">
+        This ticket is closed. Change the status to reopen it.
+      </div>
+    <% else %>
+      <div class="td-reply-hint" data-ticket-chat-target="hint">Ctrl+Enter to send</div>
+    <% end %>
     <div class="td-reply-box">
       <textarea
         class="td-reply-input"
         rows="2"
-        placeholder="Reply to customer…"
+        placeholder="<%= is_closed ? "Ticket is closed" : "Reply to customer…" %>"
         data-ticket-chat-target="input"
         data-action="keydown->ticket-chat#inputKeydown"
+        <%= "disabled" if is_closed %>
       ></textarea>
       <button
         class="td-reply-submit"
         data-ticket-chat-target="submit"
         data-action="click->ticket-chat#submit"
+        <%= "disabled" if is_closed %>
       >Send</button>
     </div>
   <% end %>
@@ -460,6 +479,18 @@
         if (badge) {
           badge.setAttribute("tone", badgeTones[newStatus] || "neutral");
           badge.textContent = newStatus.replace(/_/g, " ").replace(/\b\w/g, function(c) { return c.toUpperCase(); });
+        }
+        var panel = document.querySelector(".td-panel");
+        if (panel) {
+          var input  = panel.querySelector("[data-ticket-chat-target='input']");
+          var submit = panel.querySelector("[data-ticket-chat-target='submit']");
+          var hint   = panel.querySelector("[data-ticket-chat-target='hint']");
+          var notice = panel.querySelector("[data-ticket-chat-target='closedNotice']");
+          var isClosed = (newStatus === "closed");
+          if (input)  { input.disabled  = isClosed; input.placeholder = isClosed ? "Ticket is closed" : "Reply to customer…"; }
+          if (submit) { submit.disabled = isClosed; }
+          if (isClosed && hint) { hint.style.display = "none"; }
+          if (!isClosed && notice) { notice.style.display = "none"; }
         }
         if (window.Turbo) Turbo.visit(window.location.href, { frame: "ticket-list" });
       });

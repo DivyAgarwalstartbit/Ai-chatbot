@@ -33,8 +33,8 @@ gem "shopify_api"
 gem "dotenv-rails", groups: [ :development, :test ]
 gem "pgvector"
 gem "neighbor"
+gem "langfuse"
 
-gem "sidekiq"
 gem "redis"
 gem "byebug"
 gem "ruby-openai", "~> 7.0"

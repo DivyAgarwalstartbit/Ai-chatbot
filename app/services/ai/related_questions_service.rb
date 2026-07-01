@@ -27,7 +27,7 @@ module Ai
         }
       ]
 
-      raw = Ai::GroqService.new(messages).call.to_s.strip
+      raw = Ai::GroqService.new(messages, name: "related_questions").call.to_s.strip
       # Extract JSON array even if the model wraps it in markdown
       json_str = raw[/\[.*\]/m] || raw
       result   = JSON.parse(json_str)

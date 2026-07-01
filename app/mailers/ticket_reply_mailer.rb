@@ -7,13 +7,15 @@ class TicketReplyMailer < ApplicationMailer
     @shop     = shop
     @customer = ticket.customer
 
-    # Use env-configured from-address; fall back to a sensible default
-    from_addr = ENV.fetch("SUPPORT_EMAIL_FROM", "support@#{shop.shopify_domain}")
+    vr             = (shop.ai_shopper_configuration&.visibility_rules || {}).with_indifferent_access
+    merchant_email = vr[:support_email].presence
 
-    mail(
+    options = {
       to:      @customer.email,
-      from:    from_addr,
       subject: "Re: #{ticket.subject} [Ticket ##{ticket.id}]"
-    )
+    }
+    options[:reply_to] = merchant_email if merchant_email.present?
+
+    mail(options)
   end
 end

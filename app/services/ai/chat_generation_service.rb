@@ -23,7 +23,7 @@ module Ai
         { role: "user",   content: @message }
       ]
 
-      svc = Ai::GroqService.new(messages)
+      svc = Ai::GroqService.new(messages, name: "chat_generation")
 
       if @stream_callback
         svc.stream { |token| @stream_callback.call(token) }

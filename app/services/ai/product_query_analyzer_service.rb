@@ -31,7 +31,7 @@ module Ai
       Ai::GroqService.new([
         { role: "system", content: system_prompt },
         { role: "user",   content: @message }
-      ]).call
+      ], name: "product_query_analyzer").call
     end
 
     # ==================================================

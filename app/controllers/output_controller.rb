@@ -106,6 +106,12 @@ class OutputController < ApplicationController
       shop     = Shop.find_by!(shopify_domain: params[:shop])
       customer = find_or_create_customer(shop)
 
+      Ai::LangfuseContext.set(
+        session_id: session_id,
+        user_id:    customer&.id&.to_s,
+        shop:       shop.shopify_domain
+      )
+
       response.headers["Content-Type"]      = "text/event-stream"
       response.headers["Cache-Control"]     = "no-cache"
       response.headers["X-Accel-Buffering"] = "no"
@@ -135,6 +141,12 @@ class OutputController < ApplicationController
     def create
       shop     = Shop.find_by!(shopify_domain: params[:shop])
       customer = find_or_create_customer(shop)
+
+      Ai::LangfuseContext.set(
+        session_id: session_id,
+        user_id:    customer&.id&.to_s,
+        shop:       shop.shopify_domain
+      )
 
       ai_response = Ai::ChatService.new(
         shop:       shop,
