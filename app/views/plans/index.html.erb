@@ -1,6 +1,6 @@
 <% trial_days_label = "#{Shop::PLANS["starter"][:trial_days]} days" %>
 <% rows = [
-  { label: "Conversations / month",          free: "3 conv · 50 msgs each", starter: "40 conv · 20 msgs each", pro: "80 conv · 30 msgs · +#{Shop::OVERAGE_BUNDLE[:messages_per_conversation]}/bundle" },
+  { label: "Conversations / month",          free: "3 conv · 50 msgs total", starter: "40 conv · 20 msgs each", pro: "80 conv · 30 msgs · +#{Shop::OVERAGE_BUNDLE[:messages_per_conversation]}/bundle" },
   { label: "Support tickets",               free: "2 / month",             starter: "20 / month",        pro: "50 / month" },
   { label: "Products for AI training",      free: "10",                    starter: "100",               pro: "500" },
   { label: "Documents",                     free: false,                   starter: "3 · max 2 MB",      pro: "10 · max 5 MB" },
