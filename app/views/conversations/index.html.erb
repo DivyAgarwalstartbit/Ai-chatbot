@@ -318,152 +318,160 @@ turbo-frame#conv-detail {
 
       <!-- Tab bar -->
       <div class="inbox-tab-bar">
-         <%= link_to tickets_path(shop: @shop_origin, host: @host, embedded: 1), class: "inbox-tab" do %>
+        <%= link_to conversations_path(shop: @shop_origin, host: @host, embedded: 1, tab: "tickets"), class: "inbox-tab #{@active_tab == 'tickets' ? 'is-active' : ''}" do %>
           Tickets <span class="inbox-tab-count"><%= @tickets_count %></span>
         <% end %>
-        <%= link_to conversations_path(shop: @shop_origin, host: @host, embedded: 1), class: "inbox-tab is-active" do %>
+        <%= link_to conversations_path(shop: @shop_origin, host: @host, embedded: 1), class: "inbox-tab #{@active_tab == 'conversations' ? 'is-active' : ''}" do %>
           Conversations <span class="inbox-tab-count"><%= @conversations_count %></span>
         <% end %>
-       
       </div>
 
       <!-- Panel header -->
       <div class="conv-left-header">
-        <div style="font-size:14px;font-weight:700;color:#202223;">Conversations</div>
+        <div style="font-size:14px;font-weight:700;color:#202223;"><%= @active_tab == 'tickets' ? 'Tickets' : 'Conversations' %></div>
       </div>
 
       <!-- Filters -->
       <div class="conv-filters">
-        <form id="conv-filter-form"
-              method="get"
-              action="<%= conversations_path %>"
-              data-turbo-frame="conv-list">
-          <input type="hidden" name="shop"     value="<%= @shop_origin %>">
-          <input type="hidden" name="host"     value="<%= @host %>">
-          <input type="hidden" name="embedded" value="1">
-          <div style="display:flex;gap:7px;align-items:center;">
-            <div style="flex:1;">
-              <s-text-field
-                name="q"
-                value="<%= params[:q] %>"
-                placeholder="Search…"
-                clearButton
-                onInput="convSearchDebounce(this.value, this)"
-                onChange="convSearchDebounce(this.value, this)"
-              ></s-text-field>
+        <% if @active_tab == 'tickets' %>
+          <form id="ticket-filter-form" method="get" action="<%= conversations_path %>" data-turbo-frame="inbox-list">
+            <input type="hidden" name="shop"     value="<%= @shop_origin %>">
+            <input type="hidden" name="host"     value="<%= @host %>">
+            <input type="hidden" name="embedded" value="1">
+            <input type="hidden" name="tab"      value="tickets">
+            <div style="display:flex;gap:7px;align-items:center;">
+              <div style="flex:1;">
+                <s-text-field name="q" value="<%= params[:q] %>" placeholder="Search…" clearButton
+                  onInput="inboxSearchDebounce(this.value, this)" onChange="inboxSearchDebounce(this.value, this)"></s-text-field>
+              </div>
+              <div style="width:120px;flex-shrink:0;">
+                <s-select name="status" label="" onchange="this.closest('form').requestSubmit()">
+                  <s-option value=""           <%= params[:status].blank?             ? "selected" : "" %>>All</s-option>
+                  <s-option value="open"       <%= params[:status] == "open"       ? "selected" : "" %>>Open</s-option>
+                  <s-option value="in_progress" <%= params[:status] == "in_progress" ? "selected" : "" %>>In progress</s-option>
+                  <s-option value="closed"     <%= params[:status] == "closed"     ? "selected" : "" %>>Closed</s-option>
+                </s-select>
+              </div>
             </div>
-            <div style="width:120px;flex-shrink:0;">
-              <s-select name="status" label="" onchange="this.closest('form').requestSubmit()">
-                <s-option value=""         <%= params[:status].blank?           ? "selected" : "" %>>All</s-option>
-                
-                <s-option value="open"     <%= params[:status] == "open"     ? "selected" : "" %>>Open</s-option>
-                <s-option value="closed"   <%= params[:status] == "closed"   ? "selected" : "" %>>Closed</s-option>
-                <s-option value="escalated" <%= params[:status] == "escalated" ? "selected" : "" %>>Escalated</s-option>
-              </s-select>
+          </form>
+        <% else %>
+          <form id="conv-filter-form" method="get" action="<%= conversations_path %>" data-turbo-frame="inbox-list">
+            <input type="hidden" name="shop"     value="<%= @shop_origin %>">
+            <input type="hidden" name="host"     value="<%= @host %>">
+            <input type="hidden" name="embedded" value="1">
+            <div style="display:flex;gap:7px;align-items:center;">
+              <div style="flex:1;">
+                <s-text-field name="q" value="<%= params[:q] %>" placeholder="Search…" clearButton
+                  onInput="inboxSearchDebounce(this.value, this)" onChange="inboxSearchDebounce(this.value, this)"></s-text-field>
+              </div>
+              <div style="width:120px;flex-shrink:0;">
+                <s-select name="status" label="" onchange="this.closest('form').requestSubmit()">
+                  <s-option value=""          <%= params[:status].blank?            ? "selected" : "" %>>All</s-option>
+                  <s-option value="open"      <%= params[:status] == "open"      ? "selected" : "" %>>Open</s-option>
+                  <s-option value="closed"    <%= params[:status] == "closed"    ? "selected" : "" %>>Closed</s-option>
+                  <s-option value="escalated" <%= params[:status] == "escalated" ? "selected" : "" %>>Escalated</s-option>
+                </s-select>
+              </div>
             </div>
-          </div>
-        </form>
+          </form>
+        <% end %>
       </div>
 
-      <!-- Conversation list (Turbo Frame so filters update only the list) -->
-      <turbo-frame id="conv-list" class="conv-list">
-        <% if @conversations.empty? %>
-          <div style="padding:32px 16px;">
-            <s-empty-state heading="No conversations yet">
-              <s-text>Chat conversations will appear here once your widget goes live.</s-text>
-             
-            </s-empty-state>
-          </div>
-        <% else %>
-          <% @conversations.each_with_index do |conv, idx| %>
-            <%
-              customer     = conv.customer
-              display_name = if customer
-                               [customer.first_name, customer.last_name].compact.join(" ").presence ||
-                               customer.email.presence ||
-                               "Visitor ##{customer.visitor_id}"
-                             else
-                               "Anonymous"
-                             end
-                        initials =
-              if customer
-                source =
-                  if customer.first_name.present? || customer.last_name.present?
-                    "#{customer.first_name} #{customer.last_name}".strip
-                  else
-                    customer.email
-                  end
-
-                source
-                  .split
-                  .reject(&:blank?)
-                  .map { |p| p[0].upcase }
-                  .first(2)
-                  .join
-                  .presence || "?"
-              else
-                "?"
-              end
-              last_msg   = conv.messages.max_by(&:created_at)
-              preview    = last_msg&.content.to_s.strip.truncate(60)
-              ts         = conv.last_message_at || conv.created_at
-              time_label = if ts > 1.day.ago
-                               ts.strftime("%-I:%M %p")
-                             elsif ts > 1.week.ago
-                               ts.strftime("%a")
-                             else
-                               ts.strftime("%b %-d")
-                             end
-              status      = conv.status.presence || "open"
-              badge_tone  = { "open" => "success", "closed" => "neutral", "resolved" => "info" }.fetch(status, "neutral")
-              is_selected = @conversation&.id == conv.id
-              av_class    = "av-#{idx % 6}"
-            %>
-            <%= link_to conversation_path(conv,
-  shop: @shop_origin,
-  host: @host,
-  embedded: 1,
-  conversation_id: conv.id
-),
-data: { turbo_frame: "conv-detail" },
-class: "conv-row #{is_selected ? 'is-selected' : ''} #{av_class}" do %>
-              <div class="conv-row-inner">
-                <s-avatar initials="<%= initials %>" size="medium" style="flex-shrink:0;margin-top:1px;"></s-avatar>
-                <div class="conv-row-content">
-                  <div class="conv-row-top">
-                    <span class="conv-row-name"><%= display_name %></span>
-                    <span class="conv-row-time"><%= time_label %></span>
+      <!-- List (single turbo-frame, content switches by tab) -->
+      <turbo-frame id="inbox-list" class="conv-list">
+        <% if @active_tab == 'tickets' %>
+          <%# ── TICKETS LIST ── %>
+          <% if @tickets.empty? %>
+            <div style="padding:32px 16px;">
+              <s-empty-state heading="No tickets yet">
+                <s-text>Tickets appear here when a customer requests human help or the AI escalates a conversation.</s-text>
+              </s-empty-state>
+            </div>
+          <% else %>
+            <% @tickets.each_with_index do |ticket, idx| %>
+              <%
+                customer     = ticket.customer
+                display_name = [customer&.first_name, customer&.last_name].compact.join(" ").presence ||
+                               customer&.email.presence || "No customer"
+                initials     = display_name.split.map { |p| p[0].upcase }.first(2).join.presence || "?"
+                ts           = ticket.created_at
+                time_label   = ts > 1.day.ago ? ts.strftime("%-I:%M %p") : (ts > 1.week.ago ? ts.strftime("%a") : ts.strftime("%b %-d"))
+                status       = ticket.status.presence || "open"
+                badge_tone   = { "open" => "critical", "in_progress" => "warning", "resolved" => "info", "closed" => "neutral" }.fetch(status, "neutral")
+                is_selected  = @ticket&.id == ticket.id
+                source_label = { "customer_requested_human" => "Human requested", "ai_escalation" => "AI escalation" }.fetch(ticket.source.to_s, nil)
+              %>
+              <%= link_to conversations_path(shop: @shop_origin, host: @host, embedded: 1, tab: "tickets", ticket_id: ticket.id),
+                          data: { turbo_frame: "inbox-detail" },
+                          class: "conv-row #{is_selected ? 'is-selected' : ''} av-#{idx % 6}" do %>
+                <div class="conv-row-inner">
+                  <s-avatar initials="<%= initials %>" size="medium" style="flex-shrink:0;margin-top:1px;"></s-avatar>
+                  <div class="conv-row-content">
+                    <div class="conv-row-top">
+                      <span class="conv-row-name"><%= ticket.subject %></span>
+                      <span class="conv-row-time"><%= time_label %></span>
+                    </div>
+                    <span class="conv-row-preview"><%= display_name %></span>
+                    <div style="display:flex;gap:4px;flex-wrap:wrap;">
+                      <% if source_label %><span class="source-chip"><%= source_label %></span><% end %>
+                      <s-badge tone="<%= badge_tone %>"><%= status.tr("_", " ").capitalize %></s-badge>
+                    </div>
                   </div>
-                  <% if preview.present? %>
-                    <span class="conv-row-preview"><%= preview %></span>
-                  <% end %>
-                  <s-badge tone="<%= badge_tone %>"><%= status.capitalize %></s-badge>
                 </div>
-              </div>
+              <% end %>
+            <% end %>
+          <% end %>
+        <% else %>
+          <%# ── CONVERSATIONS LIST ── %>
+          <% if @conversations.empty? %>
+            <div style="padding:32px 16px;">
+              <s-empty-state heading="No conversations yet">
+                <s-text>Chat conversations will appear here once your widget goes live.</s-text>
+              </s-empty-state>
+            </div>
+          <% else %>
+            <% @conversations.each_with_index do |conv, idx| %>
+              <%
+                customer     = conv.customer
+                display_name = [customer&.first_name, customer&.last_name].compact.join(" ").presence ||
+                               customer&.email.presence || "Anonymous"
+                initials     = display_name.split.reject(&:blank?).map { |p| p[0].upcase }.first(2).join.presence || "?"
+                last_msg     = conv.messages.max_by(&:created_at)
+                preview      = last_msg&.content.to_s.strip.truncate(60)
+                ts           = conv.last_message_at || conv.created_at
+                time_label   = ts > 1.day.ago ? ts.strftime("%-I:%M %p") : (ts > 1.week.ago ? ts.strftime("%a") : ts.strftime("%b %-d"))
+                status       = conv.status.presence || "open"
+                badge_tone   = { "open" => "success", "closed" => "neutral", "resolved" => "info" }.fetch(status, "neutral")
+                is_selected  = @conversation&.id == conv.id
+              %>
+              <%= link_to conversation_path(conv, shop: @shop_origin, host: @host, embedded: 1, conversation_id: conv.id),
+                          data: { turbo_frame: "inbox-detail" },
+                          class: "conv-row #{is_selected ? 'is-selected' : ''} av-#{idx % 6}" do %>
+                <div class="conv-row-inner">
+                  <s-avatar initials="<%= initials %>" size="medium" style="flex-shrink:0;margin-top:1px;"></s-avatar>
+                  <div class="conv-row-content">
+                    <div class="conv-row-top">
+                      <span class="conv-row-name"><%= display_name %></span>
+                      <span class="conv-row-time"><%= time_label %></span>
+                    </div>
+                    <% if preview.present? %><span class="conv-row-preview"><%= preview %></span><% end %>
+                    <s-badge tone="<%= badge_tone %>"><%= status.capitalize %></s-badge>
+                  </div>
+                </div>
+              <% end %>
             <% end %>
           <% end %>
         <% end %>
 
         <% if @total_pages > 1 %>
           <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px;border-top:1px solid #e1e3e5;flex-shrink:0;background:#fff;">
-            <s-button
-              variant="secondary"
-              icon="arrow-left"
-              size="slim"
+            <s-button variant="secondary" icon="arrow-left" size="slim"
               <%= "disabled" if @current_page <= 1 %>
-              onclick="convGoToPage(<%= @current_page - 1 %>)">
-              Previous
-            </s-button>
+              onclick="inboxGoToPage(<%= @current_page - 1 %>)">Previous</s-button>
             <span style="font-size:12px;color:#8c9196;"><%= @current_page %> / <%= @total_pages %></span>
-            <s-button
-              variant="secondary"
-              icon="arrow-right"
-              icon-position="end"
-              size="slim"
+            <s-button variant="secondary" icon="arrow-right" icon-position="end" size="slim"
               <%= "disabled" if @current_page >= @total_pages %>
-              onclick="convGoToPage(<%= @current_page + 1 %>)">
-              Next
-            </s-button>
+              onclick="inboxGoToPage(<%= @current_page + 1 %>)">Next</s-button>
           </div>
         <% end %>
       </turbo-frame>
@@ -471,18 +479,29 @@ class: "conv-row #{is_selected ? 'is-selected' : ''} #{av_class}" do %>
 
     <!-- ═══════════ RIGHT PANEL ═══════════ -->
     <div class="conv-right">
-      <turbo-frame id="conv-detail">
-        <% if @conversation %>
-          <%= render "detail", conversation: @conversation %>
+      <turbo-frame id="inbox-detail" style="display:flex;flex-direction:column;flex:1;overflow:hidden;">
+        <% if @active_tab == 'tickets' %>
+          <% if @ticket %>
+            <%= render "tickets/detail", ticket: @ticket %>
+          <% else %>
+            <div class="conv-empty-wrap">
+              <s-empty-state heading="Select a ticket"
+                image="https://cdn.shopify.com/s/assets/admin/empty-states/no-orders-c19f40e59ea0c2ecfba65a7c3e578975be2f68ff4d12ec4b4ae8c22bf48d0f99.svg">
+                <s-text>Choose a ticket from the list to view details and take action.</s-text>
+              </s-empty-state>
+            </div>
+          <% end %>
         <% else %>
-          <div class="conv-empty-wrap">
-            <s-empty-state
-              heading="Select a conversation"
-              image="https://cdn.shopify.com/s/assets/admin/empty-states/no-orders-c19f40e59ea0c2ecfba65a7c3e578975be2f68ff4d12ec4b4ae8c22bf48d0f99.svg"
-            >
-              <s-text>Choose a conversation from the list on the left to view messages and customer details.</s-text>
-            </s-empty-state>
-          </div>
+          <% if @conversation %>
+            <%= render "detail", conversation: @conversation %>
+          <% else %>
+            <div class="conv-empty-wrap">
+              <s-empty-state heading="Select a conversation"
+                image="https://cdn.shopify.com/s/assets/admin/empty-states/no-orders-c19f40e59ea0c2ecfba65a7c3e578975be2f68ff4d12ec4b4ae8c22bf48d0f99.svg">
+                <s-text>Choose a conversation from the list on the left to view messages and customer details.</s-text>
+              </s-empty-state>
+            </div>
+          <% end %>
         <% end %>
       </turbo-frame>
     </div>
@@ -491,11 +510,11 @@ class: "conv-row #{is_selected ? 'is-selected' : ''} #{av_class}" do %>
 </s-page>
 
 <script>
-  var _convSearchTimer;
+  var _inboxSearchTimer;
 
-  function convSearchDebounce(value, el) {
-    clearTimeout(_convSearchTimer);
-    _convSearchTimer = setTimeout(function () {
+  function inboxSearchDebounce(value, el) {
+    clearTimeout(_inboxSearchTimer);
+    _inboxSearchTimer = setTimeout(function () {
       const form = el.closest('form');
       if (form) form.requestSubmit();
     }, 350);
@@ -504,26 +523,28 @@ class: "conv-row #{is_selected ? 'is-selected' : ''} #{av_class}" do %>
   document.addEventListener('click', function(e) {
     var row = e.target.closest('.conv-row');
     if (!row) return;
-    var frame = row.closest('#conv-list');
+    var frame = row.closest('#inbox-list');
     if (!frame) return;
     frame.querySelectorAll('.conv-row').forEach(function(r) { r.classList.remove('is-selected'); });
     row.classList.add('is-selected');
   });
 
-  function convGoToPage(page) {
-    const form = document.getElementById("conv-filter-form");
-    const url  = new URL(form ? form.action : window.location.href, window.location.origin);
-    // carry current filter params
-    const q      = form && form.querySelector("[name='q']");
-    const status = form && form.querySelector("[name='status']");
-    if (q && q.value)      url.searchParams.set("q", q.value);
+  function inboxGoToPage(page) {
+    const activeTab = '<%= @active_tab %>';
+    const formId    = activeTab === 'tickets' ? 'ticket-filter-form' : 'conv-filter-form';
+    const form      = document.getElementById(formId);
+    const url       = new URL(form ? form.action : window.location.href, window.location.origin);
+    const q         = form && form.querySelector("[name='q']");
+    const status    = form && form.querySelector("[name='status']");
+    if (q && q.value)           url.searchParams.set("q", q.value);
     if (status && status.value) url.searchParams.set("status", status.value);
-    url.searchParams.set("page", page);
+    if (activeTab === 'tickets') url.searchParams.set("tab", "tickets");
+    url.searchParams.set("page",     page);
     url.searchParams.set("shop",     "<%= @shop_origin %>");
     url.searchParams.set("host",     "<%= @host %>");
     url.searchParams.set("embedded", "1");
     if (window.Turbo) {
-      Turbo.visit(url.toString(), { frame: "conv-list" });
+      Turbo.visit(url.toString(), { frame: "inbox-list" });
     } else {
       window.location.href = url.toString();
     }

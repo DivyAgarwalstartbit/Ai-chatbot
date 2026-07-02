@@ -202,15 +202,25 @@ module Ai
       limit = shop.effective_message_limit
       return if limit.nil?  # nil = no limit enforced
 
-      # Count only user messages already saved in this conversation (before adding the new one)
-      user_msg_count = @conversation.messages.where(role: "user").count
-
-      if !shop.pro? && user_msg_count >= limit
-        # Starter: hard block — they've hit the cap, don't allow this message
-        raise MessageLimitError, "You've reached the #{limit}-message limit for this conversation. Please start a new conversation to continue."
-      elsif shop.pro? && user_msg_count >= limit
-        # Pro: the limit is already reached — allow this message through, then charge overage
-        @charge_overage_for_messages = true
+      if shop.free?
+        # Free: 50 messages total across ALL conversations this month
+        monthly_conv_ids = shop.conversations
+                               .where(created_at: Time.current.beginning_of_month..)
+                               .pluck(:id)
+        user_msg_count = Message.where(conversation_id: monthly_conv_ids, role: "user").count
+        if user_msg_count >= limit
+          raise MessageLimitError, "You've reached your monthly message limit (#{limit} messages). Upgrade to continue chatting."
+        end
+      elsif shop.starter?
+        # Starter: 20 messages per conversation (hard block)
+        user_msg_count = @conversation.messages.where(role: "user").count
+        if user_msg_count >= limit
+          raise MessageLimitError, "You've reached the #{limit}-message limit for this conversation. Please start a new conversation to continue."
+        end
+      else
+        # Pro: 30 messages per conversation — allow through then charge overage
+        user_msg_count = @conversation.messages.where(role: "user").count
+        @charge_overage_for_messages = true if user_msg_count >= limit
       end
     end
 

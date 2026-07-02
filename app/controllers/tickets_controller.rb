@@ -4,35 +4,25 @@ class TicketsController < AuthenticatedController
   PER_PAGE = 14
 
   def index
-    @shop_origin         = current_shopify_domain
-    @host                = params[:host]
-    @conversations_count = current_shop.conversations.count
-    @tickets_count       = current_shop.tickets.count
-
-    base          = filtered_tickets
-    @total_pages  = [ (base.count / PER_PAGE.to_f).ceil, 1 ].max
-    @current_page = [ [ params[:page].to_i, 1 ].max, @total_pages ].min
-    @tickets      = base.offset((@current_page - 1) * PER_PAGE).limit(PER_PAGE)
-    selected_id   = params[:ticket_id]
-    @ticket       = (selected_id.present? ? current_shop.tickets.includes(:customer, conversation: { messages: [] }).find_by(id: selected_id) : nil) ||
-                    @tickets.first&.then { |t| current_shop.tickets.includes(:customer, conversation: { messages: [] }).find(t.id) }
+    redirect_to conversations_path(
+      shop:     params[:shop],
+      host:     params[:host],
+      embedded: params[:embedded] || 1,
+      tab:      "tickets",
+      status:   params[:status],
+      q:        params[:q],
+      page:     params[:page]
+    )
   end
 
   def show
-    @shop_origin         = current_shopify_domain
-    @host                = params[:host]
-    @conversations_count = current_shop.conversations.count
-    @tickets_count       = current_shop.tickets.count
-
-    base          = filtered_tickets
-    @total_pages  = [ (base.count / PER_PAGE.to_f).ceil, 1 ].max
-    @current_page = [ [ params[:page].to_i, 1 ].max, @total_pages ].min
-    @tickets      = base.offset((@current_page - 1) * PER_PAGE).limit(PER_PAGE)
-    @ticket       = current_shop.tickets
-                      .includes(:customer, conversation: { messages: [] })
-                      .find(params[:id])
-
-    render :index
+    redirect_to conversations_path(
+      shop:      params[:shop],
+      host:      params[:host],
+      embedded:  params[:embedded] || 1,
+      tab:       "tickets",
+      ticket_id: params[:id]
+    )
   end
 
   def reply
