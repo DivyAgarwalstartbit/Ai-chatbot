@@ -19,6 +19,7 @@
         id: "doc_file_input",
         accept: ".pdf,.docx,.txt",
         style: "display:none",
-        onchange: "document.getElementById('document_upload_form_inner').requestSubmit()" %>
+        data: { max_mb: local_assigns[:pro] ? 5 : 2 },
+        onchange: "handleDocumentFileSelect(this)" %>
 
 <% end %>

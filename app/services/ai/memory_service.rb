@@ -1,4 +1,7 @@
 module Ai
+  class ConversationLimitError < StandardError; end
+  class MessageLimitError < StandardError; end
+
   class MemoryService
     RECENT_LIMIT  = 6
     SUMMARY_AFTER = 20
@@ -36,12 +39,24 @@ module Ai
     # =========================
     # MESSAGE SAVE
     # =========================
-    def add(role:, content:, metadata: nil)
+    def add(role:, content:, metadata: nil, shop: nil)
       return if content.blank?
+
+      # Enforce per-conversation message limit only on incoming user messages
+      if role == "user" && shop.present?
+        @charge_overage_for_messages = false
+        enforce_message_limit!(shop)
+      end
 
       @conversation.messages.create!(role: role, content: content, metadata: metadata)
       @conversation.update_column(:last_message_at, Time.current)
       schedule_summary
+
+      # Pro: charge overage after the message is saved (non-blocking)
+      if @charge_overage_for_messages && shop.present?
+        OverageService.new(shop: shop, resource_type: :message).check_and_charge!
+        @charge_overage_for_messages = false
+      end
     end
 
     # =========================
@@ -183,6 +198,22 @@ module Ai
 
     private
 
+    def enforce_message_limit!(shop)
+      limit = shop.effective_message_limit
+      return if limit.nil?  # nil = no limit enforced
+
+      # Count only user messages already saved in this conversation (before adding the new one)
+      user_msg_count = @conversation.messages.where(role: "user").count
+
+      if !shop.pro? && user_msg_count >= limit
+        # Starter: hard block — they've hit the cap, don't allow this message
+        raise MessageLimitError, "You've reached the #{limit}-message limit for this conversation. Please start a new conversation to continue."
+      elsif shop.pro? && user_msg_count >= limit
+        # Pro: the limit is already reached — allow this message through, then charge overage
+        @charge_overage_for_messages = true
+      end
+    end
+
     def formatted_last_products
       last_products.map { |p| "- #{p["title"]} (id: #{p["id"]})" }.join("\n")
     end
@@ -226,14 +257,26 @@ module Ai
       # Reuse an open, non-stale conversation
       return existing if existing && existing.status != "closed" && !stale?(existing)
 
-      # Otherwise start a brand-new conversation with a fresh session_id
-      Conversation.create!(
+      # Free/Starter: hard block at conversation limit
+      if !shop.pro? && shop.conversations.where(created_at: Time.current.beginning_of_month..).count >= shop.effective_conversation_limit
+        raise ConversationLimitError, "Monthly conversation limit reached. Upgrade to Pro to continue."
+      end
+
+      # Allow the conversation through
+      conv = Conversation.create!(
         shop:       shop,
         customer:   customer,
         session_id: SecureRandom.uuid,
         status:     "open",
         started_at: Time.current
       )
+
+      # Pro: if count now exceeds limit, auto-charge overage (non-blocking — charge happens async-safe)
+      if shop.overage_eligible? && shop.conversations.where(created_at: Time.current.beginning_of_month..).count > shop.effective_conversation_limit
+        OverageService.new(shop: shop, resource_type: :conversation).check_and_charge!
+      end
+
+      conv
     end
 
     def stale?(conv)

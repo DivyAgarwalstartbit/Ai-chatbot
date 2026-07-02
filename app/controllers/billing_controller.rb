@@ -8,14 +8,13 @@ class BillingController < ApplicationController
     mutation AppSubscriptionCreate($name: String!, $lineItems: [AppSubscriptionLineItemInput!]!, $returnUrl: URL!, $test: Boolean!, $trialDays: Int, $replacementBehavior: AppSubscriptionReplacementBehavior) {
       appSubscriptionCreate(name: $name, returnUrl: $returnUrl, lineItems: $lineItems, test: $test, trialDays: $trialDays, replacementBehavior: $replacementBehavior) {
         userErrors { field message }
-        appSubscription { id }
+        appSubscription {
+          id
+          lineItems { id plan { pricingDetails { __typename } } }
+        }
         confirmationUrl
       }
     }
-  GRAPHQL
-
-  SHOP_PLAN_QUERY = <<~GRAPHQL.freeze
-    query { shop { plan { partnerDevelopment } } }
   GRAPHQL
 
   AUTH_ERROR_PATTERN = /RefreshTokenExpired|Non-expiring access tokens|Invalid API key/.freeze
@@ -24,10 +23,7 @@ class BillingController < ApplicationController
     session = shop_session
     client  = graphql_client(session)
 
-    plan      = client.query(query: SHOP_PLAN_QUERY).body.dig("data", "shop", "plan") || {}
-    test_mode = plan["partnerDevelopment"] == true && ENV["allowFreeDevelopment"] == "true"
-
-    vars             = subscription_variables(test_mode)
+    vars             = subscription_variables(false)
     Rails.logger.info("[Billing#create] variables: #{vars.to_json}")
 
     response         = client.query(query: SUBSCRIPTION_MUTATION, variables: vars)
@@ -38,6 +34,16 @@ class BillingController < ApplicationController
 
     Rails.logger.error("[Billing#create] userErrors: #{errors}") if errors&.any?
     raise "Failed to get confirmation URL: #{errors&.map { |e| e['message'] }.join(', ')}" if confirmation_url.blank?
+
+    # Store usage line item ID for Pro so we can auto-charge overages later
+    if params[:plan] == "pro"
+      subscription = response.body.dig("data", "appSubscriptionCreate", "appSubscription")
+      usage_li = subscription&.dig("lineItems")&.find { |li|
+        li.dig("plan", "pricingDetails", "__typename") == "AppUsagePricing"
+      }
+      Shop.find_by(shopify_domain: current_shopify_domain)
+          &.update_column(:usage_subscription_id, usage_li&.dig("id"))
+    end
 
     return redirect_to(confirmation_url, allow_other_host: true) if params[:embedded] == "0"
 
@@ -62,7 +68,10 @@ class BillingController < ApplicationController
 
     if params[:charge_id].present?
       plan_key = Shop::PLANS.key?(params[:plan]) ? params[:plan] : "starter"
-      shop.update!(charge_id: params[:charge_id].to_s, paid: true, plan: plan_key)
+      updates  = { charge_id: params[:charge_id].to_s, paid: true, plan: plan_key }
+      updates[:usage_subscription_id] = nil unless plan_key == "pro"
+      shop.update!(updates)
+
       if params[:host].present?
         redirect_to ShopifyAPI::Auth.embedded_app_url(params[:host]) + "/?shop=#{current_shopify_domain}&host=#{params[:host]}&embedded=1",
                     allow_other_host: true
@@ -91,25 +100,41 @@ class BillingController < ApplicationController
     ShopifyAPI::Clients::Graphql::Admin.new(session: session)
   end
 
-  def subscription_variables(test_mode)
+  def subscription_variables(test_mode = false)
     plan_key = Shop::PLANS.key?(params[:plan]) ? params[:plan] : "starter"
     plan_def = Shop::PLANS[plan_key]
 
     query_string = { shop: current_shopify_domain, host: params[:host], embedded: 0, plan: plan_key }.to_query
-    {
-      name:      plan_def[:name],
-      returnUrl: "#{ENV['HOST'] || ENV['current_host']}/billing/callback?#{query_string}",
-      test:      test_mode,
-      trialDays: plan_def[:trial_days],
-      replacementBehavior: "APPLY_IMMEDIATELY",
-      lineItems: [ {
+
+    line_items = [
+      {
         plan: {
           appRecurringPricingDetails: {
             price:    { amount: plan_def[:price], currencyCode: "USD" },
             interval: "EVERY_30_DAYS"
           }
         }
-      } ]
+      }
+    ]
+
+    if plan_key == "pro"
+      line_items << {
+        plan: {
+          appUsagePricingDetails: {
+            cappedAmount: { amount: Shop::OVERAGE_CAPPED_AMOUNT, currencyCode: "USD" },
+            terms: "Pay-as-you-go overage: $#{Shop::OVERAGE_BUNDLE_PRICE} per bundle (+#{Shop::OVERAGE_BUNDLE[:conversations]} conversations, +#{Shop::OVERAGE_BUNDLE[:messages_per_conversation]} messages/conversation, +#{Shop::OVERAGE_BUNDLE[:tickets]} tickets, +#{Shop::OVERAGE_BUNDLE[:documents]} docs, +#{Shop::OVERAGE_BUNDLE[:products]} products)."
+          }
+        }
+      }
+    end
+
+    {
+      name:                plan_def[:name],
+      returnUrl:           "#{ENV['HOST'] || ENV['current_host']}/billing/callback?#{query_string}",
+      test:                test_mode,
+      trialDays:           plan_def[:trial_days],
+      replacementBehavior: "APPLY_IMMEDIATELY",
+      lineItems:           line_items
     }
   end
 end

@@ -1,4 +1,5 @@
-<%# Locals: shop_origin, host %>
+<%# Locals: shop_origin, host, pro %>
+<% max_words = local_assigns[:pro] ? 500 : 150 %>
 <s-modal id="faq-form-modal" heading="Add FAQ" size="base" data-modal-target="modal">
   <div id="faq_form_error" data-modal-target="error"></div>
 
@@ -24,14 +25,22 @@
         data-modal-target="questionField"
       ></s-text-field>
 
-      <s-text-area
-        id="faq_modal_answer_field"
-        label="Answer"
-        placeholder="Provide a clear and helpful answer..."
-        rows="5"
-        autocomplete="off"
-        data-modal-target="answerField"
-      ></s-text-area>
+      <div>
+        <s-text-area
+          id="faq_modal_answer_field"
+          label="Answer"
+          placeholder="Provide a clear and helpful answer..."
+          rows="5"
+          autocomplete="off"
+          data-modal-target="answerField"
+          data-max-words="<%= max_words %>"
+        ></s-text-area>
+        <div style="display:flex; justify-content:flex-end; margin-top:4px;">
+          <span id="faq_answer_word_count"
+                style="font-size:12px; color:#6d7175;"
+                data-max="<%= max_words %>">0/<%= max_words %> words</span>
+        </div>
+      </div>
     </s-stack>
   </form>
 
@@ -58,3 +67,66 @@
   <s-button id="faq-form-modal-show"  commandFor="faq-form-modal" command="--show" style="display:none"></s-button>
   <s-button id="faq-form-modal-close" commandFor="faq-form-modal" command="--hide" style="display:none"></s-button>
 </s-modal>
+
+<script>
+  (function() {
+    var maxWords = <%= max_words %>;
+
+    function countWords(text) {
+      return text.trim() === '' ? 0 : text.trim().split(/\s+/).length;
+    }
+
+    function truncateToWordLimit(text, limit) {
+      var words = text.trim().split(/\s+/);
+      if (words.length <= limit) return text;
+      // Preserve trailing space if user is mid-word — cut to limit words
+      return words.slice(0, limit).join(' ');
+    }
+
+    function updateWordCount(value) {
+      var counter = document.getElementById('faq_answer_word_count');
+      if (!counter) return;
+      var count = countWords(value);
+      counter.textContent = count + '/' + maxWords + ' words';
+      if (count >= maxWords) {
+        counter.style.color = '#d72c0d';
+      } else if (count > maxWords * 0.9) {
+        counter.style.color = '#b98900';
+      } else {
+        counter.style.color = '#6d7175';
+      }
+    }
+
+    function attachAnswerListener() {
+      var field = document.getElementById('faq_modal_answer_field');
+      if (!field) return;
+
+      updateWordCount(field.value || '');
+
+      if (field._faqWordCountListener) {
+        field.removeEventListener('input', field._faqWordCountListener);
+      }
+      field._faqWordCountListener = function() {
+        var current = field.value || '';
+        var count = countWords(current);
+        if (count > maxWords) {
+          // Truncate and restore cursor at end
+          var truncated = truncateToWordLimit(current, maxWords);
+          field.value = truncated;
+          field.setAttribute('value', truncated);
+        }
+        updateWordCount(field.value || '');
+      };
+      field.addEventListener('input', field._faqWordCountListener);
+    }
+
+    var modal = document.getElementById('faq-form-modal');
+    if (modal) {
+      modal.addEventListener('s-show', function() {
+        requestAnimationFrame(attachAnswerListener);
+      });
+    }
+
+    attachAnswerListener();
+  })();
+</script>

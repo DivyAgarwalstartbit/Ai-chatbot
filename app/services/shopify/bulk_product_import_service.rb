@@ -9,43 +9,45 @@ module Shopify
     end
 
     def call
-        Rails.logger.info "BulkProductImportService: clearing existing products..."
-
-       delete_local_products
+      Rails.logger.info "BulkProductImportService: clearing existing products..."
+      delete_local_products
 
       Rails.logger.info "BulkProductImportService: downloading #{@url}"
 
-      product_map = {}
+      product_limit = @shop.effective_product_limit
+      product_map   = {}
 
       URI.open(@url) do |file|
         file.each_line do |line|
           data = JSON.parse(line)
 
           if product?(data)
-            importer = Shopify::ProductImportService.new(@shop)
+            # Hard-cap: stop importing once plan limit is reached
+            if product_map.size >= product_limit
+              Rails.logger.info "BulkProductImportService: product limit (#{product_limit}) reached for #{@shop.plan_label} plan — skipping remaining products"
+              next
+            end
 
-            product = importer.import_product(data)
+            importer = Shopify::ProductImportService.new(@shop)
+            product  = importer.import_product(data)
             product_map[data["id"]] = product.id
 
           elsif variant?(data)
-            importer = Shopify::ProductImportService.new(@shop)
+            importer           = Shopify::ProductImportService.new(@shop)
             shopify_parent_gid = data["__parentId"]
+            local_product_id   = product_map[shopify_parent_gid]
 
-local_product_id = product_map[shopify_parent_gid]
+            unless local_product_id
+              Rails.logger.warn "Missing parent product for variant #{data['id']}, parent=#{shopify_parent_gid}"
+              next
+            end
 
-unless local_product_id
-  Rails.logger.warn(
-    "Missing parent product for variant #{data['id']}, parent=#{shopify_parent_gid}"
-  )
-  next
-end
-
-importer.import_variant(data, local_product_id)
+            importer.import_variant(data, local_product_id)
           end
         end
       end
 
-      Rails.logger.info "BulkProductImportService: saved #{product_map.size} products, queuing embeddings"
+      Rails.logger.info "BulkProductImportService: saved #{product_map.size}/#{product_limit} products, queuing embeddings"
 
       product_map.values.each do |product_id|
         ProductEmbeddingJob.perform_later(product_id)

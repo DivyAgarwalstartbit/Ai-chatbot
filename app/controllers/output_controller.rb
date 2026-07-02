@@ -130,6 +130,11 @@ class OutputController < ApplicationController
         response.stream.write("event: done\ndata: #{ai_response.to_json}\n\n")
       rescue ActionController::Live::ClientDisconnected
         # client navigated away — nothing to do
+      rescue Ai::ConversationLimitError
+        limit_msg = "You've reached your monthly conversation limit. Please contact the store for assistance."
+        response.stream.write("event: error\ndata: #{limit_msg.to_json}\n\n")
+      rescue Ai::MessageLimitError => e
+        response.stream.write("event: error\ndata: #{e.message.to_json}\n\n")
       rescue StandardError => e
         Rails.logger.error("[Stream] #{e.class}: #{e.message}")
         response.stream.write("event: error\ndata: #{e.message.to_json}\n\n")
@@ -162,6 +167,18 @@ class OutputController < ApplicationController
         session_id: active_session_id,
         response:   ai_response
       }
+    rescue Ai::ConversationLimitError
+      render json: {
+        success: false,
+        error:   "You've reached your monthly conversation limit. Please contact the store for assistance.",
+        code:    "conversation_limit_reached"
+      }, status: :payment_required
+    rescue Ai::MessageLimitError => e
+      render json: {
+        success: false,
+        error:   e.message,
+        code:    "message_limit_reached"
+      }, status: :payment_required
     rescue => e
       Rails.logger.error "[Chat] #{e.class}: #{e.message}"
       render json: { success: false, error: e.message }, status: :internal_server_error
