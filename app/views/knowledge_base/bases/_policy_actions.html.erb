@@ -1,5 +1,7 @@
-<%# Locals: policy, policy_type, shop_origin, host
+<%# Locals: policy, policy_type, shop_origin, host, pro, free
     Renders Edit, Upload Document, and Sync From Shopify buttons. %>
+<% is_pro  = local_assigns[:pro] %>
+<% is_free = local_assigns[:free] %>
 
 <% sync_url = policy_type == "shipping_policy" ?
      sync_knowledge_base_shipping_policy_path(shop: shop_origin, host: host, embedded: 1) :
@@ -12,30 +14,34 @@
     Edit Policy
   </s-button>
 
-  <%# Upload supporting document (hidden once a file is attached) %>
-  <% unless policy.file.attached? %>
+  <%# Upload supporting document — not available on Free plan %>
+  <% unless policy.file.attached? || is_free %>
     <s-button variant="secondary" icon="upload" id="<%= policy_type %>_upload_btn"
       onclick="document.getElementById('<%= policy_type %>_file_input').click()">
       Upload Document
     </s-button>
   <% end %>
 
-  <%# Sync from Shopify — always visible %>
-  <%# data-turbo="false" prevents Turbo from setting loading/disabled on ALL
-      buttons in the DOM when the form submits — it fires manually via fetch
-      inside policy-sync#startSync instead. %>
-  <%= form_with url: sync_url, method: :post, local: false,
-                id: "#{policy_type}_sync_form",
-                data: { turbo: "false" } do |f| %>
-    <%= f.hidden_field :policy_type, value: policy_type %>
-    <s-button
-      variant="tertiary"
-      tone="neutral"
-      icon="refresh"
-      id="<%= policy_type %>_sync_btn"
-      type="button"
-      data-action="click->policy-sync#startSync"
-      data-policy-sync-policy-type-param="<%= policy_type %>"
-    >Sync From Shopify</s-button>
+  <%# Sync from Shopify — Pro only %>
+  <% if is_pro %>
+    <%= form_with url: sync_url, method: :post, local: false,
+                  id: "#{policy_type}_sync_form",
+                  data: { turbo: "false" } do |f| %>
+      <%= f.hidden_field :policy_type, value: policy_type %>
+      <s-button
+        variant="tertiary"
+        tone="neutral"
+        icon="refresh"
+        id="<%= policy_type %>_sync_btn"
+        type="button"
+        data-action="click->policy-sync#startSync"
+        data-policy-sync-policy-type-param="<%= policy_type %>"
+      >Sync From Shopify</s-button>
+    <% end %>
+  <% else %>
+    <s-tooltip id="<%= policy_type %>-sync-tip">Available on Pro plan</s-tooltip>
+    <s-button variant="tertiary" tone="neutral" icon="refresh" disabled interestFor="<%= policy_type %>-sync-tip">
+      Sync From Shopify
+    </s-button>
   <% end %>
 </div>

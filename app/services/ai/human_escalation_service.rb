@@ -10,6 +10,14 @@ module Ai
     def call
       conversation = @memory.conversation
 
+      # Free/Starter: hard block at ticket limit
+      if !@shop.pro? && @shop.tickets.where(created_at: Time.current.beginning_of_month..).count >= @shop.effective_ticket_limit
+        return {
+          type:    "ticket_limit_reached",
+          message: "Our support team is currently unavailable. Please contact the store directly for assistance."
+        }
+      end
+
       ticket = Ticket.create!(
         shop:         @shop,
         customer:     @customer,
@@ -22,6 +30,11 @@ module Ai
       )
 
       notify_support_team(ticket)
+
+      # Pro: if ticket count now exceeds limit, auto-charge overage
+      if @shop.overage_eligible? && @shop.tickets.where(created_at: Time.current.beginning_of_month..).count > @shop.effective_ticket_limit
+        OverageService.new(shop: @shop, resource_type: :ticket).check_and_charge!
+      end
 
       conversation.update!(
         handoff_mode: true,

@@ -66,8 +66,18 @@ export default class extends Controller {
     if (this.typeValue === "faq") {
       this._faqSubmit()
     } else {
-      if (this.hasTextareaTarget && this.hasHiddenTarget) {
-        this.hiddenTarget.value = this.textareaTarget.value
+      if (this.hasTextareaTarget) {
+        const ta       = this.textareaTarget
+        const maxWords = parseInt(ta.dataset.maxWords || "1000", 10)
+        const text     = (ta.value || "").trim()
+        const count    = text === "" ? 0 : text.split(/\s+/).length
+        if (count > maxWords) {
+          if (typeof showToast === "function") {
+            showToast(`Policy exceeds the ${maxWords}-word limit (${count}/${maxWords} words).`, true)
+          }
+          return
+        }
+        if (this.hasHiddenTarget) this.hiddenTarget.value = ta.value
       }
       const form = this.element.querySelector("form[data-policy-form]")
       if (form) form.requestSubmit()
@@ -124,6 +134,21 @@ export default class extends Controller {
   // ── Private helpers ─────────────────────────────────────────────────────────
 
   _faqSubmit() {
+    // Word count validation
+    if (this.hasAnswerFieldTarget) {
+      const field    = this.answerFieldTarget
+      const maxWords = parseInt(field.dataset.maxWords || "150", 10)
+      const text     = (field.value || "").trim()
+      const count    = text === "" ? 0 : text.split(/\s+/).length
+      if (count > maxWords) {
+        if (this.hasErrorTarget) {
+          this.errorTarget.innerHTML =
+            `<s-banner tone="critical" style="margin-bottom:8px;">Answer exceeds the ${maxWords}-word limit for your plan (${count}/${maxWords} words).</s-banner>`
+        }
+        return
+      }
+    }
+
     this._syncFields()
 
     const question = (this.hasTitleHiddenTarget   ? this.titleHiddenTarget.value   : "").trim()
@@ -162,6 +187,15 @@ export default class extends Controller {
     if (this.hasTitleHiddenTarget)   this.titleHiddenTarget.value   = question
     if (this.hasContentHiddenTarget) this.contentHiddenTarget.value = answer
     if (this.hasErrorTarget)         this.errorTarget.innerHTML     = ""
+
+    // Update word counter to reflect pre-filled answer (e.g. edit mode)
+    const counter = document.getElementById("faq_answer_word_count")
+    if (counter) {
+      const maxWords = parseInt(counter.dataset.max || "150", 10)
+      const count = answer.trim() === "" ? 0 : answer.trim().split(/\s+/).length
+      counter.textContent = `${count}/${maxWords} words`
+      counter.style.color = count > maxWords ? "#d72c0d" : count > maxWords * 0.9 ? "#b98900" : "#6d7175"
+    }
     if (this.hasSubmitButtonTarget) {
       this.submitButtonTarget.textContent = submitText
       this.submitButtonTarget.loading     = false

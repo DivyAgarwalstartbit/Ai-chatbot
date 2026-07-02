@@ -15,7 +15,7 @@ module Ai
         session_id: @session_id
       )
 
-      memory.add(role: "user", content: @message)
+      memory.add(role: "user", content: @message, shop: @shop)
 
       # ── Handoff guard ──────────────────────────────────────────
       if memory.conversation.handoff_mode?

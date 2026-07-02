@@ -1,25 +1,35 @@
 <% trial_days_label = "#{Shop::PLANS["starter"][:trial_days]} days" %>
 <% rows = [
-  { label: "Free trial",                         starter: trial_days_label, pro: trial_days_label },
-  { label: "AI-powered chat widget",             starter: true,             pro: true },
-  { label: "Knowledge base (FAQs + docs)",       starter: true,             pro: true },
-  { label: "Conversation history",               starter: true,             pro: true },
-  { label: "Human escalation tickets",           starter: true,             pro: true },
-  { label: "Monthly conversations",              starter: "500",            pro: "Unlimited" },
-  { label: "AI model",                           starter: "Standard",       pro: "Advanced" },
-  { label: "Custom bot personality",             starter: false,            pro: true,  badge: "Pro only" },
-  { label: "Priority email support",             starter: false,            pro: true,  badge: "Pro only" },
-  { label: "Analytics & reporting",              starter: false,            pro: true,  badge: "Pro only" }
+  { label: "Conversations / month",          free: "3 conv · 50 msgs each", starter: "40 conv · 20 msgs each", pro: "80 conv · 30 msgs · +#{Shop::OVERAGE_BUNDLE[:messages_per_conversation]}/bundle" },
+  { label: "Support tickets",               free: "2 / month",             starter: "20 / month",        pro: "50 / month" },
+  { label: "Products for AI training",      free: "10",                    starter: "100",               pro: "500" },
+  { label: "Documents",                     free: false,                   starter: "3 · max 2 MB",      pro: "10 · max 5 MB" },
+  { label: "FAQs",                          free: "5 · max 150 words",     starter: "10 · max 150 words", pro: "50 · max 500 words" },
+  { label: "Import FAQs",                   free: false,                   starter: true,                pro: true },
+  { label: "AI suggestions for FAQs",       free: false,                   starter: false,               pro: true,  badge: "Pro only" },
+  { label: "Policy editing",                free: "150 words max",         starter: true,                pro: true },
+  { label: "Shopify policy sync",           free: false,                   starter: false,               pro: true,  badge: "Pro only" },
+  { label: "Knowledge base",                free: true,                    starter: true,                pro: true },
+  { label: "Bot settings & personality",    free: true,                    starter: true,                pro: true },
+  { label: "Widget customization",          free: true,                    starter: true,                pro: true },
+  { label: "Order lookup in chat",          free: true,                    starter: true,                pro: true },
+  { label: "Human escalation",             free: true,                    starter: true,                pro: true },
+  { label: "Add to cart via chat",          free: true,                    starter: true,                pro: true },
+  { label: "Related product suggestions",   free: false,                   starter: false,               pro: true,  badge: "Pro only" },
+  { label: "Pay-as-you-go overage", free: false, starter: false, pro: true, badge: "Pro only" },
 ] %>
 
+<% free_label    = @current_plan.nil? ? nil : "Downgrade" %>
 <% starter_label = case @current_plan
    when "starter" then nil
    when "pro"     then "Downgrade"
+   when nil       then "Upgrade"
    else                "Choose Plan"
    end %>
 <% pro_label = case @current_plan
    when "pro"     then nil
    when "starter" then "Upgrade"
+   when nil       then "Upgrade"
    else                "Choose Plan"
    end %>
 <% app_base_url = (ENV["HOST"].presence || ENV["current_host"].presence || request.base_url).to_s.chomp("/") %>
@@ -41,44 +51,68 @@
 <s-page>
   <div class="pln-page-wrap">
     <h1 class="pln-title">Choose a plan</h1>
-    <p class="pln-subtitle">All plans include a <%= trial_days_label %> free trial. No credit card required to start.</p>
+    <p class="pln-subtitle">Start free, upgrade when you're ready.</p>
+
 
     <s-table variant="table">
       <s-table-header-row>
         <s-table-header>Features</s-table-header>
+
+        <%# Free column %>
+        <s-table-header>
+          <div class="pln-plan-head">
+            <span class="pln-plan-name">Free</span>
+            <span class="pln-plan-price">$0 / month</span>
+            <% if free_label.nil? %>
+              <s-stack direction="inline" gap="small-200" alignItems="center">
+                <s-button variant="secondary" disabled>Current plan</s-button>
+                <s-tag tone="success">Active</s-tag>
+              </s-stack>
+            <% else %>
+              <%# Free plan = no Shopify charge, just redirect back home %>
+              <s-button variant="tertiary" tone="neutral" disabled>Free</s-button>
+            <% end %>
+          </div>
+        </s-table-header>
+
+        <%# Starter column %>
         <s-table-header>
           <div class="pln-plan-head">
             <span class="pln-plan-name">Starter</span>
             <span class="pln-plan-price">$<%= Shop::PLANS["starter"][:price] %> / month</span>
             <% if starter_label.nil? %>
               <s-stack direction="inline" gap="small-200" alignItems="center">
-                <s-button variant="secondary" disabled accessibilityLabel="Current plan">Current plan</s-button>
+                <s-button variant="secondary" disabled>Current plan</s-button>
                 <s-tag tone="success">Active</s-tag>
               </s-stack>
             <% else %>
               <s-button variant="primary"
                 href="<%= starter_billing_url %>"
                 target="_top"
-                onclick="window.top.location.href='<%= j starter_billing_url %>'; return false;"
-                accessibilityLabel="<%= starter_label %> Starter plan"><%= starter_label %></s-button>
+                onclick="window.top.location.href='<%= j starter_billing_url %>'; return false;">
+                <%= starter_label %>
+              </s-button>
             <% end %>
           </div>
         </s-table-header>
+
+        <%# Pro column %>
         <s-table-header>
           <div class="pln-plan-head">
             <span class="pln-plan-name">Pro</span>
             <span class="pln-plan-price">$<%= Shop::PLANS["pro"][:price] %> / month</span>
             <% if pro_label.nil? %>
               <s-stack direction="inline" gap="small-200" alignItems="center">
-                <s-button variant="secondary" disabled accessibilityLabel="Current plan">Current plan</s-button>
+                <s-button variant="secondary" disabled>Current plan</s-button>
                 <s-tag tone="success">Active</s-tag>
               </s-stack>
             <% else %>
               <s-button variant="primary"
                 href="<%= pro_billing_url %>"
                 target="_top"
-                onclick="window.top.location.href='<%= j pro_billing_url %>'; return false;"
-                accessibilityLabel="<%= pro_label %> Pro plan"><%= pro_label %></s-button>
+                onclick="window.top.location.href='<%= j pro_billing_url %>'; return false;">
+                <%= pro_label %>
+              </s-button>
             <% end %>
           </div>
         </s-table-header>
@@ -93,24 +127,18 @@
                 <% if row[:badge] %><s-tag tone="attention"><%= row[:badge] %></s-tag><% end %>
               </s-stack>
             </s-table-cell>
-            <s-table-cell>
-              <% if row[:starter] == true %>
-                <span class="pln-cell-icon-yes">✓</span>
-              <% elsif row[:starter] == false %>
-                <span class="pln-cell-icon-no">✗</span>
-              <% else %>
-                <s-text><%= row[:starter] %></s-text>
-              <% end %>
-            </s-table-cell>
-            <s-table-cell>
-              <% if row[:pro] == true %>
-                <span class="pln-cell-icon-yes">✓</span>
-              <% elsif row[:pro] == false %>
-                <span class="pln-cell-icon-no">✗</span>
-              <% else %>
-                <s-text><%= row[:pro] %></s-text>
-              <% end %>
-            </s-table-cell>
+            <% [:free, :starter, :pro].each do |col| %>
+              <s-table-cell>
+                <% val = row[col] %>
+                <% if val == true %>
+                  <span class="pln-cell-icon-yes">✓</span>
+                <% elsif val == false %>
+                  <span class="pln-cell-icon-no">✗</span>
+                <% else %>
+                  <s-text><%= val %></s-text>
+                <% end %>
+              </s-table-cell>
+            <% end %>
           </s-table-row>
         <% end %>
       </s-table-body>

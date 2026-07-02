@@ -4,6 +4,7 @@ class BotSettingsController < AuthenticatedController
   def show
     @shop_origin = current_shopify_domain
     @host        = params[:host]
+    @pro         = current_shop.pro?
     @config      = current_shop.ai_shopper_configuration ||
                    current_shop.build_ai_shopper_configuration
   end
