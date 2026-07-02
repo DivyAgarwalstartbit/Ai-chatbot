@@ -28,9 +28,11 @@ module Ai
         stream_callback: @stream_callback,
         instructions:    <<~TEXT
           You are answering store policy and support questions.
-          - Use ONLY the provided store knowledge.
-          - Answer return, shipping, and FAQ questions accurately.
-          - Do not invent or assume policies not present in the context.
+          - Use ONLY the information explicitly stated in the Context section above.
+          - Do NOT invent, infer, assume, or extrapolate any policy or detail not word-for-word in the Context.
+          - If the Context does not contain a clear answer to the customer's question, do NOT guess.
+            Instead respond with exactly: "I don't have that information. #{contact_line}"
+          - Never expand beyond what the Context literally states.
         TEXT
       ).call
     end
@@ -63,15 +65,25 @@ module Ai
     end
 
     def no_information
-      Ai::ChatGenerationService.new(
-        message:         @message,
-        shop:            @shop,
-        stream_callback: @stream_callback,
-        instructions:    <<~TEXT
-          Tell the customer politely that this store information is not available yet.
-          Ask them to contact support directly if they need further assistance or type "Human" to connect with Human support agent.
-        TEXT
-      ).call
+      msg = "I'm sorry, I don't have information on that. #{contact_line}"
+      @stream_callback&.call(msg)
+      msg
+    end
+
+    def contact_line
+      vr    = (@shop.ai_shopper_configuration&.visibility_rules || {}).with_indifferent_access
+      email = vr[:support_email].presence
+      phone = vr[:whatsapp].presence
+
+      parts = []
+      parts << "email us at **#{email}**" if email
+      parts << "reach us on WhatsApp at **#{phone}**" if phone
+
+      if parts.empty?
+        'Please type "Human" to connect with our support team.'
+      else
+        "Please #{parts.join(" or ")} for further assistance, or type \"Human\" to connect with an agent."
+      end
     end
   end
 end

@@ -4,8 +4,9 @@ class App::ProductSyncsController < AuthenticatedController
   PER_PAGE = 10
 
   def show
-    @search         = params[:search].to_s.strip
-    @products_count = current_shop.products.count
+    @search             = params[:search].to_s.strip
+    @products_count     = current_shop.products.count
+    @products_synced_at = current_shop.products_synced_at
 
     scope = current_shop.products.includes(:product_variants).order(created_at: :desc)
     scope = scope.where("title ILIKE :q OR handle ILIKE :q", q: "%#{@search}%") if @search.present?

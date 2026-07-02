@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_06_25_102501) do
+ActiveRecord::Schema[8.1].define(version: 2026_07_01_115736) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "vector"
@@ -161,6 +161,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_06_25_102501) do
     t.datetime "expires_at"
     t.boolean "paid", default: false, null: false
     t.string "plan"
+    t.datetime "products_synced_at"
     t.string "refresh_token"
     t.datetime "refresh_token_expires_at"
     t.string "shopify_domain", null: false

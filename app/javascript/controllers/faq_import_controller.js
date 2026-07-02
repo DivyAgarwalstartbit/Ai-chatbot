@@ -149,6 +149,13 @@ export default class extends Controller {
   submitImport(e) {
     if (e) e.preventDefault()
     this._syncReviewRows()
+
+    const checkboxes = Array.from(this.element.querySelectorAll(".faq-preview-checkbox"))
+    if (!checkboxes.some(cb => cb.checked)) {
+      this._showError("Please select at least one FAQ to import.")
+      return
+    }
+
     this.element.querySelector("form")?.requestSubmit()
   }
 

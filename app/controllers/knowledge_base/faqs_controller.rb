@@ -2,7 +2,7 @@
 
 # Handles FAQ CRUD, bulk import (extract + import), AI suggestions, and FAQ attachments.
 class KnowledgeBase::FaqsController < AuthenticatedController
-  skip_before_action :verify_authenticity_token, only: %i[create update destroy extract import suggest suggest_import create_attachment destroy_attachment]
+  skip_before_action :verify_authenticity_token, only: %i[create update destroy bulk_destroy extract import suggest suggest_import create_attachment destroy_attachment]
 
   before_action :set_shop_context
   before_action :set_faq, only: %i[show edit update destroy]
@@ -84,6 +84,32 @@ class KnowledgeBase::FaqsController < AuthenticatedController
         end
         format.html { redirect_to knowledge_base_root_path(shop: @shop_origin, host: @host, embedded: 1) }
       end
+    end
+  end
+
+  def bulk_destroy
+    ids = Array(params[:ids]).map(&:to_i).select(&:positive?)
+    deleted_ids = current_shop.training_documents
+                              .where(document_type: "faq", id: ids)
+                              .destroy_all
+                              .map(&:id)
+
+    @faqs = ordered_faqs
+    respond_to do |format|
+      format.turbo_stream do
+        streams = deleted_ids.map { |id| turbo_stream.remove("training_document_#{id}") }
+
+        if @faqs.empty?
+          streams << turbo_stream.replace("faq_empty_state") {
+            '<div id="faq_empty_state"><p style="font-size:12px;color:#8c9196;margin:4px 0;">No FAQs yet. Click <strong>Add FAQ</strong> or <strong>Import FAQs</strong> to get started.</p></div>'.html_safe
+          }
+        end
+
+        streams << ts_replace("faq_count_badge", "knowledge_base/shared/count_badge",
+                               id: "faq_count_badge", count: @faqs.size, label: "FAQ")
+        render turbo_stream: streams
+      end
+      format.json { render json: { deleted: deleted_ids.size } }
     end
   end
 

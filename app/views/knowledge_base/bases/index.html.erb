@@ -145,14 +145,47 @@
 }
 .kb-faq-card {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-columns: auto minmax(0, 1fr) auto;
   gap: 12px;
   align-items: start;
   border: 1px solid #e1e3e5;
   border-radius: 8px;
   background: #fff;
   padding: 12px;
+  transition: background 0.12s;
 }
+.kb-faq-card:has(.kb-faq-checkbox:checked) {
+  background: #f0f7ff;
+  border-color: #b3d4f5;
+}
+.kb-faq-checkbox-wrap {
+  display: flex;
+  align-items: flex-start;
+  padding-top: 2px;
+  cursor: pointer;
+}
+.kb-faq-checkbox {
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+  accent-color: #106ba3;
+  flex-shrink: 0;
+}
+/* Bulk action toolbar */
+.kb-faq-bulk-bar {
+  display: none;
+  align-items: center;
+  gap: 10px;
+  background: #eaf4fe;
+  border: 1px solid #b3d4f5;
+  border-radius: 8px;
+  padding: 8px 12px;
+  margin-bottom: 8px;
+  font-size: 13px;
+  color: #202223;
+}
+.kb-faq-bulk-bar.is-visible { display: flex; }
+.kb-faq-bulk-count { font-weight: 600; flex: 1; }
 .kb-faq-card-main {
   min-width: 0;
 }
@@ -231,11 +264,13 @@
 }
 @media (max-width: 640px) {
   .kb-faq-card {
-    grid-template-columns: 1fr;
+    grid-template-columns: auto 1fr;
+    grid-template-rows: auto auto;
   }
   .kb-faq-card-actions {
+    grid-column: 2;
     justify-content: flex-start;
-    margin-left: 26px;
+    margin-left: 0;
   }
 }
 
@@ -354,6 +389,14 @@
           </s-button>
         </div>
 
+        <!-- Bulk action toolbar (hidden until FAQs are selected) -->
+        <div id="faq_bulk_bar" class="kb-faq-bulk-bar">
+          <span class="kb-faq-bulk-count" id="faq_bulk_count">0 selected</span>
+          <s-button variant="tertiary" tone="neutral" size="slim" onclick="faqSelectAll()">Select all</s-button>
+          <s-button variant="tertiary" tone="neutral" size="slim" onclick="faqDeselectAll()">Deselect all</s-button>
+          <s-button variant="primary" tone="critical" size="slim" icon="delete" onclick="faqBulkDeleteConfirm()">Delete selected</s-button>
+        </div>
+
         <div id="faq_list" class="kb-faq-list">
           <% if @faqs.empty? %>
             <div id="faq_empty_state">
@@ -456,6 +499,18 @@
     <% end %>
     <%# Hidden button used by JS/Turbo Stream to close this modal programmatically %>
     <s-button id="faq-suggestions-modal-close" commandFor="faq-suggestions-modal" command="--hide" style="display:none"></s-button>
+  </s-modal>
+
+  <%# ── FAQ Bulk Delete Modal ── %>
+  <s-modal id="faq-bulk-delete-modal" heading="Delete FAQs?" size="small">
+    <s-stack gap="base">
+      <s-text id="faq-bulk-delete-message">Are you sure you want to delete the selected FAQs?</s-text>
+      <s-text tone="caution">This action cannot be undone.</s-text>
+    </s-stack>
+    <s-button slot="secondary-actions" variant="secondary" commandFor="faq-bulk-delete-modal" command="--hide">Cancel</s-button>
+    <s-button slot="primary-action" variant="primary" tone="critical" id="faq-bulk-confirm-delete">Delete</s-button>
+    <s-button id="faq-bulk-delete-modal-close" commandFor="faq-bulk-delete-modal" command="--hide" style="display:none"></s-button>
+    <s-button id="faq-bulk-delete-modal-show" commandFor="faq-bulk-delete-modal" command="--show" style="display:none"></s-button>
   </s-modal>
 
   <%# ── FAQ Delete Modal ── %>
@@ -707,6 +762,74 @@
       }
     });
 
+    // ── FAQ Bulk Delete ──────────────────────────────────────────────────────
+    function faqGetSelectedIds() {
+      return Array.from(document.querySelectorAll('.kb-faq-checkbox:checked'))
+                  .map(cb => cb.dataset.faqId);
+    }
+
+    function faqBulkSelectionChanged() {
+      const ids = faqGetSelectedIds();
+      const bar = document.getElementById('faq_bulk_bar');
+      const countEl = document.getElementById('faq_bulk_count');
+      if (ids.length > 0) {
+        bar.classList.add('is-visible');
+        countEl.textContent = ids.length + ' selected';
+      } else {
+        bar.classList.remove('is-visible');
+      }
+    }
+
+    function faqSelectAll() {
+      document.querySelectorAll('.kb-faq-checkbox').forEach(cb => cb.checked = true);
+      faqBulkSelectionChanged();
+    }
+
+    function faqDeselectAll() {
+      document.querySelectorAll('.kb-faq-checkbox').forEach(cb => cb.checked = false);
+      faqBulkSelectionChanged();
+    }
+
+    function faqBulkDeleteConfirm() {
+      const ids = faqGetSelectedIds();
+      if (!ids.length) return;
+      document.getElementById('faq-bulk-delete-message').textContent =
+        `Are you sure you want to delete ${ids.length} FAQ${ids.length === 1 ? '' : 's'}?`;
+      document.getElementById('faq-bulk-delete-modal-show').click();
+    }
+
+    document.getElementById('faq-bulk-confirm-delete').addEventListener('click', async function() {
+      const ids = faqGetSelectedIds();
+      if (!ids.length) return;
+
+      this.loading = true;
+      try {
+        const params = new URLSearchParams();
+        ids.forEach(id => params.append('ids[]', id));
+
+        const response = await fetch('<%= bulk_destroy_knowledge_base_faqs_path(shop: @shop_origin, host: @host, embedded: 1) %>', {
+          method: 'DELETE',
+          headers: {
+            'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]').content,
+            'Accept': 'text/vnd.turbo-stream.html',
+            'Content-Type': 'application/x-www-form-urlencoded'
+          },
+          body: params.toString()
+        });
+
+        if (response.ok) {
+          await renderTurboStreamResponse(response);
+          faqDeselectAll();
+          document.getElementById('faq-bulk-delete-modal-close').click();
+          showSaveBar();
+        }
+      } catch (err) {
+        console.error('Bulk FAQ delete failed:', err);
+      } finally {
+        this.loading = false;
+      }
+    });
+
     // Handle Document deletion
     const documentDeleteModal = document.getElementById('document-delete-modal');
     const documentConfirmBtn = document.getElementById('document-confirm-delete');
@@ -864,6 +987,61 @@
         }
       });
     }
+  </script>
+
+  <script>
+    // Animated accordion — only one open at a time
+    function kbAccordionOpen(detail) {
+      const body = detail.querySelector('.kb-acc-body');
+      if (!body) { detail.setAttribute('open', ''); return; }
+      detail.setAttribute('open', '');
+      const target = body.scrollHeight;
+      body.style.height = '0px';
+      body.style.overflow = 'hidden';
+      // double rAF so browser paints 0px before transitioning
+      requestAnimationFrame(function() {
+        requestAnimationFrame(function() {
+          body.style.transition = 'height 0.24s ease';
+          body.style.height = target + 'px';
+        });
+      });
+      body.addEventListener('transitionend', function cleanup() {
+        body.style.height = body.style.overflow = body.style.transition = '';
+        body.removeEventListener('transitionend', cleanup);
+      });
+    }
+
+    function kbAccordionClose(detail) {
+      const body = detail.querySelector('.kb-acc-body');
+      if (!body) { detail.removeAttribute('open'); return; }
+      body.style.height = body.scrollHeight + 'px';
+      body.style.overflow = 'hidden';
+      requestAnimationFrame(function() {
+        requestAnimationFrame(function() {
+          body.style.transition = 'height 0.24s ease';
+          body.style.height = '0px';
+        });
+      });
+      body.addEventListener('transitionend', function cleanup() {
+        detail.removeAttribute('open');
+        body.style.height = body.style.overflow = body.style.transition = '';
+        body.removeEventListener('transitionend', cleanup);
+      });
+    }
+
+    document.querySelectorAll('details.kb-accordion').forEach(function(detail) {
+      detail.querySelector('summary').addEventListener('click', function(e) {
+        e.preventDefault();
+        if (detail.open) {
+          kbAccordionClose(detail);
+        } else {
+          document.querySelectorAll('details.kb-accordion').forEach(function(other) {
+            if (other !== detail && other.open) kbAccordionClose(other);
+          });
+          kbAccordionOpen(detail);
+        }
+      });
+    });
   </script>
 
 </s-page>

@@ -182,7 +182,8 @@ module Ai
       questions = Ai::RelatedQuestionsService.new(
         user_message: @message,
         bot_response:  bot_text,
-        count:         count
+        count:         count,
+        shop:          @shop
       ).call
 
       questions.any? ? response.merge(related_questions: questions) : response

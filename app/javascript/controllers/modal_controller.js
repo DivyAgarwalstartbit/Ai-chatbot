@@ -125,6 +125,19 @@ export default class extends Controller {
 
   _faqSubmit() {
     this._syncFields()
+
+    const question = (this.hasTitleHiddenTarget   ? this.titleHiddenTarget.value   : "").trim()
+    const answer   = (this.hasContentHiddenTarget ? this.contentHiddenTarget.value : "").trim()
+
+    if (!question || !answer) {
+      const msg = !question ? "Question can't be blank." : "Answer can't be blank."
+      if (this.hasErrorTarget) {
+        this.errorTarget.innerHTML =
+          `<s-banner tone="critical" style="margin-bottom:8px;"><s-paragraph>${msg}</s-paragraph></s-banner>`
+      }
+      return
+    }
+
     if (this.hasErrorTarget)        this.errorTarget.innerHTML = ""
     if (this.hasSubmitButtonTarget) this.submitButtonTarget.loading = true
     if (this.hasFormTarget)         this.formTarget.requestSubmit()

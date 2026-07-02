@@ -52,9 +52,9 @@
               align-items="center"
             >
 
-              <s-badge tone="success">
-                Synced
-              </s-badge>
+              <% if @products_synced_at.present? %>
+                <s-badge tone="success">Synced</s-badge>
+              <% end %>
 
               <s-text tone="subdued">
                 <%= @products_count %> product<%= @products_count == 1 ? "" : "s" %>
@@ -62,18 +62,26 @@
 
             </s-stack>
 
+            <% if @products_synced_at.present? %>
+              <s-text tone="subdued">
+                Last synced: <%= @products_synced_at.utc.strftime("%d %b %Y, %I:%M %p UTC") %>
+              </s-text>
+            <% end %>
+
           </s-stack>
 
         </s-stack>
 
-        <!-- Action -->
-        <s-button
-          id="sync-btn"
-          variant="primary"
-          onclick="startSync()"
-        >
-          <span id="sync-btn-text">Sync Products</span>
-        </s-button>
+        <!-- Action: show button only before first sync -->
+        <% if @products_synced_at.nil? %>
+          <s-button
+            id="sync-btn"
+            variant="primary"
+            onclick="startSync()"
+          >
+            <span id="sync-btn-text">Sync Products</span>
+          </s-button>
+        <% end %>
 
       </s-stack>
 
@@ -108,9 +116,11 @@
           </s-paragraph>
         </s-stack>
 
-        <s-button variant="primary" onclick="startSync()">
-          <span id="sync-btn-text-empty">Sync Products</span>
-        </s-button>
+        <% if @products_synced_at.nil? %>
+          <s-button variant="primary" onclick="startSync()">
+            <span id="sync-btn-text-empty">Sync Products</span>
+          </s-button>
+        <% end %>
 
       </s-grid>
 

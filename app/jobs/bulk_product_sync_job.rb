@@ -12,6 +12,8 @@ class BulkProductSyncJob < ApplicationJob
     # Download JSONL and save products/variants/embeddings
     Shopify::BulkProductImportService.new(shop, url).call
 
+    shop.update!(products_synced_at: Time.current)
+
   rescue => e
     Rails.logger.error "BulkProductSyncJob failed: #{e.class}: #{e.message}"
     raise
