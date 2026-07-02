@@ -2,7 +2,8 @@
 
 # Handles FAQ CRUD, bulk import (extract + import), AI suggestions, and FAQ attachments.
 class KnowledgeBase::FaqsController < AuthenticatedController
-  skip_before_action :verify_authenticity_token, only: %i[create update destroy extract import suggest suggest_import create_attachment destroy_attachment]
+  FAQ_MAX_WORDS  = { "free" => 150, "starter" => 150, "pro" => 500 }.freeze
+  skip_before_action :verify_authenticity_token, only: %i[create update destroy bulk_destroy extract import suggest suggest_import create_attachment destroy_attachment]
 
   before_action :set_shop_context
   before_action :set_faq, only: %i[show edit update destroy]
@@ -23,6 +24,36 @@ class KnowledgeBase::FaqsController < AuthenticatedController
   def edit; end
 
   def create
+    plan       = current_shop.plan.presence || "free"
+    faq_count  = current_shop.training_documents.where(document_type: "faq").count
+    faq_limit  = current_shop.effective_faq_limit
+
+    if faq_count >= faq_limit
+      upgrade_msg = plan == "free" ? "Upgrade to Starter or Pro for more FAQs." : "Delete one or upgrade to Pro."
+      return respond_to do |format|
+        format.turbo_stream do
+          render turbo_stream: ts_replace("faq_form_error", "knowledge_base/faqs/form_error",
+                                          title: "FAQ limit reached",
+                                          messages: [ "Your #{plan.capitalize} plan allows up to #{faq_limit} FAQs. #{upgrade_msg}" ])
+        end
+        format.html { redirect_to knowledge_base_root_path(shop: @shop_origin, host: @host, embedded: 1), alert: "FAQ limit reached." }
+      end
+    end
+
+    answer_words = faq_params[:content].to_s.split.size
+    max_words    = FAQ_MAX_WORDS[plan]
+
+    if answer_words > max_words
+      return respond_to do |format|
+        format.turbo_stream do
+          render turbo_stream: ts_replace("faq_form_error", "knowledge_base/faqs/form_error",
+                                          title: "Answer too long",
+                                          messages: [ "Your #{plan.capitalize} plan allows up to #{max_words} words per answer. Your answer has #{answer_words} words." ])
+        end
+        format.html { redirect_to knowledge_base_root_path(shop: @shop_origin, host: @host, embedded: 1), alert: "Answer too long." }
+      end
+    end
+
     @faq = current_shop.training_documents.build(faq_params.merge(document_type: "faq"))
 
     if @faq.save
@@ -40,6 +71,7 @@ class KnowledgeBase::FaqsController < AuthenticatedController
             ts_js(<<~JS)
               var closeBtn = document.getElementById('faq-form-modal-close');
               if (closeBtn) closeBtn.click();
+              if (typeof showToast === 'function') showToast('FAQ saved');
             JS
           ]
         end
@@ -59,6 +91,21 @@ class KnowledgeBase::FaqsController < AuthenticatedController
   end
 
   def update
+    plan         = current_shop.plan.presence || "starter"
+    answer_words = faq_params[:content].to_s.split.size
+    max_words    = FAQ_MAX_WORDS[plan]
+
+    if answer_words > max_words
+      return respond_to do |format|
+        format.turbo_stream do
+          render turbo_stream: ts_replace("faq_form_error", "knowledge_base/faqs/form_error",
+                                          title: "Answer too long",
+                                          messages: [ "Your #{plan.capitalize} plan allows up to #{max_words} words per answer. Your answer has #{answer_words} words." ])
+        end
+        format.html { redirect_to knowledge_base_root_path(shop: @shop_origin, host: @host, embedded: 1), alert: "Answer too long." }
+      end
+    end
+
     if @faq.update(faq_params)
       @faqs = ordered_faqs
       respond_to do |format|
@@ -70,6 +117,7 @@ class KnowledgeBase::FaqsController < AuthenticatedController
             ts_js(<<~JS)
               var closeBtn = document.getElementById('faq-form-modal-close');
               if (closeBtn) closeBtn.click();
+              if (typeof showToast === 'function') showToast('FAQ updated');
             JS
           ]
         end
@@ -84,6 +132,32 @@ class KnowledgeBase::FaqsController < AuthenticatedController
         end
         format.html { redirect_to knowledge_base_root_path(shop: @shop_origin, host: @host, embedded: 1) }
       end
+    end
+  end
+
+  def bulk_destroy
+    ids = Array(params[:ids]).map(&:to_i).select(&:positive?)
+    deleted_ids = current_shop.training_documents
+                              .where(document_type: "faq", id: ids)
+                              .destroy_all
+                              .map(&:id)
+
+    @faqs = ordered_faqs
+    respond_to do |format|
+      format.turbo_stream do
+        streams = deleted_ids.map { |id| turbo_stream.remove("training_document_#{id}") }
+
+        if @faqs.empty?
+          streams << turbo_stream.replace("faq_empty_state") {
+            '<div id="faq_empty_state"><p style="font-size:12px;color:#8c9196;margin:4px 0;">No FAQs yet. Click <strong>Add FAQ</strong> or <strong>Import FAQs</strong> to get started.</p></div>'.html_safe
+          }
+        end
+
+        streams << ts_replace("faq_count_badge", "knowledge_base/shared/count_badge",
+                               id: "faq_count_badge", count: @faqs.size, label: "FAQ")
+        render turbo_stream: streams
+      end
+      format.json { render json: { deleted: deleted_ids.size } }
     end
   end
 
@@ -487,6 +561,7 @@ class KnowledgeBase::FaqsController < AuthenticatedController
     streams << ts_js(<<~JS)
       var closeBtn = document.getElementById('#{modal_id}-close');
       if (closeBtn) closeBtn.click();
+      if (typeof showToast === 'function') showToast('#{banner_title}');
     JS
 
     streams

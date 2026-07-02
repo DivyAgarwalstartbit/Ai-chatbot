@@ -15,7 +15,7 @@ module Ai
         session_id: @session_id
       )
 
-      memory.add(role: "user", content: @message)
+      memory.add(role: "user", content: @message, shop: @shop)
 
       # ── Handoff guard ──────────────────────────────────────────
       if memory.conversation.handoff_mode?
@@ -182,7 +182,8 @@ module Ai
       questions = Ai::RelatedQuestionsService.new(
         user_message: @message,
         bot_response:  bot_text,
-        count:         count
+        count:         count,
+        shop:          @shop
       ).call
 
       questions.any? ? response.merge(related_questions: questions) : response

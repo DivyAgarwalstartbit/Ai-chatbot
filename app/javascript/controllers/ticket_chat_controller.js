@@ -1,7 +1,7 @@
 import { Controller } from "@hotwired/stimulus"
 
 export default class extends Controller {
-  static targets = ["messages", "input", "submit"]
+  static targets = ["messages", "input", "submit", "hint", "closedNotice"]
   static values  = { conversationId: Number, replyUrl: String }
 
   connect() {
@@ -42,9 +42,15 @@ export default class extends Controller {
       body: JSON.stringify({ content })
     })
       .then(r => r.json())
-      .then(() => { this.inputTarget.value = "" })
-      .catch(console.error)
-      .finally(() => { this.submitTarget.disabled = false })
+      .then(data => {
+        this.inputTarget.value = ""
+        if (data.ticket_status === "closed") {
+          this._lockReplyBox()
+        } else {
+          this.submitTarget.disabled = false
+        }
+      })
+      .catch(err => { console.error(err); this.submitTarget.disabled = false })
   }
 
   inputKeydown(event) {
@@ -69,6 +75,20 @@ export default class extends Controller {
 
     this.messagesTarget.appendChild(wrap)
     this._scrollBottom()
+  }
+
+  _lockReplyBox() {
+    this.inputTarget.disabled = true
+    this.inputTarget.placeholder = "Ticket is closed"
+    this.submitTarget.disabled = true
+    if (this.hasHintTarget) this.hintTarget.style.display = "none"
+    if (!this.hasClosedNoticeTarget) {
+      const notice = document.createElement("div")
+      notice.className = "td-closed-notice"
+      notice.dataset.ticketChatTarget = "closedNotice"
+      notice.textContent = "This ticket is closed. Change the status to reopen it."
+      this.element.querySelector(".td-reply-box")?.before(notice)
+    }
   }
 
   _scrollBottom() {

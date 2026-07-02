@@ -96,6 +96,13 @@ export default class extends Controller {
       if (aField  && aHidden) aHidden.value = aField.value  || ""
     })
 
+    const checkboxes = Array.from(this.element.querySelectorAll(".faq-preview-checkbox"))
+    if (!checkboxes.some(cb => cb.checked)) {
+      const errEl = document.getElementById("faq_suggestion_import_error")
+      if (errEl) errEl.innerHTML = "<s-banner tone=\"critical\"><s-paragraph>Please select at least one FAQ to import.</s-paragraph></s-banner>"
+      return
+    }
+
     const importBtn = document.getElementById("suggest_import_btn")
     if (importBtn) { importBtn.setAttribute("loading", ""); importBtn.setAttribute("disabled", "") }
 

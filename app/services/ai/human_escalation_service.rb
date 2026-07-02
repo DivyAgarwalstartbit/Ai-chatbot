@@ -10,6 +10,14 @@ module Ai
     def call
       conversation = @memory.conversation
 
+      # Free/Starter: hard block at ticket limit
+      if !@shop.pro? && @shop.tickets.where(created_at: Time.current.beginning_of_month..).count >= @shop.effective_ticket_limit
+        return {
+          type:    "ticket_limit_reached",
+          message: "Our support team is currently unavailable. Please contact the store directly for assistance."
+        }
+      end
+
       ticket = Ticket.create!(
         shop:         @shop,
         customer:     @customer,
@@ -20,6 +28,13 @@ module Ai
         priority:     "normal",
         source:       source_type
       )
+
+      notify_support_team(ticket)
+
+      # Pro: if ticket count now exceeds limit, auto-charge overage
+      if @shop.overage_eligible? && @shop.tickets.where(created_at: Time.current.beginning_of_month..).count > @shop.effective_ticket_limit
+        OverageService.new(shop: @shop, resource_type: :ticket).check_and_charge!
+      end
 
       conversation.update!(
         handoff_mode: true,
@@ -72,6 +87,18 @@ module Ai
 
     def payment_issue?
       @message.match?(/\b(payment|charge|bill|invoice|dispute|credit)\b/i)
+    end
+
+    def notify_support_team(ticket)
+      vr = (@shop.ai_shopper_configuration&.visibility_rules || {}).with_indifferent_access
+      return unless vr[:ticket_email_notification].to_s == "true"
+
+      support_email = vr[:support_email].presence
+      return if support_email.blank?
+
+      TicketNotificationMailer.new_ticket(ticket: ticket, shop: @shop).deliver_later
+    rescue => e
+      Rails.logger.error("TicketNotificationMailer failed: #{e.class} #{e.message}")
     end
   end
 end

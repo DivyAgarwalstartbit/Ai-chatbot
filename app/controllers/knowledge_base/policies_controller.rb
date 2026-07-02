@@ -14,6 +14,16 @@ class KnowledgeBase::PoliciesController < AuthenticatedController
   end
 
   def update
+    content    = policy_params[:content].to_s
+    word_count = content.strip.empty? ? 0 : content.strip.split(/\s+/).length
+
+    if word_count > 1000
+      return respond_to do |format|
+        format.turbo_stream { render turbo_stream: ts_js("if (typeof showToast === 'function') showToast('Policy text exceeds the 1000-word limit (#{word_count} words). Please shorten it.', true);") }
+        format.html { redirect_to knowledge_base_root_path(shop: @shop_origin, host: @host, embedded: 1), alert: "Policy text too long." }
+      end
+    end
+
     @policy.assign_attributes(policy_params)
     @policy.title       ||= @policy_type.humanize
     @policy.source_type   = add_source(@policy.source_type, "manual_entry")
@@ -97,6 +107,7 @@ class KnowledgeBase::PoliciesController < AuthenticatedController
             (function() {
               var btn = document.getElementById('#{@policy_type}_sync_btn');
               if (btn) { btn.removeAttribute('loading'); btn.removeAttribute('disabled'); }
+              if (typeof showToast === 'function') showToast('Policy synced from Shopify');
             })();
           JS
         ]
@@ -131,7 +142,7 @@ class KnowledgeBase::PoliciesController < AuthenticatedController
       ProcessDocumentJob.perform_later(@policy.id)
 
       respond_to do |format|
-        format.turbo_stream { render turbo_stream: policy_attachment_refresh_streams }
+        format.turbo_stream { render turbo_stream: policy_attachment_refresh_streams + [ ts_js("if (typeof showToast === 'function') showToast('Document uploaded');") ] }
         format.html { redirect_to knowledge_base_root_path(shop: @shop_origin, host: @host, embedded: 1) }
       end
     else

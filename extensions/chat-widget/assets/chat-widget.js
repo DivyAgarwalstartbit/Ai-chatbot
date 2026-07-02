@@ -100,11 +100,11 @@
 
     // Product cards
     if (type === "product_cards" && Array.isArray(meta.products)) {
-      meta.products.forEach(p => addProductCard(p, avatarUrl));
+      addProductCards(meta.products, avatarUrl);
     } else {
       if (meta.product) addProductCard(meta.product, avatarUrl);
       if (Array.isArray(meta.products) && type !== "product_cards") {
-        meta.products.forEach(p => addProductCard(p, avatarUrl));
+        addProductCards(meta.products, avatarUrl);
       }
     }
 
@@ -282,7 +282,7 @@ ${animBubbleHtml}
     </button>
   </div>
 
-  <div class="ai-powered">⚡ Powered by AI Assistant</div>
+ 
 </div>
 
 `;
@@ -531,10 +531,10 @@ ${animBubbleHtml}
 
     // Product cards
     if (inner.type === "product_cards" && Array.isArray(inner.products)) {
-      inner.products.forEach(p => addProductCard(p, avatarUrl));
+      addProductCards(inner.products, avatarUrl);
     } else {
       if (inner.product) addProductCard(inner.product, avatarUrl);
-      if (Array.isArray(inner.products)) inner.products.forEach(p => addProductCard(p, avatarUrl));
+      if (Array.isArray(inner.products)) addProductCards(inner.products, avatarUrl);
     }
 
     if (inner.type === "auth_required") { renderAuthCard(inner, avatarUrl); return; }
@@ -639,6 +639,12 @@ ${animBubbleHtml}
 
   // ── Product card ──────────────────────────────────────────
   function addProductCard(product, avatarUrl) {
+    addProductCards([product], avatarUrl);
+  }
+
+  function addProductCards(products, avatarUrl) {
+    if (!products || !products.length) return;
+
     const row = document.createElement("div");
     row.className = "ai-message-row";
     row.innerHTML = `
@@ -647,11 +653,42 @@ ${animBubbleHtml}
         ? `<img src="${esc(avatarUrl)}" alt="avatar">`
         : `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#8c9196" stroke-width="1.8"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>`}
       </div>`;
-    const card = buildProductCard(product);
-    row.appendChild(card);
-    msgContainer().appendChild(row);
-    scrollBottom();
-    wireProductCard(card, avatarUrl);
+
+    if (products.length === 1) {
+      const card = buildProductCard(products[0]);
+      row.appendChild(card);
+      msgContainer().appendChild(row);
+      scrollBottom();
+      wireProductCard(card, avatarUrl);
+    } else {
+      const strip = document.createElement("div");
+      strip.className = "ai-product-cards-strip";
+      products.forEach(p => {
+        const card = buildProductCard(p);
+        strip.appendChild(card);
+        wireProductCard(card, avatarUrl);
+      });
+      wireDragScroll(strip);
+      row.appendChild(strip);
+      msgContainer().appendChild(row);
+      scrollBottom();
+    }
+  }
+
+  function wireDragScroll(el) {
+    let isDown = false, startX = 0, scrollLeft = 0;
+    el.addEventListener("mousedown", e => {
+      isDown = true;
+      startX = e.pageX - el.offsetLeft;
+      scrollLeft = el.scrollLeft;
+    });
+    el.addEventListener("mouseleave", () => { isDown = false; });
+    el.addEventListener("mouseup", () => { isDown = false; });
+    el.addEventListener("mousemove", e => {
+      if (!isDown) return;
+      e.preventDefault();
+      el.scrollLeft = scrollLeft - (e.pageX - el.offsetLeft - startX);
+    });
   }
 
   function addOrderLookupForm(payload, avatarUrl) {
@@ -1028,34 +1065,24 @@ ${animBubbleHtml}
   </div>`
       : "";
 
-    const desc = product.description || stripHtml(product.body_html || "");
-    const descHtml = desc
-      ? `<div class="ai-product-section">
-           <div class="ai-product-label">Description</div>
-           <div class="ai-product-desc">${esc(desc)}</div>
-         </div>`
-      : "";
 
     const productUrl = product.url || (product.handle ? `/products/${product.handle}` : "#");
 
     card.innerHTML = `
-      <div class="ai-product-top">
-        <a class="ai-product-img-link" href="${esc(productUrl)}" target="_blank" rel="noopener noreferrer">
-          <div class="ai-product-img">${imageHtml}</div>
-        </a>
-        <div class="ai-product-info">
-          ${codeHtml}
-          <a class="ai-product-title" href="${esc(productUrl)}" rel="noopener noreferrer">${esc(product.title || "Product")}</a>
-          ${priceLabel ? `<div class="ai-product-price">${esc(priceLabel)}</div>` : ""}
-          <div class="ai-product-body">${descHtml}${colorsHtml}${sizesHtml}</div>
-          <div class="ai-product-actions-row">
-            ${addToCartEnabled
+      <a class="ai-product-img-link" href="${esc(productUrl)}" target="_blank" rel="noopener noreferrer">
+        <div class="ai-product-img">${imageHtml}</div>
+      </a>
+      <div class="ai-product-info">
+        ${codeHtml}
+        <a class="ai-product-title" href="${esc(productUrl)}" target="_blank" rel="noopener noreferrer">${esc(product.title || "Product")}</a>
+        ${priceLabel ? `<div class="ai-product-price">${esc(priceLabel)}</div>` : ""}
+      </div>
+      ${colorsHtml || sizesHtml ? `<div class="ai-product-variants">${colorsHtml}${sizesHtml}</div>` : ""}
+      <div class="ai-product-actions-row">
+        ${addToCartEnabled
         ? `<button type="button" class="ai-add-to-cart" data-product-url="${esc(productUrl)}">Add to Cart</button>`
         : `<a class="ai-view-product-link" href="${esc(productUrl)}" target="_blank" rel="noopener noreferrer">View Product</a>`
       }
-      
-          </div>
-        </div>
       </div>`;
 
     return card;

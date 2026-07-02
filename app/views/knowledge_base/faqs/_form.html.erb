@@ -37,6 +37,8 @@
         value="<%= ERB::Util.html_escape(faq.content.to_s) %>"
       ></s-text-area>
 
+      <div id="faq_inline_error_<%= faq.persisted? ? faq.id : 'new' %>"></div>
+
       <div class="kb-actions">
         <s-button variant="primary" size="slim"
           onclick="submitFaqForm('<%= faq.persisted? ? faq.id : 'new' %>')">
@@ -58,13 +60,25 @@
 
 <script>
   (function() {
-    window.submitFaqForm = window.submitFaqForm || function(k) {
+    window.submitFaqForm = function(k) {
       var tf = document.getElementById('faq_title_field_'   + k);
       var th = document.getElementById('faq_title_hidden_'  + k);
       var cf = document.getElementById('faq_content_field_' + k);
       var ch = document.getElementById('faq_content_hidden_'+ k);
       if (tf && th) th.value = tf.value;
       if (cf && ch) ch.value = cf.value;
+
+      var q = (th ? th.value : '').trim();
+      var a = (ch ? ch.value : '').trim();
+      var errEl = document.getElementById('faq_inline_error_' + k);
+
+      if (!q || !a) {
+        var msg = !q ? "Question can’t be blank." : "Answer can’t be blank.";
+        if (errEl) errEl.innerHTML = '<s-banner tone="critical" style="margin-bottom:8px;"><s-paragraph>' + msg + '</s-paragraph></s-banner>';
+        return;
+      }
+
+      if (errEl) errEl.innerHTML = '';
       var form = document.getElementById('faq_form_' + k);
       if (form) form.requestSubmit();
     };

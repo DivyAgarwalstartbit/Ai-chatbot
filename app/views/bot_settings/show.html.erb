@@ -398,18 +398,25 @@
 
            <s-box background="base" border="base" borderRadius="base" padding="base">
             <s-stack gap="base">
-              <s-heading>Related questions</s-heading>
+              <s-stack direction="inline" gap="small-200" alignItems="center">
+                <s-heading>Related questions</s-heading>
+                <% unless @pro %>
+                  <s-tooltip id="related-qs-pro-tip">Available on Pro plan</s-tooltip>
+                  <s-badge tone="attention" interestFor="related-qs-pro-tip">Pro</s-badge>
+                <% end %>
+              </s-stack>
               <s-paragraph>Show follow-up question suggestions after each AI response to help customers explore further.</s-paragraph>
 
               <s-checkbox
                 id="bs-enable-related-qs"
                 label="Enable related questions"
-                <%= "checked" if enable_related_qs %>>
+                <%= "checked" if enable_related_qs && @pro %>
+                <%= "disabled" unless @pro %>>
               </s-checkbox>
               <input type="hidden"
                      id="bs-enable-related-qs-hidden"
                      name="ai_shopper_configuration[widget_settings][enable_related_questions]"
-                     value="<%= enable_related_qs ? 'true' : 'false' %>">
+                     value="<%= (enable_related_qs && @pro) ? 'true' : 'false' %>">
 
               <s-number-field
                 label="Number of questions"
@@ -418,14 +425,15 @@
                 value="<%= related_qs_count %>"
                 min="1"
                 max="5"
-                helpText="How many related questions to show (1–5)">
+                helpText="How many related questions to show (1–5)"
+                <%= "disabled" unless @pro %>>
               </s-number-field>
             </s-stack>
           </s-box>
 
           <s-box background="base" border="base" borderRadius="base" padding="base">
             <s-stack gap="base">
-             
+              <s-heading>Add to cart</s-heading>
               <s-checkbox
                 id="bs-enable-add-to-cart"
                 label="Enable Add to Cart for Products"

@@ -1,0 +1,15 @@
+New Support Ticket — #<%= @ticket.id %>
+========================================
+
+Customer: <%= @customer ? [@customer.first_name, @customer.last_name].compact.join(" ").presence || "Anonymous" : "Anonymous visitor" %><% if @customer&.email.present? %> (<%= @customer.email %>)<% end %>
+Subject:  <%= @ticket.subject %>
+Priority: <%= @ticket.priority&.capitalize || "Normal" %>
+Source:   <%= @ticket.source&.humanize || "Chat" %>
+Raised:   <%= @ticket.created_at.strftime("%b %d, %Y %H:%M") %>
+
+Message:
+--------
+<%= @ticket.issue %>
+
+--
+Reply to this email or log in to your dashboard to respond.

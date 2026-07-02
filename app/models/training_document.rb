@@ -56,6 +56,9 @@ class TrainingDocument < ApplicationRecord
     text/plain
   ].freeze
 
+  validates :title,   presence: { message: "Question can't be blank" },   if: -> { document_type == "faq" }
+  validates :content, presence: { message: "Answer can't be blank" }, if: -> { document_type == "faq" }
+
   validate :acceptable_file, if: -> { file.attached? }
 
   # ── Source types ───────────────────────────────────────────────────────────

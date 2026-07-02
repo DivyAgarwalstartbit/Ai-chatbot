@@ -328,7 +328,7 @@ module Ai
 
       messages << { role: "user", content: @message }
 
-      response = Ai::GroqService.new(messages).call
+      response = Ai::GroqService.new(messages, name: "intent_classification").call
       normalize_response(response)
     end
 

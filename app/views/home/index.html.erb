@@ -1,167 +1,321 @@
 <%
-  q           = @shop_origin.to_s
-  h           = @host.to_s
-  app_key     = ENV.fetch("SHOPIFY_API_KEY", "")
-  embed_url   = "https://#{@shop_origin}/admin/themes/current/editor?context=apps&activateAppId=#{app_key}/ai_chat"
-  plan_label  = Shop::PLANS.dig(@current_plan.to_s, :name) || "Free"
-  has_plan    = @current_plan.present?
+  q         = @shop_origin.to_s
+  h         = @host.to_s
+  app_key   = ENV.fetch("SHOPIFY_API_KEY", "")
+  embed_url = "https://#{@shop_origin}/admin/themes/current/editor?context=apps&activateAppId=#{app_key}/ai_chat"
+  has_plan  = @current_plan.present?
 %>
+
+<style>
+  /* ── Step card icon wrapper ── */
+  .step-icon-wrap {
+    width: 72px;
+    height: 72px;
+    border-radius: 18px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .step-icon-wrap--bot  { background: #eef2ff; }
+  .step-icon-wrap--kb   { background: #f5f3ff; }
+  .step-icon-wrap--help { background: #f0fdfa; }
+
+  .cc-metrics {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+  }
+  @media (max-width: 640px) {
+    .cc-metrics { grid-template-columns: repeat(2, 1fr); }
+  }
+  .cc-metric {
+    padding: 20px 20px;
+    border-right: 1px solid var(--s-color-border, #e5e7eb);
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    text-decoration: none;
+    transition: background 0.1s;
+  }
+  .cc-metric:last-child { border-right: none; }
+  .cc-metric:hover { background: var(--s-color-bg-surface-hover, #f9fafb); }
+  .cc-metric--disabled { pointer-events: none; }
+  .cc-metric__label {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    color: var(--s-color-text-subdued, #6b7280);
+  }
+  .cc-metric__value {
+    font-size: 32px;
+    font-weight: 700;
+    color: var(--s-color-text, #111827);
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+  }
+  .cc-metric__value--alert { color: #dc2626; }
+  .cc-metric__sub {
+    font-size: 11px;
+    color: var(--s-color-text-disabled, #9ca3af);
+  }
+</style>
 
 <s-page heading="Dashboard" inline-size="large">
 
-  <%# ── Setup guide ── %>
-  <s-section id="setup-guide-section">
-    <s-grid gap="small">
-      <s-grid gap="small-200">
-        <s-grid gridTemplateColumns="1fr auto auto" gap="small-300" alignItems="center">
-          <s-heading>Setup guide</s-heading>
-        </s-grid>
-        <s-paragraph>Complete these steps to go live with your AI chat widget.</s-paragraph>
+  <%# ── Widget status banner ── %>
+  <% unless @app_embed_enabled %>
+    <s-section id="embed-warning-section">
+      <s-banner heading="App embed is not enabled" tone="warning">
+        Your chat widget won't appear on your store until the app embed is enabled in your theme settings.
+        <s-button
+          slot="primary-action"
+          variant="primary"
+          href="<%= embed_url %>"
+          target="_blank"
+        >Enable App Embed</s-button>
+        <s-button
+          slot="secondary-action"
+          id="verify-embed-btn"
+        >Verify</s-button>
+      </s-banner>
+    </s-section>
+  <% end %>
+
+  <%# ── Three action cards ── %>
+  <s-section>
+    <s-grid gridTemplateColumns="repeat(auto-fit, minmax(260px, 1fr))" gap="base">
+
+      <%# Card 01 — Bot Configuration %>
+      <s-box border="base" borderRadius="large" padding="large" background="base">
+        <s-stack gap="base" alignItems="center">
+          <div class="step-icon-wrap step-icon-wrap--bot">
+            <svg width="38" height="38" viewBox="0 0 38 38" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <rect x="11" y="16" width="16" height="12" rx="3" fill="#6366f1" opacity="0.15"/>
+              <rect x="13" y="18" width="12" height="8" rx="2" fill="#6366f1" opacity="0.3"/>
+              <circle cx="16" cy="22" r="1.5" fill="#6366f1"/>
+              <circle cx="22" cy="22" r="1.5" fill="#6366f1"/>
+              <rect x="17" y="24" width="4" height="1.2" rx="0.6" fill="#6366f1"/>
+              <rect x="18" y="12" width="2" height="4" rx="1" fill="#6366f1"/>
+              <circle cx="19" cy="11" r="1.5" fill="#6366f1"/>
+              <line x1="14" y1="28" x2="12" y2="31" stroke="#6366f1" stroke-width="1.5" stroke-linecap="round"/>
+              <line x1="24" y1="28" x2="26" y2="31" stroke="#6366f1" stroke-width="1.5" stroke-linecap="round"/>
+            </svg>
+          </div>
+          <s-stack gap="small-200" alignItems="center">
+              <s-heading>Configure your bot</s-heading>
+            <div style="text-align: center;">
+              <s-text>Set your bot's name, personality, and greeting message.</s-text>
+            </div>
+          </s-stack>
+          <s-button variant="secondary" href="/bot_settings?shop=<%= ERB::Util.url_encode(q) %>&host=<%= ERB::Util.url_encode(h) %>&embedded=1">Bot settings</s-button>
+        </s-stack>
+      </s-box>
+
+      <%# Card 02 — Knowledge Base %>
+      <s-box border="base" borderRadius="large" padding="large" background="base">
+        <s-stack gap="base" alignItems="center">
+          <div class="step-icon-wrap step-icon-wrap--kb">
+            <svg width="38" height="38" viewBox="0 0 38 38" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <rect x="10" y="10" width="18" height="20" rx="2.5" fill="#8b5cf6" opacity="0.12"/>
+              <rect x="12" y="13" width="10" height="1.5" rx="0.75" fill="#8b5cf6"/>
+              <rect x="12" y="16.5" width="14" height="1.5" rx="0.75" fill="#8b5cf6" opacity="0.6"/>
+              <rect x="12" y="20" width="14" height="1.5" rx="0.75" fill="#8b5cf6" opacity="0.6"/>
+              <rect x="12" y="23.5" width="8" height="1.5" rx="0.75" fill="#8b5cf6" opacity="0.4"/>
+              <rect x="9" y="12" width="18" height="20" rx="2.5" fill="#8b5cf6" opacity="0.08" stroke="#8b5cf6" stroke-width="1" stroke-opacity="0.2"/>
+            </svg>
+          </div>
+          <s-stack gap="small-200" alignItems="center">
+              <s-heading>Build your knowledge base</s-heading>
+            <div style="text-align: center;">
+              <s-text>Add FAQs, policies, and documents so your AI can answer questions accurately.</s-text>
+            </div>
+          </s-stack>
+          <s-button variant="secondary" href="/knowledge_base?shop=<%= ERB::Util.url_encode(q) %>&host=<%= ERB::Util.url_encode(h) %>&embedded=1">Add knowledge</s-button>
+        </s-stack>
+      </s-box>
+
+      <%# Card 03 — Help & Support %>
+      <s-box border="base" borderRadius="large" padding="large" background="base">
+        <s-stack gap="base" alignItems="center">
+          <div class="step-icon-wrap step-icon-wrap--help">
+            <svg width="38" height="38" viewBox="0 0 38 38" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M10 13a3 3 0 013-3h12a3 3 0 013 3v8a3 3 0 01-3 3h-4l-4 4v-4h-4a3 3 0 01-3-3v-8z" fill="#0d9488" opacity="0.12"/>
+              <path d="M10 13a3 3 0 013-3h12a3 3 0 013 3v8a3 3 0 01-3 3h-4l-4 4v-4h-4a3 3 0 01-3-3v-8z" stroke="#0d9488" stroke-width="1.3" stroke-opacity="0.5"/>
+              <circle cx="19" cy="17" r="1.2" fill="#0d9488"/>
+              <circle cx="15" cy="17" r="1.2" fill="#0d9488" opacity="0.6"/>
+              <circle cx="23" cy="17" r="1.2" fill="#0d9488" opacity="0.6"/>
+            </svg>
+          </div>
+          <s-stack gap="small-200" alignItems="center">
+              <s-heading>Help &amp; Support</s-heading>
+            <div style="text-align: center;">
+              <s-text>Find answers in our docs or reach our support team directly.</s-text>
+            </div>
+          </s-stack>
+          <s-button variant="secondary" href="https://startbitsolutions.freshdesk.com/" target="_blank">Contact support</s-button>
+        </s-stack>
+      </s-box>
+
+    </s-grid>
+  </s-section>
+
+  <%# ── Metrics ── %>
+  <s-section>
+    <s-box border="base" borderRadius="base" background="base">
+      <div class="cc-metrics">
+        <a
+          href="/conversations?shop=<%= ERB::Util.url_encode(q) %>&host=<%= ERB::Util.url_encode(h) %>&embedded=1"
+          class="cc-metric"
+        >
+          <div class="cc-metric__label">Conversations</div>
+          <div class="cc-metric__value"><%= @conversations_count %></div>
+          <div class="cc-metric__sub">All time</div>
+        </a>
+        <a
+          href="/tickets?shop=<%= ERB::Util.url_encode(q) %>&host=<%= ERB::Util.url_encode(h) %>&embedded=1"
+          class="cc-metric"
+        >
+          <div class="cc-metric__label">Total Tickets</div>
+          <div class="cc-metric__value"><%= @tickets_count %></div>
+          <div class="cc-metric__sub">All time</div>
+        </a>
+        <a
+          href="/tickets?shop=<%= ERB::Util.url_encode(q) %>&host=<%= ERB::Util.url_encode(h) %>&embedded=1&status=open"
+          class="cc-metric"
+        >
+          <div class="cc-metric__label">Open Tickets</div>
+          <div class="cc-metric__value cc-metric__value--alert"><%= @open_tickets_count %></div>
+          <div class="cc-metric__sub">Needs attention</div>
+        </a>
+        <div class="cc-metric cc-metric--disabled">
+          <div class="cc-metric__label">Customers</div>
+          <div class="cc-metric__value"><%= @customers_count %></div>
+          <div class="cc-metric__sub">Unique visitors</div>
+        </div>
+      </div>
+    </s-box>
+  </s-section>
+
+  <%# ── Plan usage ── %>
+  <% if @usage %>
+    <s-section>
+      <s-grid gridTemplateColumns="1fr auto" alignItems="center" paddingBlockEnd="small-400">
+        <s-stack direction="inline" gap="small-200" alignItems="center">
+          <s-heading>Plan usage</s-heading>
+          <s-badge tone="<%= @current_plan == 'pro' ? 'success' : (@current_plan.nil? ? 'neutral' : 'attention') %>"><%= @plan_label %></s-badge>
+        </s-stack>
+        <s-link href="/plans?shop=<%= ERB::Util.url_encode(q) %>&host=<%= ERB::Util.url_encode(h) %>&embedded=1">
+          <%= @current_plan == 'pro' ? 'View plan' : 'Upgrade plan' %>
+        </s-link>
       </s-grid>
 
-      <s-box borderRadius="base" border="base" background="base">
-        <%# Step 1 — done %>
-        <s-box>
-          <s-grid gridTemplateColumns="auto 1fr" gap="base" padding="small" alignItems="center">
-           <s-icon type="check-circle" tone="success"></s-icon>
-            <s-text type="strong">Install AI Shopper</s-text>
-          </s-grid>
-        </s-box>
+      <style>
+        .pu-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
+        @media (max-width: 640px) { .pu-grid { grid-template-columns: 1fr; } }
+        .pu-card { border: 1px solid #e1e3e5; border-radius: 8px; padding: 14px 16px; background: #fff; }
+        .pu-card__header { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 8px; }
+        .pu-card__label { font-size: 12px; font-weight: 600; color: #202223; }
+        .pu-card__count { font-size: 12px; color: #6d7175; }
+        .pu-card__count--warn { color: #b98900; font-weight: 600; }
+        .pu-card__count--full { color: #d72c0d; font-weight: 600; }
+        .pu-bar-track { height: 6px; background: #f1f2f3; border-radius: 3px; overflow: hidden; }
+        .pu-bar-fill { height: 100%; border-radius: 3px; transition: width 0.3s ease; background: #008060; }
+        .pu-bar-fill--warn { background: #b98900; }
+        .pu-bar-fill--full { background: #d72c0d; }
+      </style>
 
-        <s-divider></s-divider>
+      <div class="pu-grid">
+        <% @usage.each_value do |item| %>
+          <%
+            pct      = item[:limit] > 0 ? [(item[:used].to_f / item[:limit] * 100).round, 100].min : 0
+            at_limit = item[:used] >= item[:limit]
+            near     = pct >= 80 && !at_limit
+            fill_cls = at_limit ? 'pu-bar-fill--full' : (near ? 'pu-bar-fill--warn' : '')
+            cnt_cls  = at_limit ? 'pu-card__count--full' : (near ? 'pu-card__count--warn' : 'pu-card__count')
+          %>
+          <div class="pu-card">
+            <div class="pu-card__header">
+              <span class="pu-card__label"><%= item[:label] %></span>
+              <span class="<%= cnt_cls %>"><%= item[:used] %> / <%= item[:limit] %></span>
+            </div>
+            <div class="pu-bar-track">
+              <div class="pu-bar-fill <%= fill_cls %>" style="width:<%= pct %>%"></div>
+            </div>
+          </div>
+        <% end %>
+      </div>
+    </s-section>
+  <% end %>
 
-        <%# Step 2 — enable embed %>
-        <s-box>
-          <s-grid gridTemplateColumns="auto 1fr auto" gap="base" padding="small" alignItems="center">
-            <% if @app_embed_enabled %>
-              <s-icon type="check-circle" tone="success"></s-icon>
+  <%# ── Overage info card (Pro only — always visible so merchant knows the policy) ── %>
+  <% if @current_plan == 'pro' %>
+    <%
+      has_usage_sub   = @shop_usage_sub_id.present?
+      pro_billing_url = "#{(ENV['HOST'].presence || request.base_url).chomp('/')}/billing/create?#{{ plan: 'pro', shop: @shop_origin, host: @host, embedded: 0 }.to_query}"
+    %>
+
+    <% if has_usage_sub %>
+      <%# Show overage usage summary %>
+      <s-section>
+        <s-box border="base" borderRadius="base" background="base" padding="base">
+          <s-stack gap="small-400">
+            <s-stack direction="inline" gap="small-200" alignItems="center">
+              <s-heading>Pay-as-you-go overage</s-heading>
+              <s-badge tone="success">Active</s-badge>
+            </s-stack>
+
+            <s-paragraph>
+              When you reach a plan limit, $<%= Shop::OVERAGE_BUNDLE_PRICE %> is automatically charged and your limits expand by
+              <strong>+<%= Shop::OVERAGE_BUNDLE[:conversations] %> conversations</strong>,
+              <strong>+<%= Shop::OVERAGE_BUNDLE[:messages_per_conversation] %> messages/conversation</strong>,
+              <strong>+<%= Shop::OVERAGE_BUNDLE[:tickets] %> support tickets</strong>,
+              <strong>+<%= Shop::OVERAGE_BUNDLE[:documents] %> documents</strong>, and
+              <strong>+<%= Shop::OVERAGE_BUNDLE[:products] %> products</strong>.
+              Overage charges are capped at $<%= Shop::OVERAGE_CAPPED_AMOUNT %>/month and billed with your next invoice.
+            </s-paragraph>
+
+            <% if @monthly_bundles&.any? %>
+              <div style="background:#fff7ed;border:1px solid #fed7aa;border-radius:6px;padding:10px 14px;">
+                <div style="font-size:13px;font-weight:600;color:#92400e;margin-bottom:2px;">
+                  This month: $<%= number_with_precision(@monthly_overage_cost, precision: 2) %> charged
+                  (<%= @monthly_bundles.size %> <%= "bundle".pluralize(@monthly_bundles.size) %>)
+                </div>
+                <% @monthly_bundles.first(3).each do |b| %>
+                  <div style="font-size:11px;color:#b45309;margin-top:2px;">
+                    &bull; <%= b.charged_at.strftime("%-d %b, %-I:%M %p") %> — $<%= number_with_precision(b.amount, precision: 2) %> (triggered by <%= b.resource_type %>)
+                  </div>
+                <% end %>
+                <% if @monthly_bundles.size > 3 %>
+                  <div style="font-size:11px;color:#b45309;margin-top:2px;">&bull; and <%= @monthly_bundles.size - 3 %> more...</div>
+                <% end %>
+              </div>
             <% else %>
-              <s-badge>2</s-badge>
+              <s-paragraph>No overage charges this month.</s-paragraph>
             <% end %>
-            <s-stack gap="small-200">
-              <s-text type="strong">Enable the chat widget</s-text>
-              <s-paragraph>Activate the app embed in your theme so the chat widget appears for customers.</s-paragraph>
-              <% unless @app_embed_enabled %>
-                <s-stack direction="inline" gap="small-200">
-                  <s-button variant="primary" href="<%= embed_url %>" target="_blank">Open theme editor</s-button>
-                </s-stack>
-              <% end %>
-            </s-stack>
-          </s-grid>
-        </s-box>
-
-        <s-divider></s-divider>
-
-        <%# Step 3 — configure bot %>
-        <s-box>
-          <s-grid gridTemplateColumns="auto 1fr auto" gap="base" padding="small" alignItems="center">
-            <s-badge>3</s-badge>
-            <s-stack gap="small-200">
-              <s-text type="strong">Configure your bot</s-text>
-              <s-paragraph>Set your bot's name, personality, and greeting message.</s-paragraph>
-              <s-stack direction="inline" gap="small-200">
-                <s-button variant="primary" href="/bot_settings?shop=<%= ERB::Util.url_encode(q) %>&host=<%= ERB::Util.url_encode(h) %>&embedded=1">Bot settings</s-button>
-              </s-stack>
-            </s-stack>
-          </s-grid>
-        </s-box>
-
-        <s-divider></s-divider>
-
-
-
-        <%# Step 4 — knowledge base %>
-        <s-box>
-          <s-grid gridTemplateColumns="auto 1fr auto" gap="base" padding="small" alignItems="center">
-            <s-badge>4</s-badge>
-            <s-stack gap="small-200">
-              <s-text type="strong">Build your knowledge base</s-text>
-              <s-paragraph>Add FAQs, policies, and documents so your AI can answer questions accurately.</s-paragraph>
-              <s-stack direction="inline" gap="small-200">
-                <s-button variant="primary" href="/knowledge_base?shop=<%= ERB::Util.url_encode(q) %>&host=<%= ERB::Util.url_encode(h) %>&embedded=1">Add knowledge</s-button>
-              </s-stack>
-            </s-stack>
-          </s-grid>
-        </s-box>
-      </s-box>
-    </s-grid>
-  </s-section>
-
- <s-section padding="base">
-    <s-grid
-      gridTemplateColumns="@container (inline-size <= 400px) 1fr, 1fr auto 1fr auto 1fr auto 1fr "
-      gap="small"
-    >
-      <s-clickable
-        href="/conversations?shop=<%= ERB::Util.url_encode(q) %>&host=<%= ERB::Util.url_encode(h) %>&embedded=1"
-        paddingBlock="small-400"
-        paddingInline="small-100"
-        borderRadius="base"
-      >
-        <s-grid gap="small-300">
-          <s-heading>Conversations</s-heading>
-          <s-text><%= @conversations_count %></s-text>
-        </s-grid>
-      </s-clickable>
-
-     
-
-      <s-divider direction="block"></s-divider>
-
-  
-
-      <s-clickable
-        href="/tickets?shop=<%= ERB::Util.url_encode(q) %>&host=<%= ERB::Util.url_encode(h) %>&embedded=1"
-        paddingBlock="small-400"
-        paddingInline="small-100"
-        borderRadius="base"
-      >
-        <s-grid gap="small-300">
-          <s-heading>Total Tickets</s-heading>
-          <s-text><%= @tickets_count %></s-text>
-        </s-grid>
-      </s-clickable>
-
-      <s-divider direction="block"></s-divider>
-
-      <s-clickable
-        href="/tickets?shop=<%= ERB::Util.url_encode(q) %>&host=<%= ERB::Util.url_encode(h) %>&embedded=1&status=open"
-        paddingBlock="small-400"
-        paddingInline="small-100"
-        borderRadius="base"
-      >
-        <s-grid gap="small-300">
-          <s-heading>Open Tickets</s-heading>
-          <s-stack direction="inline" gap="small-200">
-            <s-text><%= @open_tickets_count %></s-text>
-            
           </s-stack>
-        </s-grid>
-      </s-clickable>
+        </s-box>
+      </s-section>
+    <% else %>
+      <%# Pro shop without usage line item — prompt to re-subscribe %>
+      <s-section>
+        <s-banner heading="Enable pay-as-you-go overage billing" tone="warning">
+          Your Pro subscription doesn't include automatic overage billing yet.
+          When you hit a limit, actions will be blocked instead of automatically expanding.
+          Re-subscribe to unlock: $<%= Shop::OVERAGE_BUNDLE_PRICE %> per bundle adds
+          +<%= Shop::OVERAGE_BUNDLE[:conversations] %> conversations, +<%= Shop::OVERAGE_BUNDLE[:messages_per_conversation] %> messages/conversation, +<%= Shop::OVERAGE_BUNDLE[:tickets] %> tickets, +<%= Shop::OVERAGE_BUNDLE[:documents] %> documents, +<%= Shop::OVERAGE_BUNDLE[:products] %> products.
+          <s-button slot="primary-action" variant="primary"
+            href="<%= pro_billing_url %>"
+            target="_top"
+            onclick="window.top.location.href='<%= j pro_billing_url %>'; return false;">
+            Re-subscribe to enable
+          </s-button>
+        </s-banner>
+      </s-section>
+    <% end %>
+  <% end %>
 
-      <s-divider direction="block"></s-divider>
-
-      <s-clickable
-        disabled
-        href="#"
-        paddingBlock="small-400"
-        paddingInline="small-100"
-        borderRadius="base"
-      >
-        <s-grid gap="small-300" >
-          <s-heading>Customers</s-heading>
-          <s-text><%= @customers_count %></s-text>
-        </s-grid>
-      </s-clickable>
-    </s-grid>
-  </s-section>
-
-
-
-  <%# ── Callout: plan upsell (dismissible) ── %>
-  
   <%# ── Recent conversations ── %>
-  <s-section heading="Recent conversations">
+  <s-section heading="Recent Conversations">
     <s-grid gridTemplateColumns="1fr auto" alignItems="center" paddingBlockEnd="small-400">
       <div></div>
       <s-link href="/conversations?shop=<%= ERB::Util.url_encode(q) %>&host=<%= ERB::Util.url_encode(h) %>&embedded=1">View all</s-link>
@@ -171,7 +325,9 @@
       <s-box padding="base" background="subdued" borderRadius="base">
         <s-stack alignItems="center" gap="small-200">
           <s-paragraph>No conversations yet. Once your chat widget is live, conversations will appear here.</s-paragraph>
-          <s-button href="<%= embed_url %>" target="_blank" variant="primary">Enable chat widget</s-button>
+          <% unless @app_embed_enabled %>
+            <s-button href="<%= embed_url %>" target="_blank" variant="primary">Enable chat widget</s-button>
+          <% end %>
         </s-stack>
       </s-box>
     <% else %>
@@ -225,22 +381,16 @@
     <% end %>
   </s-section>
 
+  <%# ── Plan upsell — shown for Free plan merchants ── %>
   <% unless has_plan %>
     <s-section id="plan-callout-section">
       <s-grid gridTemplateColumns="1fr auto" gap="small-400" alignItems="start">
-        <s-grid
-          gridTemplateColumns="@container (inline-size <= 480px) 1fr, auto auto"
-          gap="base"
-          alignItems="center"
-        >
-          <s-grid gap="small-200">
-            <s-heading>Unlock the full power of AI Shopper</s-heading>
-            <s-paragraph>Get unlimited conversations, advanced AI responses, and priority support. Try any plan free for 7 days.</s-paragraph>
-            <s-stack direction="inline" gap="small-200">
-              <s-button href="/plans?shop=<%= ERB::Util.url_encode(q) %>&host=<%= ERB::Util.url_encode(h) %>&embedded=1">View plans</s-button>
-              <s-button tone="neutral" variant="tertiary">Learn more</s-button>
-            </s-stack>
-          </s-grid>
+        <s-grid gap="small-200">
+          <s-heading>Ready to unlock more?</s-heading>
+          <s-paragraph>You're on the Free plan. Upgrade to Starter or Pro to get more conversations, document uploads, FAQ imports, policy sync, and much more — with a <%= Shop::PLANS["starter"][:trial_days] %>-day free trial.</s-paragraph>
+          <s-stack direction="inline" gap="small-200">
+            <s-button variant="primary" href="/plans?shop=<%= ERB::Util.url_encode(q) %>&host=<%= ERB::Util.url_encode(h) %>&embedded=1">View plans</s-button>
+          </s-stack>
         </s-grid>
         <s-button
           onclick="document.getElementById('plan-callout-section').style.display='none'"
@@ -253,8 +403,7 @@
     </s-section>
   <% end %>
 
-
-  <%# ── Featured apps (dismissible) ── %>
+  <%# ── Featured apps ── %>
   <s-section id="featured-apps-section">
     <s-grid gridTemplateColumns="1fr auto" alignItems="center" paddingBlockEnd="small-400">
       <s-heading>More apps your business might need</s-heading>
@@ -266,24 +415,14 @@
         accessibilityLabel="Dismiss featured apps"
       ></s-button>
     </s-grid>
-
     <s-grid gridTemplateColumns="repeat(auto-fit, minmax(240px, 1fr))" gap="base">
       <s-clickable
         href="https://apps.shopify.com/smart-countdown-timer-2"
-        border="base"
-        borderRadius="base"
-        padding="base"
-        inlineSize="100%"
+        border="base" borderRadius="base" padding="base" inlineSize="100%"
         accessibilityLabel="View Smart Countdown Timer Bar"
       >
-
-  
         <s-grid gridTemplateColumns="auto 1fr auto" alignItems="stretch" gap="base">
-          <s-thumbnail
-            size="small"
-            src="https://cdn.shopify.com/app-store/listing_images/dc6282d4d74b099793f3d3250539bfb7/icon/CP_dhtmKzJIDEAE=.jpeg"
-            alt="Smart Countdown Timer Bar icon"
-          ></s-thumbnail>
+          <s-thumbnail size="small" src="https://cdn.shopify.com/app-store/listing_images/dc6282d4d74b099793f3d3250539bfb7/icon/CP_dhtmKzJIDEAE=.jpeg" alt="Smart Countdown Timer Bar icon"></s-thumbnail>
           <s-box>
             <s-heading>Smart Countdown Timer Bar</s-heading>
             <s-paragraph>$2.99/month · Free trial</s-paragraph>
@@ -294,21 +433,13 @@
           </s-stack>
         </s-grid>
       </s-clickable>
-
       <s-clickable
         href="https://apps.shopify.com/smart-product-options-1"
-        border="base"
-        borderRadius="base"
-        padding="base"
-        inlineSize="100%"
+        border="base" borderRadius="base" padding="base" inlineSize="100%"
         accessibilityLabel="View SB Product Options"
       >
         <s-grid gridTemplateColumns="auto 1fr auto" alignItems="stretch" gap="base">
-          <s-thumbnail
-            size="small"
-            src="https://cdn.shopify.com/app-store/listing_images/168fbfef086c67a6143f07ae20f946c2/icon/CN3zlvXJspIDEAE=.jpeg"
-            alt="SB Product Options icon"
-          ></s-thumbnail>
+          <s-thumbnail size="small" src="https://cdn.shopify.com/app-store/listing_images/168fbfef086c67a6143f07ae20f946c2/icon/CN3zlvXJspIDEAE=.jpeg" alt="SB Product Options icon"></s-thumbnail>
           <s-box>
             <s-heading>SB Product Options, Variants</s-heading>
             <s-paragraph>$2.99–$6.99/month · Free trial</s-paragraph>
@@ -322,44 +453,39 @@
     </s-grid>
   </s-section>
 
-  <%# ── Footer help ── %>
-  <s-stack alignItems="center" paddingBlock="large">
-    <s-text>Need help? <s-link href="https://startbitsolutions.freshdesk.com/" target="_blank">Contact support</s-link> or <s-link href="https://startbitsolutions.com/docs" target="_blank">read the docs</s-link>.</s-text>
-  </s-stack>
-
 </s-page>
 
 <script>
-(function() {
+(function () {
   var verifyBtn = document.getElementById("verify-embed-btn");
   if (!verifyBtn) return;
 
-  verifyBtn.addEventListener("click", function() {
+  verifyBtn.addEventListener("click", function () {
     verifyBtn.setAttribute("disabled", "");
     verifyBtn.textContent = "Verifying…";
+
 
     fetch("/home/check_app_embed_status?shop=<%= ERB::Util.url_encode(q) %>", {
       headers: { "X-CSRF-Token": document.querySelector('meta[name="csrf-token"]')?.content || "" }
     })
-    .then(function(r) { return r.json(); })
-    .then(function(data) {
-      if (data.success) {
-        document.getElementById("embed-warning-section").style.display = "none";
-        document.getElementById("embed-success-section").style.display = "";
-      } else {
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        if (data.success) {
+          document.getElementById("embed-warning-section").style.display = "none";
+        } else {
+          verifyBtn.removeAttribute("disabled");
+          verifyBtn.textContent = "Verify";
+          if (window.shopify && window.shopify.toast) {
+            window.shopify.toast.show(data.msg || "App embed is not enabled yet.", { isError: true, duration: 4000 });
+          } else {
+            alert(data.msg || "App embed is not enabled yet.");
+          }
+        }
+      })
+      .catch(function () {
         verifyBtn.removeAttribute("disabled");
         verifyBtn.textContent = "Verify";
-        if (window.shopify && window.shopify.toast) {
-          window.shopify.toast.show(data.msg || "App embed is not enabled yet.", { isError: true, duration: 4000 });
-        } else {
-          alert(data.msg || "App embed is not enabled yet.");
-        }
-      }
-    })
-    .catch(function() {
-      verifyBtn.removeAttribute("disabled");
-      verifyBtn.textContent = "Verify";
-    });
+      });
   });
 })();
 </script>

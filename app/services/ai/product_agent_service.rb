@@ -114,10 +114,10 @@ module Ai
           context:         build_product_context(recommendations),
           shop:            @shop,
           stream_callback: @stream_callback,
-          instructions:    "No exact match found. Present these recommendations briefly — 1-2 sentences."
+          instructions:    "No exact match found. Mention ONLY the 1-2 most relevant recommendations — 1-2 sentences."
         ).call
 
-        return response(message: message, products: build_cards(recommendations))
+        return response(message: message, products: build_cards(filter_mentioned_products(recommendations, message)))
       end
 
       product_response(products.first(DISPLAY_LIMIT), analyzed_query)
@@ -183,7 +183,7 @@ module Ai
     end
 
     # ==================================================
-    # PRODUCTS FOUND — show up to 3 cards
+    # PRODUCTS FOUND — show only cards mentioned in reply
     # ==================================================
     def product_response(products, _analyzed_query)
       save_product_context(products.first)
@@ -196,13 +196,14 @@ module Ai
         instructions:    <<~TEXT
           You are a helpful e-commerce assistant.
           - Answer exactly what the user asked using ONLY the product data above.
+          - Mention ONLY the product(s) most relevant to the query — do not list all products if not needed.
           - Mention key details (price, variants, stock) naturally.
           - Keep it concise — 2-3 sentences max.
           - Do not invent specifications.
         TEXT
       ).call
 
-      response(message: message, products: build_cards(products))
+      response(message: message, products: build_cards(filter_mentioned_products(products, message)))
     end
 
     def out_of_stock?(product)
@@ -372,6 +373,23 @@ module Ai
     # ==================================================
     def response(message:, products:)
       { success: true, type: "product_cards", message: message, products: products }
+    end
+
+    # Keep only the product cards whose titles are actually referenced in the
+    # LLM reply. Falls back to all products if none match (safety net).
+    def filter_mentioned_products(products, message)
+      return products if products.size <= 1
+
+      normalized_msg = message.to_s.downcase.gsub(/[^a-z0-9\s]/, " ")
+
+      mentioned = products.select do |p|
+        words = p.title.downcase.gsub(/[^a-z0-9\s]/, " ").split.select { |w| w.length >= 3 }
+        next true if words.empty?
+        matched = words.count { |w| normalized_msg.include?(w) }
+        (matched.to_f / words.size) >= 0.5
+      end
+
+      mentioned.presence || products
     end
 
     # ==================================================

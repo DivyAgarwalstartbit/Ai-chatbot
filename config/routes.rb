@@ -37,12 +37,13 @@ Rails.application.routes.draw do
 
     resources :faqs, only: %i[index new show edit create update destroy] do
       collection do
-        get  :import_panel
-        post :extract
-        post :import
-        get  :suggestions_panel
-        post :suggest
-        post :suggest_import
+        get    :import_panel
+        post   :extract
+        post   :import
+        get    :suggestions_panel
+        post   :suggest
+        post   :suggest_import
+        delete :bulk_destroy
       end
 
       member do

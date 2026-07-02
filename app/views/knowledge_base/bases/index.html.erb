@@ -1,6 +1,7 @@
-<%# App Bridge save-bar – shown after any successful mutation on this page %>
+<%# Policy editor save bar – shown only when the user edits policy text without saving %>
 <ui-save-bar id="kb-save-bar">
-  <button variant="primary" id="kb-save-bar-discard" onclick="discardKbChanges()">Discard</button>
+  <button variant="primary" id="kb-save-bar-save" onclick="submitOpenPolicyForm()">Save</button>
+  <button id="kb-save-bar-discard" onclick="discardKbChanges()">Discard</button>
 </ui-save-bar>
 
 <s-page
@@ -145,14 +146,47 @@
 }
 .kb-faq-card {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-columns: auto minmax(0, 1fr) auto;
   gap: 12px;
   align-items: start;
   border: 1px solid #e1e3e5;
   border-radius: 8px;
   background: #fff;
   padding: 12px;
+  transition: background 0.12s;
 }
+.kb-faq-card:has(.kb-faq-checkbox:checked) {
+  background: #f0f7ff;
+  border-color: #b3d4f5;
+}
+.kb-faq-checkbox-wrap {
+  display: flex;
+  align-items: flex-start;
+  padding-top: 2px;
+  cursor: pointer;
+}
+.kb-faq-checkbox {
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+  accent-color: #106ba3;
+  flex-shrink: 0;
+}
+/* Bulk action toolbar */
+.kb-faq-bulk-bar {
+  display: none;
+  align-items: center;
+  gap: 10px;
+  background: #eaf4fe;
+  border: 1px solid #b3d4f5;
+  border-radius: 8px;
+  padding: 8px 12px;
+  margin-bottom: 8px;
+  font-size: 13px;
+  color: #202223;
+}
+.kb-faq-bulk-bar.is-visible { display: flex; }
+.kb-faq-bulk-count { font-weight: 600; flex: 1; }
 .kb-faq-card-main {
   min-width: 0;
 }
@@ -231,11 +265,13 @@
 }
 @media (max-width: 640px) {
   .kb-faq-card {
-    grid-template-columns: 1fr;
+    grid-template-columns: auto 1fr;
+    grid-template-rows: auto auto;
   }
   .kb-faq-card-actions {
+    grid-column: 2;
     justify-content: flex-start;
-    margin-left: 26px;
+    margin-left: 0;
   }
 }
 
@@ -304,6 +340,8 @@
           placeholder: "e.g. We ship all orders within 1-2 business days. Standard delivery takes 3-5 business days...",
           shop_origin: @shop_origin,
           host: @host,
+          pro: @pro,
+          free: @free,
           first: true %>
 
     <%= render "knowledge_base/policies/section",
@@ -315,7 +353,9 @@
           attachment_url: attachment_knowledge_base_return_policy_path(shop: @shop_origin, host: @host, embedded: 1),
           placeholder: "e.g. We accept returns within 30 days of purchase. Items must be unused and in original packaging...",
           shop_origin: @shop_origin,
-          host: @host %>
+          host: @host,
+          pro: @pro,
+          free: @free %>
 
     <!-- ════════════════════════════════════════════════════
          FAQs
@@ -340,18 +380,40 @@
             commandFor="faq-form-modal"
             command="--show"
             data-action="click->modal#openNew">Add FAQ</s-button>
-          <s-button variant="secondary" icon="import"
-            commandFor="faq-import-modal"
-            command="--show"
-            onclick="document.getElementById('faq_import_panel').src = '<%= import_panel_knowledge_base_faqs_path(shop: @shop_origin, host: @host, embedded: 1) %>'">
-            Import FAQs
-          </s-button>
-          <s-button variant="tertiary" tone="neutral" icon="magic"
-            commandFor="faq-suggestions-modal"
-            command="--show"
-            data-action="click->faq-suggestions#openModal">
-            Generate Suggestions
-          </s-button>
+          <% if @free %>
+            <s-tooltip id="faq-import-tip">Available on Starter and Pro plans</s-tooltip>
+            <s-button variant="secondary" icon="import" disabled interestFor="faq-import-tip">
+              Import FAQs
+            </s-button>
+          <% else %>
+            <s-button variant="secondary" icon="import"
+              commandFor="faq-import-modal"
+              command="--show"
+              onclick="document.getElementById('faq_import_panel').src = '<%= import_panel_knowledge_base_faqs_path(shop: @shop_origin, host: @host, embedded: 1) %>'">
+              Import FAQs
+            </s-button>
+          <% end %>
+          <% if @pro %>
+            <s-button variant="tertiary" tone="neutral" icon="magic"
+              commandFor="faq-suggestions-modal"
+              command="--show"
+              data-action="click->faq-suggestions#openModal">
+              Generate Suggestions
+            </s-button>
+          <% else %>
+            <s-tooltip id="faq-suggest-tip">Available on Pro plan</s-tooltip>
+            <s-button variant="tertiary" tone="neutral" icon="magic" disabled interestFor="faq-suggest-tip">
+              Generate Suggestions
+            </s-button>
+          <% end %>
+        </div>
+
+        <!-- Bulk action toolbar (hidden until FAQs are selected) -->
+        <div id="faq_bulk_bar" class="kb-faq-bulk-bar">
+          <span class="kb-faq-bulk-count" id="faq_bulk_count">0 selected</span>
+          <s-button variant="tertiary" tone="neutral" size="slim" onclick="faqSelectAll()">Select all</s-button>
+          <s-button variant="tertiary" tone="neutral" size="slim" onclick="faqDeselectAll()">Deselect all</s-button>
+          <s-button variant="primary" tone="critical" size="slim" icon="delete" onclick="faqBulkDeleteConfirm()">Delete selected</s-button>
         </div>
 
         <div id="faq_list" class="kb-faq-list">
@@ -387,10 +449,17 @@
       </summary>
 
       <div class="kb-acc-body">
-        <%= render "knowledge_base/documents/actions", documents: @documents %>
+        <% if @free %>
+          <div style="padding:10px 14px; background:#fff7ed; border:1px solid #fed7aa; border-radius:6px; margin-bottom:10px; font-size:12px; color:#92400e;">
+            Document uploads are not available on the Free plan.
+            <a href="/plans?shop=<%= @shop_origin %>&host=<%= @host %>&embedded=1" style="color:#c05621; font-weight:600;">Upgrade to Starter or Pro</a> to upload documents.
+          </div>
+        <% else %>
+          <%= render "knowledge_base/documents/actions", documents: @documents %>
 
-        <%= turbo_frame_tag "document_upload_form" do %>
-          <%= render "knowledge_base/documents/upload_form", shop_origin: @shop_origin, host: @host %>
+          <%= turbo_frame_tag "document_upload_form" do %>
+            <%= render "knowledge_base/documents/upload_form", shop_origin: @shop_origin, host: @host, pro: @pro %>
+          <% end %>
         <% end %>
 
         <div id="document_list">
@@ -431,7 +500,8 @@
   <%# ── FAQ Add/Edit Modal ── %>
   <%= render "knowledge_base/faqs/form_modal",
         shop_origin: @shop_origin,
-        host: @host %>
+        host: @host,
+        pro: @pro %>
 
   <%# ── FAQ Import Modal ── %>
   <s-modal id="faq-import-modal" heading="Import FAQs" size="base">
@@ -456,6 +526,18 @@
     <% end %>
     <%# Hidden button used by JS/Turbo Stream to close this modal programmatically %>
     <s-button id="faq-suggestions-modal-close" commandFor="faq-suggestions-modal" command="--hide" style="display:none"></s-button>
+  </s-modal>
+
+  <%# ── FAQ Bulk Delete Modal ── %>
+  <s-modal id="faq-bulk-delete-modal" heading="Delete FAQs?" size="small">
+    <s-stack gap="base">
+      <s-text id="faq-bulk-delete-message">Are you sure you want to delete the selected FAQs?</s-text>
+      <s-text tone="caution">This action cannot be undone.</s-text>
+    </s-stack>
+    <s-button slot="secondary-actions" variant="secondary" commandFor="faq-bulk-delete-modal" command="--hide">Cancel</s-button>
+    <s-button slot="primary-action" variant="primary" tone="critical" id="faq-bulk-confirm-delete">Delete</s-button>
+    <s-button id="faq-bulk-delete-modal-close" commandFor="faq-bulk-delete-modal" command="--hide" style="display:none"></s-button>
+    <s-button id="faq-bulk-delete-modal-show" commandFor="faq-bulk-delete-modal" command="--show" style="display:none"></s-button>
   </s-modal>
 
   <%# ── FAQ Delete Modal ── %>
@@ -551,36 +633,47 @@
   </form>
 
   <script>
-    // ── Save bar ─────────────────────────────────────────────────────────────
+    // ── Toast helper ──────────────────────────────────────────────────────────
+    function showToast(message, isError) {
+      if (window.shopify && window.shopify.toast) {
+        window.shopify.toast.show(message, { duration: 3000, isError: !!isError });
+      }
+    }
+
+    // ── Policy editor save bar ────────────────────────────────────────────────
+    // Shown only when the user has unsaved edits in a policy text modal.
     const kbSaveBar = document.getElementById('kb-save-bar');
+    var _policyOriginals = {};
+    var _activePolicyType = null; // which policy modal is currently open
 
     function showSaveBar() {
-      if (!kbSaveBar) return;
-      kbSaveBar.show();
+      if (kbSaveBar) kbSaveBar.show();
     }
 
     function hideSaveBar() {
-      if (!kbSaveBar) return;
-      kbSaveBar.hide();
+      if (kbSaveBar) kbSaveBar.hide();
     }
 
-    // Called by the save-bar Discard button.
-    // Reverts any open policy textarea to its original (unedited) value,
-    // closes the policy modal, then hides the save bar.
+    // Called by save bar Save button — submits whichever policy form is open
+    function submitOpenPolicyForm() {
+      if (!_activePolicyType) return;
+      var form = document.getElementById(_activePolicyType + '_form');
+      if (form) form.requestSubmit();
+    }
+
+    // Called by save bar Discard button — reverts textarea and closes modal
     function discardKbChanges() {
       ['shipping_policy', 'return_policy'].forEach(function(pt) {
         var original = _policyOriginals[pt];
-        if (original === undefined) return; // modal was never opened
+        if (original === undefined) return;
 
         var ta = document.getElementById(pt + '_content_textarea');
-        if (ta) {
+        if (ta && ta.value !== original) {
           ta.value = original;
           ta.setAttribute('value', original);
-          // Dispatch an input event so any listeners re-evaluate dirty state
-          ta.dispatchEvent(new Event('input'));
+          _policyOriginals[pt] = original;
         }
 
-        // Close the modal if it's open
         var overlay = document.getElementById(pt + '_modal');
         if (overlay && overlay.style.display !== 'none') {
           overlay.style.display = 'none';
@@ -588,35 +681,66 @@
         }
       });
 
+      _activePolicyType = null;
       hideSaveBar();
     }
 
-    // ── Policy textarea change tracking ──────────────────────────────────────
-    // Each policy modal has an s-text-area. We snapshot its value when the
-    // modal opens and compare on every input event. If it returns to the
-    // original value, hide the save bar.
-    var _policyOriginals = {};
+    function countWords(text) {
+      return text.trim() === '' ? 0 : text.trim().split(/\s+/).length;
+    }
+
+    function truncateToWordLimit(text, limit) {
+      var words = text.trim().split(/\s+/);
+      return words.length <= limit ? text : words.slice(0, limit).join(' ');
+    }
+
+    function updatePolicyWordCount(policyType, value) {
+      var counter = document.getElementById(policyType + '_word_count');
+      if (!counter) return;
+      var max = parseInt(counter.dataset.max || '1000', 10);
+      var count = countWords(value);
+      counter.textContent = count + '/' + max + ' words';
+      if (count >= max) {
+        counter.style.color = '#d72c0d';
+      } else if (count > max * 0.9) {
+        counter.style.color = '#b98900';
+      } else {
+        counter.style.color = '#6d7175';
+      }
+    }
 
     function trackPolicyTextarea(textarea, policyType) {
       if (!textarea) return;
-      // Snapshot original value when modal opens
       _policyOriginals[policyType] = textarea.value || '';
+      _activePolicyType = policyType;
 
-      textarea.addEventListener('input', function() {
-        var isDirty = textarea.value !== _policyOriginals[policyType];
-        if (isDirty) {
-          showSaveBar();
-        } else {
-          hideSaveBar();
+      // Initialise counter with current content
+      updatePolicyWordCount(policyType, textarea.value || '');
+
+      if (textarea._kbInputListener) {
+        textarea.removeEventListener('input', textarea._kbInputListener);
+      }
+      textarea._kbInputListener = function() {
+        var current = textarea.value || '';
+        var max = parseInt((textarea.dataset.maxWords || '1000'), 10);
+        var count = countWords(current);
+        if (count > max) {
+          var truncated = truncateToWordLimit(current, max);
+          textarea.value = truncated;
+          textarea.setAttribute('value', truncated);
+          current = truncated;
         }
-      });
+        updatePolicyWordCount(policyType, current);
+        var isDirty = current !== _policyOriginals[policyType];
+        if (isDirty) { showSaveBar(); } else { hideSaveBar(); }
+      };
+      textarea.addEventListener('input', textarea._kbInputListener);
     }
 
-    // Hook into the modal open buttons for both policies
+    // Snapshot textarea value when a policy modal opens
     document.addEventListener('click', function(e) {
       var btn = e.target.closest('[data-action*="modal#open"]');
       if (!btn) return;
-      // Wait a frame for the modal to display and the textarea to be populated
       requestAnimationFrame(function() {
         ['shipping_policy', 'return_policy'].forEach(function(pt) {
           var ta = document.getElementById(pt + '_content_textarea');
@@ -625,21 +749,35 @@
       });
     });
 
-    // After a successful policy save, reset the snapshot so bar hides on next undo
+    // After a successful policy form save: update snapshot, hide bar, show toast
     document.addEventListener('turbo:submit-end', function(e) {
       if (!e.detail || !e.detail.success) return;
       var form = e.detail.formSubmission && e.detail.formSubmission.formElement;
       if (form && form.dataset.policyForm) {
-        // Find which policy this form belongs to and update the snapshot
         ['shipping_policy', 'return_policy'].forEach(function(pt) {
           var ta = document.getElementById(pt + '_content_textarea');
           if (ta && form.id === pt + '_form') {
             _policyOriginals[pt] = ta.value;
           }
         });
+        _activePolicyType = null;
+        hideSaveBar();
+        showToast('Policy saved');
       }
-      showSaveBar();
     });
+
+    // Client-side document file size check before upload
+    function handleDocumentFileSelect(input) {
+      var maxMb = parseInt(input.dataset.maxMb || '2', 10);
+      var file = input.files && input.files[0];
+      if (!file) return;
+      if (file.size > maxMb * 1024 * 1024) {
+        showToast('File too large. Please upload a document ' + maxMb + ' MB or less.', true);
+        input.value = '';
+        return;
+      }
+      document.getElementById('document_upload_form_inner').requestSubmit();
+    }
 
     // Helper to reset file inputs
     function resetFileInput(inputId) {
@@ -697,13 +835,81 @@
             }
 
             document.getElementById('faq-delete-modal-close').click();
-            showSaveBar();
+            showToast('FAQ deleted');
           }
         } catch (error) {
           console.error('Error deleting FAQ:', error);
         } finally {
           faqConfirmBtn.loading = false;
         }
+      }
+    });
+
+    // ── FAQ Bulk Delete ──────────────────────────────────────────────────────
+    function faqGetSelectedIds() {
+      return Array.from(document.querySelectorAll('.kb-faq-checkbox:checked'))
+                  .map(cb => cb.dataset.faqId);
+    }
+
+    function faqBulkSelectionChanged() {
+      const ids = faqGetSelectedIds();
+      const bar = document.getElementById('faq_bulk_bar');
+      const countEl = document.getElementById('faq_bulk_count');
+      if (ids.length > 0) {
+        bar.classList.add('is-visible');
+        countEl.textContent = ids.length + ' selected';
+      } else {
+        bar.classList.remove('is-visible');
+      }
+    }
+
+    function faqSelectAll() {
+      document.querySelectorAll('.kb-faq-checkbox').forEach(cb => cb.checked = true);
+      faqBulkSelectionChanged();
+    }
+
+    function faqDeselectAll() {
+      document.querySelectorAll('.kb-faq-checkbox').forEach(cb => cb.checked = false);
+      faqBulkSelectionChanged();
+    }
+
+    function faqBulkDeleteConfirm() {
+      const ids = faqGetSelectedIds();
+      if (!ids.length) return;
+      document.getElementById('faq-bulk-delete-message').textContent =
+        `Are you sure you want to delete ${ids.length} FAQ${ids.length === 1 ? '' : 's'}?`;
+      document.getElementById('faq-bulk-delete-modal-show').click();
+    }
+
+    document.getElementById('faq-bulk-confirm-delete').addEventListener('click', async function() {
+      const ids = faqGetSelectedIds();
+      if (!ids.length) return;
+
+      this.loading = true;
+      try {
+        const params = new URLSearchParams();
+        ids.forEach(id => params.append('ids[]', id));
+
+        const response = await fetch('<%= bulk_destroy_knowledge_base_faqs_path(shop: @shop_origin, host: @host, embedded: 1) %>', {
+          method: 'DELETE',
+          headers: {
+            'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]').content,
+            'Accept': 'text/vnd.turbo-stream.html',
+            'Content-Type': 'application/x-www-form-urlencoded'
+          },
+          body: params.toString()
+        });
+
+        if (response.ok) {
+          await renderTurboStreamResponse(response);
+          faqDeselectAll();
+          document.getElementById('faq-bulk-delete-modal-close').click();
+          showSaveBar();
+        }
+      } catch (err) {
+        console.error('Bulk FAQ delete failed:', err);
+      } finally {
+        this.loading = false;
       }
     });
 
@@ -744,7 +950,7 @@
             }
 
             document.getElementById('document-delete-modal-close').click();
-            showSaveBar();
+            showToast('Document deleted');
           }
         } catch (error) {
           console.error('Error deleting document:', error);
@@ -808,7 +1014,7 @@
 
             resetFileInput(policyType + '_file_input');
             document.getElementById('policy-delete-modal-close').click();
-            showSaveBar();
+            showToast('Attachment deleted');
           }
         } catch (error) {
           console.error('Error deleting policy attachment:', error);
@@ -864,6 +1070,61 @@
         }
       });
     }
+  </script>
+
+  <script>
+    // Animated accordion — only one open at a time
+    function kbAccordionOpen(detail) {
+      const body = detail.querySelector('.kb-acc-body');
+      if (!body) { detail.setAttribute('open', ''); return; }
+      detail.setAttribute('open', '');
+      const target = body.scrollHeight;
+      body.style.height = '0px';
+      body.style.overflow = 'hidden';
+      // double rAF so browser paints 0px before transitioning
+      requestAnimationFrame(function() {
+        requestAnimationFrame(function() {
+          body.style.transition = 'height 0.24s ease';
+          body.style.height = target + 'px';
+        });
+      });
+      body.addEventListener('transitionend', function cleanup() {
+        body.style.height = body.style.overflow = body.style.transition = '';
+        body.removeEventListener('transitionend', cleanup);
+      });
+    }
+
+    function kbAccordionClose(detail) {
+      const body = detail.querySelector('.kb-acc-body');
+      if (!body) { detail.removeAttribute('open'); return; }
+      body.style.height = body.scrollHeight + 'px';
+      body.style.overflow = 'hidden';
+      requestAnimationFrame(function() {
+        requestAnimationFrame(function() {
+          body.style.transition = 'height 0.24s ease';
+          body.style.height = '0px';
+        });
+      });
+      body.addEventListener('transitionend', function cleanup() {
+        detail.removeAttribute('open');
+        body.style.height = body.style.overflow = body.style.transition = '';
+        body.removeEventListener('transitionend', cleanup);
+      });
+    }
+
+    document.querySelectorAll('details.kb-accordion').forEach(function(detail) {
+      detail.querySelector('summary').addEventListener('click', function(e) {
+        e.preventDefault();
+        if (detail.open) {
+          kbAccordionClose(detail);
+        } else {
+          document.querySelectorAll('details.kb-accordion').forEach(function(other) {
+            if (other !== detail && other.open) kbAccordionClose(other);
+          });
+          kbAccordionOpen(detail);
+        }
+      });
+    });
   </script>
 
 </s-page>

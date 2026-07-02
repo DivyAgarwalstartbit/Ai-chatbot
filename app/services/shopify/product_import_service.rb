@@ -32,15 +32,14 @@ module Shopify
       end
     end
 
-    def import_variant(data, shopify_parent_id)
-      product_id = shopify_parent_id
-      return unless product_id
+    def import_variant(data, product)
+      return unless product
 
       ProductVariant.find_or_initialize_by(
         shop_id:           @shop.id,
         shopify_variant_id: shopify_id(data["id"])
       ).tap do |variant|
-        variant.product_id          = product_id
+        variant.product             = product
         variant.title               = data["title"]
         variant.sku                 = data["sku"]
         variant.price               = data["price"]
