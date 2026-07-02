@@ -69,7 +69,15 @@ class BillingController < ApplicationController
     if params[:charge_id].present?
       plan_key = Shop::PLANS.key?(params[:plan]) ? params[:plan] : "starter"
       updates  = { charge_id: params[:charge_id].to_s, paid: true, plan: plan_key }
-      updates[:usage_subscription_id] = nil unless plan_key == "pro"
+      unless plan_key == "pro"
+        # Clear Pro-only overage data on downgrade so extras don't carry over
+        updates[:usage_subscription_id]          = nil
+        updates[:extra_conversations]            = 0
+        updates[:extra_tickets]                  = 0
+        updates[:extra_documents]                = 0
+        updates[:extra_products]                 = 0
+        updates[:extra_messages_per_conversation] = 0
+      end
       shop.update!(updates)
 
       if params[:host].present?
