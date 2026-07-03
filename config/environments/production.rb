@@ -38,6 +38,9 @@ Rails.application.configure do
   # config.ssl_options = { redirect: { exclude: ->(request) { request.path == "/up" } } }
 
   # Log to STDOUT with the current request id as a default log tag.
+  # sync=true disables Ruby's output buffering so every log line appears
+  # immediately in Render's log viewer instead of waiting for the buffer to fill.
+  $stdout.sync = true
   config.log_tags = [ :request_id ]
   config.logger   = ActiveSupport::TaggedLogging.logger(STDOUT)
 
