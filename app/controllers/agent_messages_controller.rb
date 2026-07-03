@@ -28,9 +28,11 @@ class AgentMessagesController < ApplicationController
   private
 
   def set_cors_headers
-    response.headers["Access-Control-Allow-Origin"]  = "*"
-    response.headers["Access-Control-Allow-Methods"] = "GET, OPTIONS"
-    response.headers["Access-Control-Allow-Headers"] =
-      "Content-Type, ngrok-skip-browser-warning"
-  end
+  response.headers["Access-Control-Allow-Origin"] = "*"
+  response.headers["Access-Control-Allow-Methods"] = "GET, OPTIONS"
+  response.headers["Access-Control-Allow-Headers"] =
+    "Content-Type, Authorization, Accept, Origin, X-Requested-With, ngrok-skip-browser-warning"
+
+  response.headers["Access-Control-Max-Age"] = "86400"
+end
 end

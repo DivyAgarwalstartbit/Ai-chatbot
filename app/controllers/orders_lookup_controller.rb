@@ -41,9 +41,12 @@ class OrdersLookupController < ApplicationController
 
   private
 
-  def set_cors_headers
-    headers["Access-Control-Allow-Origin"]  = "*"
-    headers["Access-Control-Allow-Methods"] = "GET, POST, OPTIONS"
-    headers["Access-Control-Allow-Headers"] = "Content-Type, ngrok-skip-browser-warning"
-  end
+ def set_cors_headers
+  response.headers["Access-Control-Allow-Origin"] = "*"
+  response.headers["Access-Control-Allow-Methods"] = "GET, POST, OPTIONS"
+  response.headers["Access-Control-Allow-Headers"] =
+    "Content-Type, Authorization, Accept, Origin, X-Requested-With, ngrok-skip-browser-warning"
+
+  response.headers["Access-Control-Max-Age"] = "86400"
+end
 end
