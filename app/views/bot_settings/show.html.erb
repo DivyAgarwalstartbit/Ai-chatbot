@@ -103,6 +103,8 @@
   }
 </style>
 
+<ui-save-bar id="bs-save-bar"></ui-save-bar>
+
 <form data-save-bar
       id="bs-form"
       action="<%= bot_settings_path(shop: @shop_origin, host: @host, embedded: 1) %>"
@@ -802,7 +804,8 @@
 
 <script>
 (function() {
-  const form = document.getElementById("bs-form");
+  const form    = document.getElementById("bs-form");
+  const bsSaveBar = document.getElementById("bs-save-bar");
   const defaultPrompts = ["Do you ship internationally?", "What are your return policies?"];
   let pendingImageUploads = 0;
   let isSubmitting = false;
@@ -1284,6 +1287,7 @@
         setFieldValue(urlField, "");
         setImagePreview(preview, "", fallbackHtml, isCircle);
         setImagePreview(livePreview, "", liveFallbackHtml, livePreviewIsCircle);
+        if (bsSaveBar) bsSaveBar.show();
         onFormChange();
       });
     }
