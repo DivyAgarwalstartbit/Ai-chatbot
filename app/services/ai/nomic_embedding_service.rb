@@ -23,32 +23,86 @@ module Ai
       @base_url = ENV.fetch("OLLAMA_URL", "http://localhost:11434")
     end
 
-    # Returns a single embedding vector (Array of 768 floats).
     def embed(text)
       embed_batch([ text ]).first
     end
 
-    # Returns an Array of embedding vectors for the given texts.
-    # Ollama's /api/embed endpoint accepts a list of inputs in one request.
     def embed_batch(texts)
       raise ArgumentError, "texts must be a non-empty array" if texts.blank?
 
-      uri  = URI("#{@base_url}/api/embed")
-      body = { model: MODEL, input: texts }.to_json
+      trace      = build_trace
+      started_at = Time.current
 
+      uri      = URI("#{@base_url}/api/embed")
+      body     = { model: MODEL, input: texts }.to_json
       response = make_request(uri, body)
-      parse_response!(response)
+      result   = parse_response!(response)
+
+      estimated_tokens = texts.sum { |t| (t.length / 4.0).ceil }
+
+      Langfuse.generation(
+        trace_id:  trace.id,
+        name:      "nomic/embed_batch",
+        model:     MODEL,
+        input:     texts,
+        output:    "#{result.size} vectors (#{DIMENSIONS}d)",
+        end_time:  Time.now.utc,
+        usage:     Langfuse::Models::Usage.new(
+          input:       estimated_tokens,
+          output:      0,
+          total:       estimated_tokens,
+          unit:        "TOKENS",
+          input_cost:  0.0,
+          output_cost: 0.0,
+          total_cost:  0.0
+        ),
+        metadata:  { latency_ms: elapsed_ms(started_at), count: texts.size }
+      )
+
+      result
+    rescue => e
+      log_error(trace, "nomic/embed_batch", e)
+      raise
+    ensure
+      Langfuse.flush
     end
 
     private
 
-    def make_request(uri, body)
-      http          = Net::HTTP.new(uri.host, uri.port)
-      http.use_ssl  = uri.scheme == "https"
-      http.open_timeout = 5
-      http.read_timeout = 60   # embedding large batches can be slow on CPU
+    def build_trace
+      Langfuse.trace(
+        name:       "nomic_embedding",
+        user_id:    Ai::LangfuseContext.user_id,
+        session_id: Ai::LangfuseContext.session_id,
+        metadata:   { shop: Ai::LangfuseContext.shop }.compact
+      )
+    end
 
-      request = Net::HTTP::Post.new(uri.path, "Content-Type" => "application/json")
+    def log_error(trace, name, error)
+      return unless trace
+      Langfuse.generation(
+        trace_id:       trace.id,
+        name:           name,
+        model:          MODEL,
+        end_time:       Time.now.utc,
+        level:          "ERROR",
+        status_message: error.message
+      )
+    rescue StandardError
+      nil
+    end
+
+    def elapsed_ms(started_at)
+      ((Time.current - started_at) * 1000).round
+    end
+
+    def make_request(uri, body)
+      http              = Net::HTTP.new(uri.host, uri.port)
+      http.use_ssl      = uri.scheme == "https"
+      http.open_timeout = 5
+      http.read_timeout = 60
+
+      request      = Net::HTTP::Post.new(uri.path, "Content-Type" => "application/json")
       request.body = body
 
       http.request(request)
@@ -63,9 +117,7 @@ module Ai
         raise ApiError, "Ollama returned HTTP #{response.code}: #{response.body.truncate(200)}"
       end
 
-      data = JSON.parse(response.body)
-
-      # Ollama /api/embed returns { "embeddings": [[...], [...]] }
+      data       = JSON.parse(response.body)
       embeddings = data["embeddings"]
       raise ApiError, "Ollama response missing 'embeddings' key: #{response.body.truncate(200)}" if embeddings.nil?
 

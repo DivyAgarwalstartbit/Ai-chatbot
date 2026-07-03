@@ -1,31 +1,9 @@
 # frozen_string_literal: true
 
 module Ai
-  # Generates and persists pgvector embeddings for all chunks belonging to one
-  # TrainingDocument.
-  #
-  # Responsibilities:
-  #   - Load every DocumentChunk for the document (ordered by chunk_index)
-  #   - Embed them in batches via Ai::EmbeddingService
-  #   - Update the existing chunks with embedding vectors + embedded_at timestamp
-  #   - Update training_documents.embedding_status throughout the run
-  #
-  # Called by GenerateEmbeddingsJob. Never call directly from a web request.
-  #
-  # Usage:
-  #   result = Ai::EmbeddingGenerationService.new(training_document).call
-  #   result.success?         # => true / false
-  #   result.chunks_embedded  # => Integer count on success
-  #   result.error            # => String on failure, nil on success
-  #
   class EmbeddingGenerationService
-    # How many chunk texts we send to the embedding provider in one API call.
-    # Nomic/Ollama handles large batches fine; OpenAI limit is 2048 inputs.
     BATCH_SIZE = 50
-
-    # Truncate chunk text at this many characters before embedding.
-    # ~4 chars/token → 32 000 chars ≈ 8 000 tokens, safely under both providers.
-    MAX_CHARS = 30_000
+    MAX_CHARS  = 30_000
 
     Result = Struct.new(:chunks_embedded, :error, keyword_init: true) do
       def success? = error.nil?
@@ -36,6 +14,9 @@ module Ai
     end
 
     def call
+      trace      = build_trace
+      started_at = Time.current
+
       chunks = @document.document_chunks.order(:chunk_index).to_a
 
       if chunks.empty?
@@ -48,7 +29,7 @@ module Ai
 
       mark_processing!
 
-      service = Ai::EmbeddingService.new
+      service       = Ai::EmbeddingService.new
       embedded_count = 0
 
       chunks.each_slice(BATCH_SIZE) do |batch|
@@ -57,10 +38,6 @@ module Ai
 
         now = Time.current
 
-        # Guard against a race where a later DocumentChunkJob deleted and
-        # recreated these chunks between our initial fetch and this upsert.
-        # upsert_all falls back to INSERT when the id is missing, which fails
-        # the NOT NULL constraint on shop_id. Only update rows that still exist.
         existing_ids = DocumentChunk.where(id: batch.map(&:id)).pluck(:id).to_set
 
         rows = batch.zip(vectors).filter_map do |chunk, vector|
@@ -70,17 +47,14 @@ module Ai
 
         next if rows.empty?
 
-            # update_only must NOT include updated_at — Rails adds it automatically
-            # via the record_timestamps mechanism. Including it explicitly causes
-            # PG::SyntaxError "multiple assignments to same column".
-            rows.each do |row|
-      DocumentChunk
-        .where(id: row[:id])
-        .update_all(
-          embedding: row[:embedding],
-          embedded_at: row[:embedded_at]
-        )
-    end
+        rows.each do |row|
+          DocumentChunk
+            .where(id: row[:id])
+            .update_all(
+              embedding:   row[:embedding],
+              embedded_at: row[:embedded_at]
+            )
+        end
         embedded_count += batch.size
 
         Rails.logger.info(
@@ -90,41 +64,81 @@ module Ai
       end
 
       mark_completed!(embedded_count)
+
+      Langfuse.span(
+        trace_id: trace.id,
+        name:     "embedding_generation/document",
+        input:    { document_id: @document.id, total_chunks: chunks.size },
+        output:   { chunks_embedded: embedded_count },
+        end_time: Time.now.utc,
+        metadata: { latency_ms: elapsed_ms(started_at), provider: Ai::EmbeddingService.provider_name }
+      )
+
       Result.new(chunks_embedded: embedded_count, error: nil)
 
     rescue Ai::EmbeddingService::RateLimitError => e
       message = "Rate limit reached: #{e.message}"
       Rails.logger.error("[EmbeddingGenerationService] ##{@document.id} #{message}")
       mark_failed!(message)
+      log_error(trace, "embedding_generation/document", e)
       Result.new(chunks_embedded: 0, error: message)
 
     rescue Ai::EmbeddingService::AuthenticationError => e
       message = "Authentication failed: #{e.message}"
       Rails.logger.error("[EmbeddingGenerationService] ##{@document.id} #{message}")
       mark_failed!(message)
+      log_error(trace, "embedding_generation/document", e)
       Result.new(chunks_embedded: 0, error: message)
 
     rescue Ai::EmbeddingService::ApiError => e
       message = "API error: #{e.message}"
       Rails.logger.error("[EmbeddingGenerationService] ##{@document.id} #{message}")
       mark_failed!(message)
+      log_error(trace, "embedding_generation/document", e)
       Result.new(chunks_embedded: 0, error: message)
 
     rescue => e
       message = "#{e.class}: #{e.message}"
       Rails.logger.error("[EmbeddingGenerationService] ##{@document.id} Unexpected: #{message}")
       mark_failed!(message)
-      raise  # re-raise so GenerateEmbeddingsJob retry_on can handle it
+      log_error(trace, "embedding_generation/document", e)
+      raise
+    ensure
+      Langfuse.flush
     end
 
     private
+
+    def build_trace
+      Langfuse.trace(
+        name:       "embedding_generation",
+        user_id:    Ai::LangfuseContext.user_id,
+        session_id: Ai::LangfuseContext.session_id,
+        metadata:   { shop: Ai::LangfuseContext.shop, document_id: @document.id }.compact
+      )
+    end
+
+    def log_error(trace, name, error)
+      return unless trace
+      Langfuse.span(
+        trace_id:       trace.id,
+        name:           name,
+        end_time:       Time.now.utc,
+        level:          "ERROR",
+        status_message: error.message
+      )
+    rescue StandardError
+      nil
+    end
+
+    def elapsed_ms(started_at)
+      ((Time.current - started_at) * 1000).round
+    end
 
     def truncate(text)
       text.length > MAX_CHARS ? text[0, MAX_CHARS] : text
     end
 
-    # Uses update_columns to bypass callbacks and validations — we only want to
-    # update status columns, not trigger the after_save chunking chain again.
     def mark_processing!
       @document.update_columns(
         embedding_status: "processing",
