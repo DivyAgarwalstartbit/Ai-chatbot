@@ -26,12 +26,9 @@ class CloseStaleConversationsJob < ApplicationJob
   end
 
   def clear_redis(conv_id)
-    redis = Redis.new(url: ENV["REDIS_URL"])
-    redis.del(
-      "ai:ctx:conversation:#{conv_id}",
-      "ai:summary:conversation:#{conv_id}"
-    )
+    Rails.cache.delete("ai:ctx:conversation:#{conv_id}")
+    Rails.cache.delete("ai:summary:conversation:#{conv_id}")
   rescue => e
-    Rails.logger.error("[CloseStaleConversations] Redis error for conv #{conv_id}: #{e.message}")
+    Rails.logger.error("[CloseStaleConversations] Cache error for conv #{conv_id}: #{e.message}")
   end
 end
