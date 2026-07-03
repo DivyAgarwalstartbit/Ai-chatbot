@@ -89,11 +89,8 @@ class OutputController < ApplicationController
       if conversation
         conversation.update_columns(status: "closed", ended_at: Time.current)
 
-        redis = Redis.new(url: ENV["REDIS_URL"])
-        redis.del(
-          "ai:ctx:conversation:#{conversation.id}",
-          "ai:summary:conversation:#{conversation.id}"
-        )
+        Rails.cache.delete("ai:ctx:conversation:#{conversation.id}")
+        Rails.cache.delete("ai:summary:conversation:#{conversation.id}")
       end
 
       render json: { success: true, new_session_id: SecureRandom.uuid }

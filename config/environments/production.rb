@@ -17,6 +17,7 @@ Rails.application.configure do
 
   config.server_timing = true
   config.hosts << /.*\.myshopify\.com/
+  config.hosts << /.*\.onrender\.com/
 
   # Cache assets for far-future expiry since they are all digest stamped.
   config.public_file_server.headers = { "cache-control" => "public, max-age=#{1.year.to_i}" }
@@ -37,6 +38,9 @@ Rails.application.configure do
   # config.ssl_options = { redirect: { exclude: ->(request) { request.path == "/up" } } }
 
   # Log to STDOUT with the current request id as a default log tag.
+  # sync=true disables Ruby's output buffering so every log line appears
+  # immediately in Render's log viewer instead of waiting for the buffer to fill.
+  $stdout.sync = true
   config.log_tags = [ :request_id ]
   config.logger   = ActiveSupport::TaggedLogging.logger(STDOUT)
 

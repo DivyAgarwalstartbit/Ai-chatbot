@@ -42,7 +42,8 @@ module Shopify
               next
             end
 
-            importer.import_variant(data, local_product_id)
+            product = Product.find(local_product_id)
+            importer.import_variant(data, product)
           end
         end
       end

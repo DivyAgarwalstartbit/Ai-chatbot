@@ -103,17 +103,6 @@ module Shopify
                 # Tags
                 tags
 
-                # Collections (Categories)
-                collections(first: 50) {
-                  edges {
-                    node {
-                      id
-                      title
-                      handle
-                    }
-                  }
-                }
-
                 metafield(namespace: "ai_support", key: "knowledge") {
                   value
                 }
@@ -126,7 +115,7 @@ module Shopify
                   }
                 }
 
-                variants {
+                variants(first: 250) {
                   edges {
                     node {
                       id

@@ -12,7 +12,7 @@ module Shopify
       @variant.document_chunks.destroy_all
 
       content   = build_chunk
-      embedding = Ai::OllamaEmbeddingService.new(content).call
+      embedding = Ai::EmbeddingService.new.embed(content)
 
       chunk = DocumentChunk.create!(
         shop_id:     @product.shop_id,

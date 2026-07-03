@@ -18,10 +18,7 @@ module Ai
 
       return [] unless scope.exists?
 
-      embedding =
-        Ai::OllamaEmbeddingService.new(
-          build_query
-        ).call
+      embedding = Ai::EmbeddingService.new.embed(build_query)
 
       ids =
         DocumentChunk

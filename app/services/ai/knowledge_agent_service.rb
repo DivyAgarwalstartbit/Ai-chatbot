@@ -40,7 +40,7 @@ module Ai
     private
 
     def search_knowledge
-      embedding = Ai::OllamaEmbeddingService.new(@message).call
+      embedding = Ai::EmbeddingService.new.embed(@message)
 
       # Fetch more candidates than needed so re-ranking has enough to work with.
       # includes(:training_document) avoids N+1 when reading source_type below.

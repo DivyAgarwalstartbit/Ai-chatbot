@@ -65,12 +65,13 @@ module Ai
     # get_context("key") → raw string value for that key
     # =========================
     def set_context(key, value)
-      redis.hset(context_key, key, value)
-      redis.expire(context_key, 7.days)
+      all = Rails.cache.read(context_key) || {}
+      all[key.to_s] = value
+      Rails.cache.write(context_key, all, expires_in: 7.days)
     end
 
     def get_context(key = nil)
-      all = redis.hgetall(context_key)
+      all = Rails.cache.read(context_key) || {}
       key.present? ? all[key.to_s] : all
     end
 
@@ -160,11 +161,11 @@ module Ai
     end
 
     def clear_recommendation_wait
-      redis.hdel(context_key,
-        "awaiting_product_recommendation",
-        "pending_recommendation_query",
-        "pending_recommendation_reason"
-      )
+      all = Rails.cache.read(context_key) || {}
+      all.delete("awaiting_product_recommendation")
+      all.delete("pending_recommendation_query")
+      all.delete("pending_recommendation_reason")
+      Rails.cache.write(context_key, all, expires_in: 7.days)
     end
 
     def pending_recommendation_query
@@ -193,7 +194,9 @@ module Ai
     end
 
     def clear_active_order
-      redis.hdel(context_key, "active_order")
+      all = Rails.cache.read(context_key) || {}
+      all.delete("active_order")
+      Rails.cache.write(context_key, all, expires_in: 7.days)
     end
 
     private
@@ -232,7 +235,7 @@ module Ai
     # SUMMARY
     # =========================
     def summary
-      redis.get(summary_key)
+      Rails.cache.read(summary_key)
     end
 
     def schedule_summary
@@ -241,13 +244,6 @@ module Ai
       return unless count % 5 == 0
 
       MemorySummaryJob.perform_later(@conversation.id)
-    end
-
-    # =========================
-    # REDIS
-    # =========================
-    def redis
-      @redis ||= Redis.new(url: ENV["REDIS_URL"])
     end
 
     def context_key

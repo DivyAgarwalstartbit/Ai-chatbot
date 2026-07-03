@@ -1,3 +1,4 @@
+console.log("Chat widget loaded");
 (function () {
   const root = document.getElementById("ai-support-widget");
   if (!root || root._aiInit) return;
@@ -5,7 +6,7 @@
 
   const cfg = window.AI_WIDGET || {};
   const shop = cfg.shop || "";
-  const appUrl = "https://yearling-line-espresso.ngrok-free.dev";
+  const appUrl = "https://sb-aic.onrender.com";
 
   const visitorId = getOrCreateVisitorId();
   let sessionId = sessionStorage.getItem("ai_session_id") || null;
