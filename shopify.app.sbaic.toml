@@ -2,7 +2,7 @@
 
 client_id = "1a7861f0558511755371af70e7c117f5"
 name = "sbaic"
-application_url = "https://ghost-saved-easily.ngrok-free.app"
+application_url = "https://sb-aic.onrender.com"
 embedded = true
 
 [build]
@@ -35,9 +35,9 @@ use_legacy_install_flow = false
 
 
 [app_preferences]
-url = "https://ghost-saved-easily.ngrok-free.app"
+url = "https://sb-aic.onrender.com"
 
 [auth]
 redirect_urls = [
-  "https://ghost-saved-easily.ngrok-free.app/auth/shopify/callback"
+  "https://sb-aic.onrender.com/auth/shopify/callback"
 ]
