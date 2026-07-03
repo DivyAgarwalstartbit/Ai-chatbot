@@ -4,7 +4,7 @@ module Ai
   # Generates embeddings via the OpenAI Embeddings API.
   #
   # Uses text-embedding-3-small with dimensions reduced to 768 so the vectors
-  # are compatible with those produced by NomicEmbeddingService.
+  # Uses text-embedding-3-small with dimensions reduced to 768.
   #
   # Requires OPENAI_API_KEY (or Rails credentials openai_api_key).
   #
