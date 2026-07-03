@@ -17,7 +17,7 @@ window.AI_WIDGET = {
 </script>
 
 {{ 'chat-widget.css' | asset_url | stylesheet_tag }}
-<script src="{{ 'chat-widget.js' | asset_url }}?v={{ 'now' | date: '%s' }}"></script>
+<script src="{{ 'chat-widget.js' | asset_url }}?v={{ 'now' | date: '%s' }}" defer></script>
 
 {% schema %}
 {
