@@ -107,7 +107,7 @@ class HomeController < ApplicationController
     blocks    = json_data.dig("current", "blocks")
 
     !!(blocks&.any? do |_, block|
-      block["type"].to_s.include?(ENV["APP_EMBED_ID"].to_s) && block["disabled"] == false
+      block["type"].to_s.include?(ENV["APP_EMBED_ID"].to_s) && block["disabled"] != true
     end)
   rescue => e
     Rails.logger.error "[HomeController] App embed check failed: #{e.message}"
