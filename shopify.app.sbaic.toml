@@ -5,39 +5,33 @@ name = "sbaic"
 application_url = "https://sb-aic.onrender.com"
 embedded = true
 
-[build]
-automatically_update_urls_on_dev = true
-
 [webhooks]
 api_version = "2026-07"
 
-[[webhooks.subscriptions]]
-topics = [ "app/uninstalled" ]
-uri = "/webhooks/app_uninstalled"
+  [[webhooks.subscriptions]]
+  uri = "/webhooks/customers_redact"
+  compliance_topics = [ "customers/redact" ]
 
-[[webhooks.subscriptions]]
-uri = "/webhooks/customers_redact"
-compliance_topics = [ "customers/redact" ]
+  [[webhooks.subscriptions]]
+  uri = "/webhooks/data_request"
+  compliance_topics = [ "customers/data_request" ]
 
-[[webhooks.subscriptions]]
-uri = "/webhooks/data_request"
-compliance_topics = [ "customers/data_request" ]
+  [[webhooks.subscriptions]]
+  uri = "/webhooks/shop_redact"
+  compliance_topics = [ "shop/redact" ]
 
-[[webhooks.subscriptions]]
-uri = "/webhooks/shop_redact"
-compliance_topics = [ "shop/redact" ]
+  [[webhooks.subscriptions]]
+  topics = [ "app/uninstalled" ]
+  uri = "/webhooks/app_uninstalled"
 
 [access_scopes]
 # Learn more at https://shopify.dev/docs/apps/tools/cli/configuration#access_scopes
-scopes = "read_products,read_orders,write_products,read_returns,read_legal_policies"
+scopes = "read_legal_policies,read_orders,read_products,read_returns,read_themes,write_products"
 optional_scopes = [ ]
 use_legacy_install_flow = false
 
+[auth]
+redirect_urls = [ "https://sb-aic.onrender.com/auth/shopify/callback" ]
 
 [app_preferences]
 url = "https://sb-aic.onrender.com"
-
-[auth]
-redirect_urls = [
-  "https://sb-aic.onrender.com/auth/shopify/callback"
-]
