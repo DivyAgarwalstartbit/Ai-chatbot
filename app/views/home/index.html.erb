@@ -63,7 +63,13 @@
 <s-page heading="Dashboard" inline-size="large">
 
   <%# ── Widget status banner ── %>
-  <% unless @app_embed_enabled %>
+  <% if @app_embed_enabled %>
+    <s-section>
+      <s-banner heading="App embed is enabled" tone="success">
+        Your chat widget is securely enabled on your storefront and ready to answer customer queries.
+      </s-banner>
+    </s-section>
+  <% else %>
     <s-section id="embed-warning-section">
       <s-banner heading="App embed is not enabled" tone="warning">
         Your chat widget won't appear on your store until the app embed is enabled in your theme settings.

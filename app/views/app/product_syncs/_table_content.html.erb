@@ -168,7 +168,6 @@
   <% if @search.present? %>
     <s-box padding="large">
       <s-grid justifyItems="center" gap="base">
-        <s-text variant="headingMd">No products found</s-text>
         <s-text tone="subdued">No products match &ldquo;<%= @search %>&rdquo;. Try a different search term.</s-text>
         <s-button variant="secondary" onclick="clearSearch()">Clear search</s-button>
       </s-grid>
