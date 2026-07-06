@@ -36,11 +36,10 @@ gem "neighbor"
 gem "langfuse"
 
 gem "redis"
-gem "byebug"
 gem "ruby-openai", "~> 7.0"
 gem "faraday", "~> 2.0"
-gem "pdf-reader", "~> 2.0"
-gem "docx", "~> 0.8"
+gem "pdf-reader", "~> 2.0", require: false
+gem "docx", "~> 0.8", require: false
 
 #-------------------------------------------------------------------------------------------------
 
@@ -59,6 +58,7 @@ gem "image_processing", "~> 1.2"
 group :development, :test do
   # See https://guides.rubyonrails.org/debugging_rails_applications.html#debugging-with-the-debug-gem
   gem "debug", platforms: %i[ mri windows ], require: "debug/prelude"
+  gem "byebug"
 
   # Audits gems for known security defects (use config/bundler-audit.yml to ignore issues)
   gem "bundler-audit", require: false

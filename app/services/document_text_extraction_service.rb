@@ -87,6 +87,7 @@ class DocumentTextExtractionService
   end
 
   def extract_pdf
+    require "pdf-reader"
     reader = PDF::Reader.new(@file.path)
     reader.pages.map(&:text).join("\n\n")
   rescue PDF::Reader::MalformedPDFError => e
@@ -96,6 +97,7 @@ class DocumentTextExtractionService
   end
 
   def extract_docx
+    require "docx"
     doc = Docx::Document.open(@file.path)
     doc.paragraphs.map(&:to_s).reject(&:blank?).join("\n\n")
   rescue => e
