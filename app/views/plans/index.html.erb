@@ -48,7 +48,7 @@
   .pln-cell-icon-no  { color: #d72c0d; font-size: 16px; font-weight: 700; }
 </style>
 
-<s-page heading="Pricing">
+<s-page heading="Pricing" back-url="/?shop=<%= ERB::Util.url_encode(@shop_origin.to_s) %>&host=<%= ERB::Util.url_encode(@host.to_s) %>&embedded=1">
   <div class="pln-page-wrap">
     <h1 class="pln-title">Choose a plan</h1>
     <p class="pln-subtitle">Start free, upgrade when you're ready.</p>
