@@ -8,10 +8,11 @@
      sync_knowledge_base_return_policy_path(shop: shop_origin, host: host, embedded: 1) %>
 
 <div class="kb-actions kb-policy-actions" id="<%= policy_type %>_actions">
-  <%# Edit manual policy text %>
-  <s-button variant="primary" icon="edit"
+  <%# Add / Edit manual policy text %>
+  <% has_policy = policy.content.present? %>
+  <s-button variant="primary" icon="<%= has_policy ? 'edit' : 'plus' %>"
     data-action="click->modal#open">
-    Edit Policy
+    <%= has_policy ? 'Edit Policy' : 'Add Policy' %>
   </s-button>
 
   <%# Upload supporting document — not available on Free plan %>

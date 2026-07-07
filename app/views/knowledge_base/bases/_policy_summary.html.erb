@@ -12,8 +12,6 @@
     <s-stack direction="inline" gap="small-100" alignItems="center" wrap="true">
       <% if configured %>
         <s-badge tone="success" icon="check-circle">Configured</s-badge>
-      <% else %>
-        <s-badge tone="warning">Missing</s-badge>
       <% end %>
 
       <% src_badges.each do |badge| %>

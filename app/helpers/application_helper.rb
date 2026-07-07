@@ -35,7 +35,7 @@ module ApplicationHelper
   end
 
   def policy_updated_text(policy)
-    return "Not updated yet" unless policy_configured?(policy) && policy.updated_at.present?
+    return "" unless policy_configured?(policy) && policy.updated_at.present?
 
     if policy.updated_at > 7.days.ago
       "Updated #{time_ago_in_words(policy.updated_at)} ago"
