@@ -1,7 +1,7 @@
 # Learn more about configuring your app at https://shopify.dev/docs/apps/tools/cli/configuration
 
 client_id = "1a7861f0558511755371af70e7c117f5"
-name = "sbaic"
+name = "SB AI Chatbot: Sales & Support"
 application_url = "https://sb-aic.onrender.com"
 embedded = true
 
