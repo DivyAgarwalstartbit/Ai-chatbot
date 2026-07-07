@@ -451,6 +451,7 @@
   background: #f1f1f1;
   color: var(--ai-text);
   border-bottom-left-radius: 4px;
+  overflow-wrap: anywhere;
 }
 
 .ai-bubble.user {

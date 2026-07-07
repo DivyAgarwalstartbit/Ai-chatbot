@@ -729,7 +729,7 @@
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#8c9196" stroke-width="1.8"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
                 <% end %>
               </div>
-              <div class="bs-chat-bubble bot" id="bs-pv-greeting" style="background: #f1f1f1; color: <%= text_color %>;">
+              <div class="bs-chat-bubble bot" id="bs-pv-greeting" style="background: #f1f1f1; overflow-wrap: anywhere; color: <%= text_color %>;">
                 <%= @config.greeting.presence || "Welcome! How can I help you today?" %>
               </div>
             </div>
