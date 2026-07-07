@@ -210,8 +210,7 @@
           <s-heading>Plan usage</s-heading>
           <s-badge tone="<%= @current_plan == 'pro' ? 'success' : (@current_plan.nil? ? 'neutral' : 'attention') %>"><%= @plan_label %></s-badge>
         </s-stack>
-        <s-link href="/plans?shop=<%= ERB::Util.url_encode(q) %>&host=<%= ERB::Util.url_encode(h) %>&embedded=1"
-          onclick="event.preventDefault(); shopify.navigation.navigate('/plans?shop=<%= ERB::Util.url_encode(q) %>&host=<%= ERB::Util.url_encode(h) %>&embedded=1')">
+        <s-link data-turbo="false" href="/plans?shop=<%= ERB::Util.url_encode(q) %>&host=<%= ERB::Util.url_encode(h) %>&embedded=1">
           <%= @current_plan == 'pro' ? 'View plan' : 'Upgrade plan' %>
         </s-link>
       </s-grid>
@@ -325,8 +324,7 @@
   <s-section heading="Recent Conversations">
     <s-grid gridTemplateColumns="1fr auto" alignItems="center" paddingBlockEnd="small-400">
       <div></div>
-      <s-link href="/conversations?shop=<%= ERB::Util.url_encode(q) %>&host=<%= ERB::Util.url_encode(h) %>&embedded=1"
-        onclick="event.preventDefault(); shopify.navigation.navigate('/conversations?shop=<%= ERB::Util.url_encode(q) %>&host=<%= ERB::Util.url_encode(h) %>&embedded=1')">View all</s-link>
+      <s-link data-turbo="false" href="/conversations?shop=<%= ERB::Util.url_encode(q) %>&host=<%= ERB::Util.url_encode(h) %>&embedded=1">View all</s-link>
     </s-grid>
 
     <% if @recent_conversations.empty? %>
@@ -397,7 +395,7 @@
           <s-heading>Ready to unlock more?</s-heading>
           <s-paragraph>You're on the Free plan. Upgrade to Starter or Pro to get more conversations, document uploads, FAQ imports, policy sync, and much more — with a <%= Shop::PLANS["starter"][:trial_days] %>-day free trial.</s-paragraph>
           <s-stack direction="inline" gap="small-200">
-            <s-button variant="primary" onclick="shopify.navigation.navigate('/plans?shop=<%= ERB::Util.url_encode(q) %>&host=<%= ERB::Util.url_encode(h) %>&embedded=1')">View plans</s-button>
+            <s-button variant="primary" href="/plans?shop=<%= ERB::Util.url_encode(q) %>&host=<%= ERB::Util.url_encode(h) %>&embedded=1">View plans</s-button>
           </s-stack>
         </s-grid>
         <s-button
