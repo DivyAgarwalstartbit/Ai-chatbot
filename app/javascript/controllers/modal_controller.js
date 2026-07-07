@@ -86,7 +86,7 @@ export default class extends Controller {
 
   // ── FAQ modal ───────────────────────────────────────────────────────────────
 
-  openNew(event) {
+  openNew(_event) {
     // The triggering button already has commandFor/command="--show", so the modal
     // opens natively. We only need to prepare the form fields.
     this._prepareForm({
@@ -127,6 +127,11 @@ export default class extends Controller {
       if (this.hasModalTarget) {
         this.modalTarget.style.display = "none"
         document.body.style.overflow   = ""
+      }
+      const btn = this.element.querySelector('[data-action*="modal#open"]')
+      if (btn) {
+        btn.textContent = "Edit Policy"
+        btn.setAttribute("icon", "edit")
       }
     }
   }
