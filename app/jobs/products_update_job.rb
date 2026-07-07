@@ -24,5 +24,7 @@ Shopify::ProductSyncService.new(
   shop: shop,
   product_id: payload["id"]
 ).call
+
+shop.update_column(:products_synced_at, Time.current)
 end
 end

@@ -24,5 +24,7 @@ product = shop.products.find_by(
 return unless product
 
 product.destroy!
+
+shop.update_column(:products_synced_at, Time.current)
 end
 end
