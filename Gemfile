@@ -38,7 +38,7 @@ gem "langfuse"
 gem "redis"
 gem "byebug"
 gem "ruby-openai", "~> 7.0"
-gem "faraday", "~> 2.0"
+gem "faraday", "~> 2.14"
 gem "pdf-reader", "~> 2.0"
 gem "docx", "~> 0.8"
 
