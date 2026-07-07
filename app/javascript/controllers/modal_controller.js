@@ -128,10 +128,11 @@ export default class extends Controller {
         this.modalTarget.style.display = "none"
         document.body.style.overflow   = ""
       }
+      const hasContent = this.hasTextareaTarget && this.textareaTarget.value.trim().length > 0
       const btn = this.element.querySelector('[data-action*="modal#open"]')
       if (btn) {
-        btn.textContent = "Edit Policy"
-        btn.setAttribute("icon", "edit")
+        btn.textContent = hasContent ? "Edit Policy" : "Add Policy"
+        btn.setAttribute("icon", hasContent ? "edit" : "plus")
       }
     }
   }
