@@ -32,11 +32,10 @@ class OverageService
       result = call_shopify(shop)
       return result unless result[:success]
 
-      shop.increment!(:extra_conversations,            Shop::OVERAGE_BUNDLE[:conversations])
-      shop.increment!(:extra_tickets,                  Shop::OVERAGE_BUNDLE[:tickets])
-      shop.increment!(:extra_documents,                Shop::OVERAGE_BUNDLE[:documents])
-      shop.increment!(:extra_products,                 Shop::OVERAGE_BUNDLE[:products])
-      shop.increment!(:extra_messages_per_conversation, Shop::OVERAGE_BUNDLE[:messages_per_conversation])
+      shop.increment!(:extra_conversations, Shop::OVERAGE_BUNDLE[:conversations])
+      shop.increment!(:extra_tickets,       Shop::OVERAGE_BUNDLE[:tickets])
+      shop.increment!(:extra_documents,     Shop::OVERAGE_BUNDLE[:documents])
+      shop.increment!(:extra_products,      Shop::OVERAGE_BUNDLE[:products])
 
       ShopOverageBundle.create!(
         shop:                    shop,
@@ -64,9 +63,8 @@ class OverageService
     response = client.query(query: USAGE_MUTATION, variables: {
       subscriptionLineItemId: shop.usage_subscription_id,
       price:                  { amount: Shop::OVERAGE_BUNDLE_PRICE, currencyCode: "USD" },
-      description:            "Overage bundle: +#{Shop::OVERAGE_BUNDLE[:conversations]} conversations, " \
-                              "+#{Shop::OVERAGE_BUNDLE[:messages_per_conversation]} messages/conversation, " \
-                              "+#{Shop::OVERAGE_BUNDLE[:tickets]} tickets, " \
+      description:            "Overage bundle: +#{Shop::OVERAGE_BUNDLE[:conversations]} conversation, " \
+                              "+#{Shop::OVERAGE_BUNDLE[:tickets]} ticket, " \
                               "+#{Shop::OVERAGE_BUNDLE[:documents]} documents, " \
                               "+#{Shop::OVERAGE_BUNDLE[:products]} products ($#{Shop::OVERAGE_BUNDLE_PRICE})"
     })

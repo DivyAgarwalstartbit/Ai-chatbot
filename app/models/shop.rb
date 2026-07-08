@@ -39,8 +39,8 @@ class Shop < ActiveRecord::Base
     "pro"     => 30
   }.freeze
 
-  OVERAGE_BUNDLE        = { conversations: 3, tickets: 2, documents: 5, products: 10, messages_per_conversation: 5 }.freeze
-  OVERAGE_BUNDLE_PRICE  = "0.30"
+  OVERAGE_BUNDLE        = { conversations: 1, tickets: 1, documents: 2, products: 10 }.freeze
+  OVERAGE_BUNDLE_PRICE  = "0.20"
   OVERAGE_CAPPED_AMOUNT = ENV.fetch("overage_capped_amount", "10.00")
 
   validates :plan, inclusion: { in: PLANS.keys + [ "free" ], allow_nil: true }
@@ -56,10 +56,7 @@ class Shop < ActiveRecord::Base
   def effective_faq_limit          = base_limit(:faqs)
   def effective_product_limit      = base_limit(:products) + extra_products.to_i
   def effective_message_limit
-    base = MESSAGES_PER_CONVERSATION[plan.presence || "free"]
-    # Only Pro gets extra messages via overage bundles; Free/Starter are fixed hard caps
-    return base + extra_messages_per_conversation.to_i if pro?
-    base
+    MESSAGES_PER_CONVERSATION[plan.presence || "free"]
   end
 
   def overage_eligible?            = pro? && usage_subscription_id.present?

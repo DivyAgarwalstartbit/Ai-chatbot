@@ -42,21 +42,11 @@ module Ai
     def add(role:, content:, metadata: nil, shop: nil)
       return if content.blank?
 
-      # Enforce per-conversation message limit only on incoming user messages
-      if role == "user" && shop.present?
-        @charge_overage_for_messages = false
-        enforce_message_limit!(shop)
-      end
+      enforce_message_limit!(shop) if role == "user" && shop.present?
 
       @conversation.messages.create!(role: role, content: content, metadata: metadata)
       @conversation.update_column(:last_message_at, Time.current)
       schedule_summary
-
-      # Pro: charge overage after the message is saved (non-blocking)
-      if @charge_overage_for_messages && shop.present?
-        OverageService.new(shop: shop, resource_type: :message).check_and_charge!
-        @charge_overage_for_messages = false
-      end
     end
 
     # =========================
@@ -203,7 +193,7 @@ module Ai
 
     def enforce_message_limit!(shop)
       limit = shop.effective_message_limit
-      return if limit.nil?  # nil = no limit enforced
+      return if limit.nil?
 
       if shop.free?
         # Free: 50 messages total across ALL conversations this month
@@ -214,16 +204,12 @@ module Ai
         if user_msg_count >= limit
           raise MessageLimitError, "You've reached your monthly message limit (#{limit} messages). Upgrade to continue chatting."
         end
-      elsif shop.starter?
-        # Starter: 20 messages per conversation (hard block)
+      else
+        # Starter / Pro: hard cap per conversation
         user_msg_count = @conversation.messages.where(role: "user").count
         if user_msg_count >= limit
           raise MessageLimitError, "You've reached the #{limit}-message limit for this conversation. Please start a new conversation to continue."
         end
-      else
-        # Pro: 30 messages per conversation — allow through then charge overage
-        user_msg_count = @conversation.messages.where(role: "user").count
-        @charge_overage_for_messages = true if user_msg_count >= limit
       end
     end
 

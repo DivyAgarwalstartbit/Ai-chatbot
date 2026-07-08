@@ -130,7 +130,7 @@ class BillingController < ApplicationController
         plan: {
           appUsagePricingDetails: {
             cappedAmount: { amount: Shop::OVERAGE_CAPPED_AMOUNT, currencyCode: "USD" },
-            terms: "Pay-as-you-go overage: $#{Shop::OVERAGE_BUNDLE_PRICE} per bundle (+#{Shop::OVERAGE_BUNDLE[:conversations]} conversations, +#{Shop::OVERAGE_BUNDLE[:messages_per_conversation]} messages/conversation, +#{Shop::OVERAGE_BUNDLE[:tickets]} tickets, +#{Shop::OVERAGE_BUNDLE[:documents]} docs, +#{Shop::OVERAGE_BUNDLE[:products]} products)."
+            terms: "Pay-as-you-go overage: $#{Shop::OVERAGE_BUNDLE_PRICE} per bundle (+#{Shop::OVERAGE_BUNDLE[:conversations]} conversation, +#{Shop::OVERAGE_BUNDLE[:tickets]} ticket, +#{Shop::OVERAGE_BUNDLE[:documents]} documents, +#{Shop::OVERAGE_BUNDLE[:products]} products)."
           }
         }
       }

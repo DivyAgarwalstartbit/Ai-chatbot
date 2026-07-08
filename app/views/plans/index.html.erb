@@ -1,6 +1,6 @@
 <% trial_days_label = "#{Shop::PLANS["starter"][:trial_days]} days" %>
 <% rows = [
-  { label: "Conversations / month",          free: "3 conv · 50 msgs total", starter: "40 conv · 20 msgs each", pro: "80 conv · 30 msgs · +#{Shop::OVERAGE_BUNDLE[:messages_per_conversation]}/bundle" },
+  { label: "Conversations / month",          free: "3 conv · 50 msgs total", starter: "40 conv · 20 msgs each", pro: "80 conv · 30 msgs each" },
   { label: "Support tickets",               free: "2 / month",             starter: "20 / month",        pro: "50 / month" },
   { label: "Products for AI training",      free: "10",                    starter: "100",               pro: "500" },
   { label: "Documents",                     free: false,                   starter: "3 · max 2 MB",      pro: "10 · max 5 MB" },
@@ -16,7 +16,7 @@
   { label: "Human escalation",             free: true,                    starter: true,                pro: true },
   { label: "Add to cart via chat",          free: true,                    starter: true,                pro: true },
   { label: "Related product suggestions",   free: false,                   starter: false,               pro: true,  badge: "Pro only" },
-  { label: "Pay-as-you-go overage", free: false, starter: false, pro: true, badge: "Pro only" },
+  { label: "Pay-as-you-go overage ($#{Shop::OVERAGE_BUNDLE_PRICE}/bundle: +1 conv, +1 ticket, +2 docs, +10 products)", free: false, starter: false, pro: true, badge: "Pro only" },
 ] %>
 
 <% free_label    = @current_plan.nil? ? nil : "Downgrade" %>
