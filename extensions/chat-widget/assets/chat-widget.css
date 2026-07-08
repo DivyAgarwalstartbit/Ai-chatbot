@@ -120,7 +120,7 @@
   position: fixed;
   right: var(--ai-side);
   bottom: var(--ai-bottom);
-  width: 380px;
+  width: 450px;
   border-radius: 16px;
   overflow: hidden;
   box-shadow: 0 8px 32px rgba(0, 0, 0, .14);
@@ -726,8 +726,8 @@
 }
 
 .ai-product-cards-strip .ai-product-card {
-  flex: 0 0 260px;
-  width: 260px;
+  flex: 0 0 200px;
+  width: 200px;
 }
 
 /* ── Product Card ─────────────────────────────────────────── */
@@ -797,7 +797,6 @@
   font-size: 15px;
   font-weight: 700;
   color: #1a1a1a;
-  margin-top: 2px;
 }
 
 .ai-product-variants {
@@ -824,7 +823,7 @@
 .ai-color-swatches {
   display: flex;
   flex-wrap: wrap;
-  gap: 5px;
+  gap: 8px;
   align-items: center;
 }
 
@@ -844,7 +843,7 @@
 }
 
 .ai-color-swatch.active {
-  box-shadow: 0 0 0 1px rgba(0, 0, 0, .18), 0 0 0 3px white, 0 0 0 4px var(--ai-primary);
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, .18), 0 0 0 1px white, 0 0 0 2px var(--ai-primary);
 }
 
 .ai-color-swatch--text {
@@ -926,7 +925,7 @@
 
 .ai-add-to-cart {
   flex: 1;
-  padding: 9px 10px;
+  padding: 8px 10px;
   background: var(--ai-primary);
   color: white;
   border: none;
