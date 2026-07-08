@@ -1,0 +1,14 @@
+Product Sync Completed — AI Shopper
+=====================================
+
+<%= @product_count %> <%= "product".pluralize(@product_count) %> synced successfully.
+
+Store:     <%= @shop.shopify_domain %>
+Synced at: <%= @synced_at.strftime("%d %b %Y, %I:%M %p UTC") %>
+
+Your AI chat widget now has up-to-date product knowledge and can accurately
+answer customer queries about all <%= @product_count %> <%= "product".pluralize(@product_count) %>
+in your store.
+
+---
+Sent by AI Shopper for <%= @shop.shopify_domain %>.

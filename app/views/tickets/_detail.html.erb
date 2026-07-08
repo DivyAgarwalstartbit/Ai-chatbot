@@ -179,6 +179,35 @@
   background: #f6f6f7;
   border-top: 1px solid #e1e3e5;
 }
+.td-mail-reply-box {
+  flex-shrink: 0;
+  padding: 12px 16px;
+  background: #fff;
+  border-top: 1px solid #e1e3e5;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+}
+.td-mail-reply-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  background: #f3f4f6;
+  color: #374151;
+  border: 1.5px solid #d1d5db;
+  border-radius: 8px;
+  padding: 9px 20px;
+  font-size: 13px;
+  font-weight: 600;
+  text-decoration: none;
+  transition: background 0.15s, border-color 0.15s;
+}
+.td-mail-reply-btn:hover { background: #e5e7eb; border-color: #9ca3af; }
+.td-mail-reply-notice {
+  font-size: 11.5px;
+  color: #8c9196;
+}
 .td-reply-submit {
   flex-shrink: 0;
   background: #C6A8DC;
@@ -422,30 +451,54 @@
   </div><!-- /.td-body -->
 
   <% if ticket.conversation %>
-    <% is_closed = (status == "closed") %>
-    <% if is_closed %>
-      <div class="td-closed-notice" data-ticket-chat-target="closedNotice">
-        This ticket is closed. Change the status to reopen it.
+    <% conv_closed = ticket.conversation.status.to_s == "closed" %>
+    <% if conv_closed %>
+      <%
+        customer_email = customer&.email.to_s
+        mail_subject   = CGI.escape("Re: #{ticket.subject}")
+        mailto_href    = customer_email.present? ? "mailto:#{customer_email}?subject=#{mail_subject}" : nil
+      %>
+      <div class="td-mail-reply-box">
+        <% if mailto_href %>
+          <a href="<%= mailto_href %>" class="td-mail-reply-btn">
+            <svg width="15" height="15" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <rect x="2" y="4" width="16" height="12" rx="2" stroke="#374151" stroke-width="1.6"/>
+              <path d="M2 7l8 5 8-5" stroke="#374151" stroke-width="1.6" stroke-linecap="round"/>
+            </svg>
+            Reply via Mail
+          </a>
+          <span class="td-mail-reply-notice">Opens your email client with customer's address pre-filled</span>
+        <% else %>
+          <span class="td-mail-reply-notice">Conversation is closed · No customer email on file</span>
+        <% end %>
       </div>
     <% else %>
-      <div class="td-reply-hint" data-ticket-chat-target="hint">Ctrl+Enter to send</div>
+      <% is_ticket_closed = (status == "closed") %>
+      <% unless is_ticket_closed %>
+        <div class="td-reply-hint" data-ticket-chat-target="hint">Ctrl+Enter to send</div>
+      <% end %>
+      <% if is_ticket_closed %>
+        <div class="td-closed-notice" data-ticket-chat-target="closedNotice">
+          This ticket is closed. Change the status to reopen it.
+        </div>
+      <% end %>
+      <div class="td-reply-box">
+        <textarea
+          class="td-reply-input"
+          rows="2"
+          placeholder="<%= is_ticket_closed ? "Ticket is closed" : "Reply to customer…" %>"
+          data-ticket-chat-target="input"
+          data-action="keydown->ticket-chat#inputKeydown"
+          <%= "disabled" if is_ticket_closed %>
+        ></textarea>
+        <button
+          class="td-reply-submit"
+          data-ticket-chat-target="submit"
+          data-action="click->ticket-chat#submit"
+          <%= "disabled" if is_ticket_closed %>
+        >Send</button>
+      </div>
     <% end %>
-    <div class="td-reply-box">
-      <textarea
-        class="td-reply-input"
-        rows="2"
-        placeholder="<%= is_closed ? "Ticket is closed" : "Reply to customer…" %>"
-        data-ticket-chat-target="input"
-        data-action="keydown->ticket-chat#inputKeydown"
-        <%= "disabled" if is_closed %>
-      ></textarea>
-      <button
-        class="td-reply-submit"
-        data-ticket-chat-target="submit"
-        data-action="click->ticket-chat#submit"
-        <%= "disabled" if is_closed %>
-      >Send</button>
-    </div>
   <% end %>
 
 </div><!-- /.td-panel -->

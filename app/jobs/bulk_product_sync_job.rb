@@ -14,6 +14,9 @@ class BulkProductSyncJob < ApplicationJob
 
     shop.update!(products_synced_at: Time.current)
 
+    product_count = shop.products.count
+    ProductSyncMailer.sync_completed(shop: shop, product_count: product_count).deliver_later
+
   rescue => e
     Rails.logger.error "BulkProductSyncJob failed: #{e.class}: #{e.message}"
     raise
