@@ -288,12 +288,16 @@ turbo-frame#ticket-detail {
                              else
                                "No customer"
                              end
-              initials = if customer
-                           parts = [customer.first_name, customer.last_name].compact
-                           parts.map { |p| p[0].upcase }.join.first(2).presence || "?"
-                         else
-                           "?"
-                         end
+              initials = if customer&.email.present?
+  username = customer.email.split("@").first
+  username.split(/[\._-]/)
+          .map { |part| part[0]&.upcase }
+          .join
+          .first(2)
+          .presence || "?"
+else
+  "?"
+end
               ts         = ticket.created_at
               time_label = if ts > 1.day.ago
                                ts.strftime("%-I:%M %p")

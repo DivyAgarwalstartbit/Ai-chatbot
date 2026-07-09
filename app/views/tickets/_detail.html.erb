@@ -269,12 +269,16 @@
                  else
                    "No customer"
                  end
-  initials = if customer
-               parts = [customer.first_name, customer.last_name].compact
-               parts.map { |p| p[0].upcase }.join.first(2).presence || "?"
-             else
-               "?"
-             end
+ initials = if customer&.email.present?
+  username = customer.email.split("@").first
+  username.split(/[\._-]/)
+          .map { |part| part[0]&.upcase }
+          .join
+          .first(2)
+          .presence || "?"
+else
+  "?"
+end
   status     = ticket.status.presence || "open"
   badge_tone = { "open" => "critical", "in_progress" => "warning", "resolved" => "info", "closed" => "neutral" }.fetch(status, "neutral")
   source_labels = {
