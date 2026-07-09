@@ -17,7 +17,12 @@ export default class extends Controller {
     this._consumer = ActionCable.createConsumer()
     this._subscription = this._consumer.subscriptions.create(
       { channel: "ConversationChannel", conversation_id: this.conversationIdValue },
-      { received: (data) => this._appendBubble(data) }
+      { received: (data) => {
+          // Skip agent messages — they're already shown optimistically on submit
+          if (data.role === "agent") return
+          this._appendBubble(data)
+        }
+      }
     )
   }
 
@@ -31,7 +36,10 @@ export default class extends Controller {
     const content = this.inputTarget.value.trim()
     if (!content) return
 
+    // Optimistic update — clear input and show bubble immediately
+    this.inputTarget.value = ""
     this.submitTarget.disabled = true
+    this._appendBubble({ role: "agent", content, time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) })
 
     fetch(this.replyUrlValue, {
       method: "POST",
@@ -43,7 +51,6 @@ export default class extends Controller {
     })
       .then(r => r.json())
       .then(data => {
-        this.inputTarget.value = ""
         if (data.ticket_status === "closed") {
           this._lockReplyBox()
         } else {

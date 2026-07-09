@@ -19,6 +19,15 @@ module Ai
 
       # ── Handoff guard ──────────────────────────────────────────
       if memory.conversation.handoff_mode?
+        # Push customer message to merchant's ticket panel in real-time
+        ActionCable.server.broadcast(
+          "conversation_#{memory.conversation.id}",
+          {
+            role:    "user",
+            content: @message,
+            time:    Time.current.strftime("%-I:%M %p")
+          }
+        )
         return {
           type:    "human_handoff_active",
           message: "You're connected with our support team. Your message has been logged and an agent will respond shortly."

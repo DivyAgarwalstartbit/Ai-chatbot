@@ -64,8 +64,7 @@ class OutputController < ApplicationController
 
       conversation = Conversation.find_by(
         shop:       shop,
-        session_id: params[:session_id],
-        status:     "open"
+        session_id: params[:session_id]
       )
 
       unless conversation
