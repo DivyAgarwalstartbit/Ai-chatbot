@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; color: #1a1a1a; margin: 0; padding: 0; background: #f5f5f5; }
+    .wrapper { max-width: 600px; margin: 32px auto; background: #fff; border-radius: 8px; overflow: hidden; box-shadow: 0 1px 4px rgba(0,0,0,.08); }
+    .header { background: #1c1c1e; padding: 24px 32px; }
+    .header h1 { color: #fff; margin: 0; font-size: 18px; font-weight: 600; }
+    .badge { display: inline-block; background: #f59e0b; color: #fff; font-size: 12px; font-weight: 700; padding: 3px 10px; border-radius: 20px; margin-top: 6px; letter-spacing: .5px; }
+    .body { padding: 28px 32px; }
+    .alert-box { background: #fffbeb; border: 1px solid #fde68a; border-radius: 8px; padding: 20px 24px; margin-bottom: 24px; }
+    .alert-icon { font-size: 28px; margin-bottom: 8px; }
+    .alert-title { font-size: 16px; font-weight: 700; color: #92400e; margin: 0 0 4px; }
+    .alert-body  { font-size: 14px; color: #78350f; margin: 0; }
+    .label { font-size: 11px; font-weight: 700; color: #888; text-transform: uppercase; letter-spacing: .6px; margin-bottom: 4px; }
+    .value { font-size: 15px; color: #1a1a1a; margin-bottom: 16px; }
+    .divider { border: none; border-top: 1px solid #eee; margin: 20px 0; }
+    .upgrade-box { background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px; padding: 24px; text-align: center; margin: 24px 0; }
+    .upgrade-price { font-size: 36px; font-weight: 700; color: #008060; }
+    .upgrade-label { font-size: 13px; color: #4b7a62; margin-top: 4px; margin-bottom: 20px; }
+    .upgrade-btn { display: inline-block; background: #008060; color: #fff; text-decoration: none; font-size: 15px; font-weight: 700; padding: 14px 36px; border-radius: 8px; letter-spacing: .3px; }
+    .pro-features { margin: 0 0 20px; padding: 0; list-style: none; }
+    .pro-features li { font-size: 13px; color: #444; padding: 5px 0; }
+    .pro-features li::before { content: "✓ "; color: #008060; font-weight: 700; }
+    .footer { background: #fafafa; border-top: 1px solid #eee; padding: 16px 32px; font-size: 12px; color: #999; }
+  </style>
+</head>
+<body>
+  <div class="wrapper">
+    <div class="header">
+      <h1>Plan Limit Reached</h1>
+      <span class="badge">Starter Plan</span>
+    </div>
+
+    <div class="body">
+      <div class="alert-box">
+        <div class="alert-icon">⚠️</div>
+        <p class="alert-title">Your <%= @label %> limit has been reached</p>
+        <p class="alert-body">
+          Your Starter plan allows up to <strong><%= @limit %></strong> <%= @label.downcase %>.
+          New <%= @label.downcase %> will be blocked until you upgrade or the monthly cycle resets.
+        </p>
+      </div>
+
+      <div class="label">Store</div>
+      <div class="value"><%= @shop.shopify_domain %></div>
+
+      <hr class="divider">
+
+      <p style="font-size:14px;color:#444;line-height:1.7;margin:0 0 20px;">
+        Upgrade to <strong>Pro</strong> for higher limits, pay-as-you-go overage, and exclusive features — so your store never misses a customer interaction.
+      </p>
+
+      <ul class="pro-features">
+        <li>80 conversations / month (vs 40 on Starter)</li>
+        <li>50 support tickets / month (vs 20)</li>
+        <li>10 documents · up to 5 MB each (vs 3 · 2 MB)</li>
+        <li>500 products for AI training (vs 100)</li>
+        <li>50 FAQs (vs 10) with AI suggestions</li>
+        <li>Pay-as-you-go overage — never get hard-blocked</li>
+        <li>Shopify policy sync &amp; related product suggestions</li>
+      </ul>
+
+      <div class="upgrade-box">
+        <div class="upgrade-price">$<%= @pro_price %></div>
+        <div class="upgrade-label">per month · cancel anytime</div>
+        <a href="<%= @upgrade_url %>" class="upgrade-btn">Upgrade to Pro →</a>
+      </div>
+    </div>
+
+    <div class="footer">
+      Sent by <strong>AI Shopper</strong> for <%= @shop.shopify_domain %>. You received this because a plan limit was reached on your store.
+    </div>
+  </div>
+</body>
+</html>

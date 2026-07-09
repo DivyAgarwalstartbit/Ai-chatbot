@@ -25,6 +25,13 @@ module Shopify
             # Hard-cap: stop importing once plan limit is reached
             if product_map.size >= product_limit
               Rails.logger.info "BulkProductImportService: product limit (#{product_limit}) reached for #{@shop.plan_label} plan — skipping remaining products"
+              if @shop.starter? && product_map.size == product_limit
+                cache_key = "limit_email:#{@shop.id}:product:#{Date.current}"
+                unless Rails.cache.exist?(cache_key)
+                  Rails.cache.write(cache_key, true, expires_in: 1.day)
+                  LimitReachedMailer.limit_reached(shop: @shop, resource: :product).deliver_later
+                end
+              end
               next
             end
 

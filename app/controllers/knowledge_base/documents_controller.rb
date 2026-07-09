@@ -30,6 +30,13 @@ class KnowledgeBase::DocumentsController < AuthenticatedController
 
     # Free/Starter: hard block at limit
     if !current_shop.pro? && doc_count >= effective_limit
+      if current_shop.starter?
+        cache_key = "limit_email:#{current_shop.id}:document:#{Date.current}"
+        unless Rails.cache.exist?(cache_key)
+          Rails.cache.write(cache_key, true, expires_in: 1.day)
+          LimitReachedMailer.limit_reached(shop: current_shop, resource: :document).deliver_later
+        end
+      end
       upgrade_msg = plan == "starter" ? "Upgrade to Pro for more documents." : "Upgrade to Starter or Pro."
       return respond_to do |format|
         format.turbo_stream { render turbo_stream: ts_js("if (typeof showToast === 'function') showToast('Document limit reached. Your #{plan.capitalize} plan allows #{effective_limit} documents. #{upgrade_msg}', true);") }

@@ -12,6 +12,13 @@ module Ai
 
       # Free/Starter: hard block at ticket limit
       if !@shop.pro? && @shop.tickets.where(created_at: Time.current.beginning_of_month..).count >= @shop.effective_ticket_limit
+        if @shop.starter?
+          cache_key = "limit_email:#{@shop.id}:ticket:#{Date.current}"
+          unless Rails.cache.exist?(cache_key)
+            Rails.cache.write(cache_key, true, expires_in: 1.day)
+            LimitReachedMailer.limit_reached(shop: @shop, resource: :ticket).deliver_later
+          end
+        end
         return {
           type:    "ticket_limit_reached",
           message: "Our support team is currently unavailable. Please contact the store directly for assistance."

@@ -85,14 +85,25 @@ class OutputController < ApplicationController
       shop         = Shop.find_by!(shopify_domain: params[:shop])
       conversation = Conversation.find_by(shop: shop, session_id: params[:session_id])
 
+      context_summary = nil
+      if conversation && params[:carry_context].to_s == "true"
+        context_summary = Rails.cache.read("ai:summary:conversation:#{conversation.id}")
+        if context_summary.blank?
+          msgs = conversation.messages.order(created_at: :asc).last(8)
+          context_summary = msgs.map { |m| "#{m.role.capitalize}: #{m.content.truncate(200)}" }.join("\n") if msgs.any?
+        end
+      end
+
       if conversation
         conversation.update_columns(status: "closed", ended_at: Time.current)
-
         Rails.cache.delete("ai:ctx:conversation:#{conversation.id}")
         Rails.cache.delete("ai:summary:conversation:#{conversation.id}")
       end
 
-      render json: { success: true, new_session_id: SecureRandom.uuid }
+      new_session_id = SecureRandom.uuid
+      Rails.cache.write("ai:pending_context:#{new_session_id}", context_summary, expires_in: 1.hour) if context_summary.present?
+
+      render json: { success: true, new_session_id: new_session_id }
     rescue => e
       Rails.logger.error("[Reset] #{e.class}: #{e.message}")
       render json: { success: false, error: e.message }, status: :internal_server_error

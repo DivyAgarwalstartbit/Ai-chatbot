@@ -15,7 +15,17 @@ module Ai
         session_id: @session_id
       )
 
-      memory.add(role: "user", content: @message, shop: @shop)
+      begin
+        memory.add(role: "user", content: @message, shop: @shop)
+      rescue Ai::MessageLimitError => e
+        # Starter / Pro: show a card with reset options instead of a plain error
+        return {
+          type:       "message_limit_reached",
+          message:    e.message,
+          session_id: memory.conversation.session_id
+        } unless @shop.free?
+        raise
+      end
 
       # ── Handoff guard ──────────────────────────────────────────
       if memory.conversation.handoff_mode?
@@ -28,10 +38,19 @@ module Ai
             time:    Time.current.strftime("%-I:%M %p")
           }
         )
-        return {
-          type:    "human_handoff_active",
-          message: "You're connected with our support team. Your message has been logged and an agent will respond shortly."
-        }
+
+        # Only remind the customer every 4th message — silent save otherwise
+        escalated_at     = memory.conversation.escalated_at || memory.conversation.created_at
+        handoff_msg_count = memory.conversation.messages
+                              .where(role: "user")
+                              .where("created_at >= ?", escalated_at)
+                              .count
+
+        reminder = (handoff_msg_count % 4 == 0) ?
+          "You're connected with our support team. Your message has been logged and an agent will respond shortly." :
+          ""
+
+        return { type: "human_handoff_active", message: reminder }
       end
 
       # ── Recommendation confirmation guard ──────────────────────

@@ -251,6 +251,7 @@ module Ai
 
       # Free/Starter: hard block at conversation limit
       if !shop.pro? && shop.conversations.where(created_at: Time.current.beginning_of_month..).count >= shop.effective_conversation_limit
+        notify_limit_reached(shop, :conversation) if shop.starter?
         raise ConversationLimitError, "Monthly conversation limit reached. Upgrade to Pro to continue."
       end
 
@@ -263,6 +264,13 @@ module Ai
         started_at: Time.current
       )
 
+      # If this is a "continue with context" reset, inject the previous summary
+      pending_ctx = Rails.cache.read("ai:pending_context:#{session_id}")
+      if pending_ctx.present?
+        Rails.cache.write("ai:summary:conversation:#{conv.id}", pending_ctx, expires_in: 7.days)
+        Rails.cache.delete("ai:pending_context:#{session_id}")
+      end
+
       # Pro: if count now exceeds limit, auto-charge overage (non-blocking — charge happens async-safe)
       if shop.overage_eligible? && shop.conversations.where(created_at: Time.current.beginning_of_month..).count > shop.effective_conversation_limit
         OverageService.new(shop: shop, resource_type: :conversation).check_and_charge!
@@ -274,6 +282,13 @@ module Ai
     def stale?(conv)
       threshold = conv.last_message_at || conv.created_at
       threshold < STALE_AFTER.ago
+    end
+
+    def notify_limit_reached(shop, resource)
+      cache_key = "limit_email:#{shop.id}:#{resource}:#{Date.current}"
+      return if Rails.cache.exist?(cache_key)
+      Rails.cache.write(cache_key, true, expires_in: 1.day)
+      LimitReachedMailer.limit_reached(shop: shop, resource: resource).deliver_later
     end
   end
 end

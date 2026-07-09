@@ -1,0 +1,25 @@
+Plan Limit Reached — AI Shopper
+=================================
+
+⚠️ Your <%= @label %> limit has been reached.
+
+Your Starter plan allows up to <%= @limit %> <%= @label.downcase %>.
+New <%= @label.downcase %> will be blocked until you upgrade or the monthly cycle resets.
+
+Store: <%= @shop.shopify_domain %>
+
+---
+
+Upgrade to Pro for $<%= @pro_price %>/month and get:
+  ✓ 80 conversations / month (vs 40 on Starter)
+  ✓ 50 support tickets / month (vs 20)
+  ✓ 10 documents · up to 5 MB each (vs 3 · 2 MB)
+  ✓ 500 products for AI training (vs 100)
+  ✓ 50 FAQs with AI suggestions
+  ✓ Pay-as-you-go overage — never get hard-blocked
+  ✓ Shopify policy sync & related product suggestions
+
+Upgrade now: <%= @upgrade_url %>
+
+---
+Sent by AI Shopper for <%= @shop.shopify_domain %>.

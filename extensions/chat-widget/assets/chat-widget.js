@@ -18,6 +18,8 @@ console.log("Chat widget loaded");
   let addToCartEnabled = true; // set from server config in boot()
   let relatedQuestionsEnabled = true;
   let relatedQuestionsCount = 3;
+  let widgetSettings = {};
+  let widgetAvatarUrl = "";
 
   const COLOR_HEX = {
     red: '#e74c3c', blue: '#3498db', green: '#27ae60', black: '#111111', white: '#f9f9f9',
@@ -182,6 +184,8 @@ console.log("Chat widget loaded");
     addToCartEnabled = s.enable_add_to_cart !== false;
     relatedQuestionsEnabled = s.enable_related_questions !== false;
     relatedQuestionsCount = s.related_questions_count || 3;
+    widgetSettings = s;
+    widgetAvatarUrl = s.assistant_avatar_url || "";
 
     render(s);
     applyVars(s);
@@ -540,6 +544,8 @@ ${animBubbleHtml}
 
     if (inner.type === "auth_required") { renderAuthCard(inner, avatarUrl); return; }
 
+    if (inner.type === "message_limit_reached") { renderMessageLimitCard(avatarUrl); return; }
+
     if (inner.type === "order_lookup_form") addOrderLookupForm(inner, avatarUrl);
     if (inner.type === "order_details" && inner.order) renderOrderCard(inner.order, avatarUrl);
 
@@ -549,7 +555,7 @@ ${animBubbleHtml}
     if (inner.type === "human_escalation") renderEscalationCard(inner, avatarUrl);
 
     // Related questions chips — skip for escalation/handoff/auth flows
-    const skipChips = ["human_escalation", "human_handoff_active", "auth_required", "order_lookup_form"];
+    const skipChips = ["human_escalation", "human_handoff_active", "auth_required", "order_lookup_form", "message_limit_reached"];
     if (relatedQuestionsEnabled && Array.isArray(inner.related_questions) && inner.related_questions.length &&
       !skipChips.includes(inner.type)) {
       renderRelatedQuestions(inner.related_questions, avatarUrl);
@@ -1274,6 +1280,71 @@ ${animBubbleHtml}
       </div>`;
     msgContainer().appendChild(row);
     scrollBottom();
+  }
+
+  // ── Message limit card ────────────────────────────────────
+  function renderMessageLimitCard(avatarUrl) {
+    const row = document.createElement("div");
+    row.className = "ai-message-row";
+    row.innerHTML = `
+      <div class="ai-message-avatar">
+        ${avatarUrl
+        ? `<img src="${esc(avatarUrl)}" alt="avatar">`
+        : `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#8c9196" stroke-width="1.8"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>`}
+      </div>
+      <div class="ai-limit-card">
+        <div class="ai-limit-icon">💬</div>
+        <div class="ai-limit-title">Conversation limit reached</div>
+        <div class="ai-limit-body">You've reached the message limit for this conversation. Choose how you'd like to continue.</div>
+        <div class="ai-limit-actions">
+          <button class="ai-limit-btn ai-limit-btn--fresh">Start Fresh Conversation</button>
+          <button class="ai-limit-btn ai-limit-btn--context">Continue with Context</button>
+        </div>
+      </div>`;
+    msgContainer().appendChild(row);
+    scrollBottom();
+
+    row.querySelector(".ai-limit-btn--fresh").addEventListener("click", () => doLimitReset(false, avatarUrl));
+    row.querySelector(".ai-limit-btn--context").addEventListener("click", () => doLimitReset(true, avatarUrl));
+  }
+
+  async function doLimitReset(carryContext, avatarUrl) {
+    try {
+      const body = { shop, session_id: sessionId, visitor_id: visitorId };
+      if (carryContext) body.carry_context = true;
+      const resp = await fetch(appUrl + "/chat/reset", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "ngrok-skip-browser-warning": "true" },
+        body: JSON.stringify(body)
+      });
+      const data = await resp.json();
+      if (data.new_session_id) {
+        sessionId = data.new_session_id;
+        sessionStorage.setItem("ai_session_id", sessionId);
+      }
+    } catch (_) {
+      sessionId = null;
+      sessionStorage.removeItem("ai_session_id");
+    }
+
+    promptsHidden = false;
+    handoffActive = false;
+    if (agentSocket) { agentSocket.close(); agentSocket = null; }
+    clearTimeout(agentReconnectTimer);
+
+    const msgs = msgContainer();
+    if (msgs) msgs.innerHTML = "";
+
+    const handoffNotice = root.querySelector(".ai-handoff-notice");
+    if (handoffNotice) handoffNotice.remove();
+    const inp = root.querySelector("#ai-input");
+    if (inp) inp.placeholder = "Type a message…";
+
+    const promptsEl = root.querySelector("#ai-prompts");
+    if (promptsEl) promptsEl.style.display = "";
+
+    const greeting = widgetSettings.greeting || "Hi there! 👋 How can I help you today?";
+    addBotMessage(greeting, avatarUrl);
   }
 
   function lockInputForHandoff(avatarUrl) {
