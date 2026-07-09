@@ -19,6 +19,14 @@ Rails.application.configure do
   config.hosts << /.*\.myshopify\.com/
   config.hosts << /.*\.onrender\.com/
 
+  # Allow WebSocket connections from Shopify storefronts and the app itself
+  config.action_cable.allowed_request_origins = [
+    /https?:\/\/.*\.myshopify\.com/,
+    /https?:\/\/.*\.onrender\.com/,
+    /https?:\/\/.*\.shopify\.com/,
+    ENV.fetch("HOST", "")
+  ]
+
   # Cache assets for far-future expiry since they are all digest stamped.
   config.public_file_server.headers = { "cache-control" => "public, max-age=#{1.year.to_i}" }
 
