@@ -109,8 +109,15 @@ class HomeController < ApplicationController
     !!(blocks&.any? do |_, block|
       block["type"].to_s.include?(ENV["APP_EMBED_ID"].to_s) && block["disabled"] != true
     end)
+  rescue ShopifyAPI::Errors::HttpResponseError => e
+    if e.response&.code == 401
+      Rails.logger.warn "[HomeController] App embed check skipped — invalid/expired token for #{current_shopify_domain}"
+    else
+      Rails.logger.warn "[HomeController] App embed check failed (HTTP #{e.response&.code}): #{e.message}"
+    end
+    true
   rescue => e
-    Rails.logger.error "[HomeController] App embed check failed: #{e.message}"
-    true # default to hidden banner on API error
+    Rails.logger.warn "[HomeController] App embed check failed: #{e.message}"
+    true
   end
 end
