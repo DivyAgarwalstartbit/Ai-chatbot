@@ -1,6 +1,6 @@
 <%# Locals: policy, policy_type, title, subtitle, form_url, attachment_url, placeholder, shop_origin, host, pro %>
 <% policy_key = policy_type.to_s.delete_suffix("_policy") %>
-<% policy_max_words = 1000 %>
+<% policy_max_chars = 5000 %>
 
 <div data-controller="modal" data-modal-type-value="policy" id="<%= policy_type %>_section_wrapper" style="<%= "margin-top:8px;" unless local_assigns[:first] %>">
   <details class="kb-accordion" id="accordion_<%= policy_key %>">
@@ -88,13 +88,13 @@
             autocomplete="off"
             value="<%= ERB::Util.html_escape(policy.content.to_s) %>"
             data-modal-target="textarea"
-            data-max-words="<%= policy_max_words %>"
+            data-max-chars="<%= policy_max_chars %>"
           ></s-text-area>
           <div style="display:flex; justify-content:flex-end; margin-top:4px;">
             <span id="<%= policy_type %>_word_count"
                   style="font-size:12px; color:#6d7175;"
-                  data-max="<%= policy_max_words %>">
-              0/<%= policy_max_words %> words
+                  data-max="<%= policy_max_chars %>">
+              0/<%= policy_max_chars %> chars
             </span>
           </div>
         <% end %>

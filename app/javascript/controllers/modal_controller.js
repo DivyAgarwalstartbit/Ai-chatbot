@@ -68,12 +68,12 @@ export default class extends Controller {
     } else {
       if (this.hasTextareaTarget) {
         const ta       = this.textareaTarget
-        const maxWords = parseInt(ta.dataset.maxWords || "1000", 10)
-        const text     = (ta.value || "").trim()
-        const count    = text === "" ? 0 : text.split(/\s+/).length
-        if (count > maxWords) {
+        const maxChars = parseInt(ta.dataset.maxChars || "5000", 10)
+        const text     = ta.value || ""
+        const count    = text.length
+        if (count > maxChars) {
           if (typeof showToast === "function") {
-            showToast(`Policy exceeds the ${maxWords}-word limit (${count}/${maxWords} words).`, true)
+            showToast(`Policy exceeds the ${maxChars}-character limit (${count}/${maxChars} chars).`, true)
           }
           return
         }

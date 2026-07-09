@@ -685,21 +685,20 @@
       hideSaveBar();
     }
 
-    function countWords(text) {
-      return text.trim() === '' ? 0 : text.trim().split(/\s+/).length;
+    function countChars(text) {
+      return text.length;
     }
 
-    function truncateToWordLimit(text, limit) {
-      var words = text.trim().split(/\s+/);
-      return words.length <= limit ? text : words.slice(0, limit).join(' ');
+    function truncateToCharLimit(text, limit) {
+      return text.length <= limit ? text : text.slice(0, limit);
     }
 
-    function updatePolicyWordCount(policyType, value) {
+    function updatePolicyCharCount(policyType, value) {
       var counter = document.getElementById(policyType + '_word_count');
       if (!counter) return;
-      var max = parseInt(counter.dataset.max || '1000', 10);
-      var count = countWords(value);
-      counter.textContent = count + '/' + max + ' words';
+      var max = parseInt(counter.dataset.max || '5000', 10);
+      var count = countChars(value);
+      counter.textContent = count + '/' + max + ' chars';
       if (count >= max) {
         counter.style.color = '#d72c0d';
       } else if (count > max * 0.9) {
@@ -715,22 +714,22 @@
       _activePolicyType = policyType;
 
       // Initialise counter with current content
-      updatePolicyWordCount(policyType, textarea.value || '');
+      updatePolicyCharCount(policyType, textarea.value || '');
 
       if (textarea._kbInputListener) {
         textarea.removeEventListener('input', textarea._kbInputListener);
       }
       textarea._kbInputListener = function() {
         var current = textarea.value || '';
-        var max = parseInt((textarea.dataset.maxWords || '1000'), 10);
-        var count = countWords(current);
+        var max = parseInt((textarea.dataset.maxChars || '5000'), 10);
+        var count = countChars(current);
         if (count > max) {
-          var truncated = truncateToWordLimit(current, max);
+          var truncated = truncateToCharLimit(current, max);
           textarea.value = truncated;
           textarea.setAttribute('value', truncated);
           current = truncated;
         }
-        updatePolicyWordCount(policyType, current);
+        updatePolicyCharCount(policyType, current);
         var isDirty = current !== _policyOriginals[policyType];
         if (isDirty) { showSaveBar(); } else { hideSaveBar(); }
       };
