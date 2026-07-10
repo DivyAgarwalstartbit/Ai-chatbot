@@ -200,10 +200,22 @@ module Ai
     # RELATED QUESTIONS
     # ──────────────────────────────────────────────────────────────
     def append_related_questions(response)
-      return response unless response.is_a?(Hash)
       return response unless related_questions_enabled?
 
+      # Streaming text responses come back as a plain string — wrap into a hash
+      # so the widget receives a structured done payload with session_id + related_questions
+      if response.is_a?(String) && response.present?
+        response = { type: "text", message: response }
+      end
+
+      return response unless response.is_a?(Hash)
+
+      # Build the best possible bot_text for context:
+      # prefer the full message, fall back to a joined summary of product titles
       bot_text = response[:message].to_s
+      if bot_text.blank? && response[:products].is_a?(Array)
+        bot_text = response[:products].map { |p| p[:title] || p["title"] }.compact.join(", ")
+      end
       return response if bot_text.blank?
 
       count     = related_questions_count
