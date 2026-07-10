@@ -167,7 +167,7 @@ module Ai
           image:    p.image_url,
           handle:   p.handle,
           variants: p.product_variants.map do |v|
-            { id: v.id, title: v.title, price: v.price, stock: v.inventory_quantity }
+            { id: v.id, title: v.title, price: v.price, stock: v.inventory_quantity, shopify_variant_id: v.shopify_variant_id }
           end
         }
       end

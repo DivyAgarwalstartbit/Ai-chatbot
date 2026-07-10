@@ -1013,11 +1013,13 @@ ${animBubbleHtml}
     card.className = "ai-product-card";
     card.dataset.variants = JSON.stringify(product.variants || []);
 
-    const imageUrl = product.image || (product.images && product.images[0] && product.images[0].src) || "";
+    let imageUrl = product.image || (product.images && product.images[0] && product.images[0].src) || "";
     if (imageUrl) {
-      const url = new URL(imageUrl);
-      url.searchParams.set("width", "200"); // agar width pehle se hai to update karega
-      imageUrl = url.toString();
+      try {
+        const url = new URL(imageUrl);
+        url.searchParams.set("width", "200");
+        imageUrl = url.toString();
+      } catch (_) { /* relative URL — use as-is */ }
     }
 
     const imageHtml = `
