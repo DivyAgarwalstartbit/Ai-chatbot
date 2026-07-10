@@ -362,7 +362,7 @@ module Ai
             shopify_variant_id: v["shopify_variant_id"],
             title:              v["title"],
             price:              v["price"],
-            stock:              v["stock"]
+            stock:              v["stock"] || v["inventory_quantity"]
           }
         end
       }

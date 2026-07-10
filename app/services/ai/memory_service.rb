@@ -110,6 +110,7 @@ module Ai
         "variants" => product.product_variants.map do |v|
           {
             "id"                 => v.id,
+            "shopify_variant_id" => v.shopify_variant_id,
             "title"              => v.title,
             "sku"                => v.sku,
             "price"              => v.price,
