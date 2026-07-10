@@ -70,30 +70,19 @@ module Shopify
     end
 
     def build_product_chunk
-      <<~TEXT
-        Product Name: #{@product.title}
-
-        Description:
-        #{clean_description}
-
-        AI Info:
-        #{@product.ai_info}
-
-        Variants:
-        #{variant_block}
-
-        Variant Attributes:
-        #{variant_attributes.join(", ")}
-
-        Price Range:
-        #{price_range}
-
-        Availability:
-        #{availability_summary}
-
-        Search Keywords:
-        #{search_keywords.join(", ")}
-      TEXT
+      parts = []
+      parts << "Product Name: #{@product.title}"
+      parts << "Description:\n#{clean_description}"             if clean_description.present?
+      parts << "AI Info:\n#{@product.ai_info}"                  if @product.ai_info.present?
+      parts << "Variants:\n#{variant_block}"                    if variant_block.present?
+      parts << "Variant Attributes:\n#{variant_attributes.join(", ")}" if variant_attributes.any?
+      parts << "Price Range:\n#{price_range}"                   if price_range.present?
+      parts << "Availability:\n#{availability_summary}"
+      parts << "Product Type:\n#{@product.product_type}"        if @product.product_type.present?
+      parts << "Tags:\n#{Array(@product.tags).join(", ")}"      if Array(@product.tags).any?
+      parts << "Collections:\n#{collection_names.join(", ")}"   if collection_names.any?
+      parts << "Search Keywords:\n#{search_keywords.join(", ")}"
+      parts.join("\n\n")
     end
 
     def clean_description
@@ -139,11 +128,18 @@ module Shopify
       in_stock ? "In Stock" : "Out of Stock"
     end
 
+    def collection_names
+      Array(@product.collections_data).filter_map { |c| c["title"] || c[:title] }.uniq
+    end
+
     def search_keywords
       [
         @product.title,
         clean_description,
         @product.ai_info,
+        @product.product_type,
+        Array(@product.tags).join(" "),
+        collection_names.join(" "),
         variant_attributes.join(" "),
         variant_titles.join(" ")
       ]

@@ -69,6 +69,10 @@ module Shopify
         end
       end
 
+      # Sync collection membership — Shopify bulk API only allows one nested
+      # connection (used by variants), so we do this in a separate GraphQL call.
+      Shopify::CollectionSyncService.new(@shop).call
+
       product_map.values.each do |product_id|
         ProductEmbeddingJob.perform_later(product_id)
       end

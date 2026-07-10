@@ -39,6 +39,8 @@ module Shopify
             title
             handle
             description
+            productType
+            tags
 
             metafield(namespace: "ai_support", key: "knowledge") {
               value
@@ -48,6 +50,16 @@ module Shopify
               ... on MediaImage {
                 image {
                   url
+                }
+              }
+            }
+
+            collections(first: 20) {
+              edges {
+                node {
+                  id
+                  title
+                  handle
                 }
               }
             }

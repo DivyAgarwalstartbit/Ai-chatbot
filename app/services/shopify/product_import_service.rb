@@ -21,13 +21,22 @@ module Shopify
         shop_id: @shop.id,
         shopify_product_id: shopify_id(data["id"])
       ).tap do |product|
-        product.title       = data["title"]
-        product.description = data["description"]
-        product.ai_info     = data.dig("metafield", "value")
-        product.handle      = data["handle"]
-        product.image_url   = data.dig("featuredMedia", "image", "url")
+        product.title        = data["title"]
+        product.description  = data["description"]
+        ai_val = data.dig("metafield", "value")
+        product.ai_info = ai_val if ai_val.present?
+        product.handle       = data["handle"]
+        product.image_url    = data.dig("featuredMedia", "image", "url")
         product.product_type = data["productType"] if data["productType"].present?
-        product.tags        = data["tags"] if data["tags"].present?
+        product.tags         = data["tags"]         if data["tags"].present?
+
+        collections = data.dig("collections", "edges")
+        if collections.present?
+          product.collections_data = collections.map { |e|
+            { "id" => shopify_id(e.dig("node", "id")), "title" => e.dig("node", "title"), "handle" => e.dig("node", "handle") }
+          }
+        end
+
         product.save!
       end
     end

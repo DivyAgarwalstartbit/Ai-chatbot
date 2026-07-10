@@ -51,7 +51,7 @@ module Ai
         ## Output schema (return ONLY valid JSON, no explanation):
 
         {
-          "product_name":  <string|null>,   // specific product name e.g. "Air Max 90", "iPhone 15 Pro"
+          "product_name":  <string|null>,   // specific product name or partial name e.g. "Air Max 90", "iPhone 15 Pro", "probook 14", "MacBook Pro" — include even if only part of the name is mentioned
           "keywords":      <string|null>,   // general search terms e.g. "running shoes", "wireless headphones"
           "variant_name":  <string|null>,   // exact variant string e.g. "64GB Black", "Small Blue"
           "product_type":  <string|null>,   // product category e.g. "shoes", "laptop", "t-shirt", "bag"

@@ -131,9 +131,16 @@ module Ai
     end
 
     def serve_recommendations(analyzed_query, reason, memory)
+      reference_product = nil
+      if reason == "out_of_stock"
+        pid = memory.get_context("last_product_id")
+        reference_product = Product.includes(:product_variants).find_by(id: pid) if pid.present?
+      end
+
       products = Ai::ProductRecommendationService.new(
-        shop:           @shop,
-        analyzed_query: analyzed_query
+        shop:              @shop,
+        analyzed_query:    analyzed_query,
+        reference_product: reference_product
       ).call.first(3)
 
       if products.blank?

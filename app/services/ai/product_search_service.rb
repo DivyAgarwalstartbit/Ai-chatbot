@@ -46,7 +46,7 @@ module Ai
     # PRODUCT NAME — strict
     # =====================================
     def apply_product_name(scope)
-      name = @analyzed_query[:product_name]
+      name = @analyzed_query[:product_name].presence || @analyzed_query[:keywords]
       return scope if name.blank?
 
       scope.where("products.title ILIKE ?", "%#{name}%")
